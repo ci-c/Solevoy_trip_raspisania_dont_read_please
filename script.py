@@ -156,8 +156,52 @@ def process_csv_file(file_path: Path) -> list:
     return schedule_data[1:]
 
 def process_xlsx_file(file_path: Path) -> list:
-    """Process a single XLSX file and return the schedule data."""
-    pass
+    """Process a single XLSX file and return the schedule data.
+
+    Args:
+        file_path (Path): Path to XLSX file to process
+
+    Returns:
+        list: Processed schedule data, excluding header row
+
+    """
+    schedule_data: list[list[str | int | list[int]]] = []
+    workbook = openpyxl.load_workbook(file_path)
+    worksheet = workbook.active
+
+    previous_row = []
+
+    # Skip header row if needed
+    start_row = 2 if worksheet[1][0].value == "пн" else 1
+
+    for row in worksheet.iter_rows(min_row=start_row, values_only=True):
+        current_row = list(row)
+
+        # Skip empty rows
+        if not any(current_row):
+            continue
+
+        # Convert day name to number
+        if current_row[0]:
+            current_row[0] = WEEK_DAYS[current_row[0].lower().strip()]
+
+        # Process schedule cells
+        for index, cell in enumerate(current_row):
+            if not cell and previous_row:
+                current_row[index] = previous_row[index]
+
+            # Process schedule intervals
+            if index == SCHEDULE_COLUMN_INDEX and cell:
+                current_row[index] = process_schedule_cell(str(cell))
+
+        # Clean numeric values
+        if isinstance(current_row[2], (int, float)):
+            current_row[2] = int(current_row[2])
+
+        previous_row = current_row.copy()
+        schedule_data.append(current_row)
+
+    return schedule_data
 
 
 def gen_schedule(sch: list[list[str | int | list[int]]], type_: str) -> list[list[str | int]]:
