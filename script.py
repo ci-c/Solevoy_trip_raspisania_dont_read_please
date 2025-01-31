@@ -155,6 +155,10 @@ def process_csv_file(file_path: Path) -> list:
 
     return schedule_data[1:]
 
+def process_xlsx_file(file_path: Path) -> list:
+    """Process a single XLSX file and return the schedule data."""
+    pass
+
 
 def gen_schedule(sch: list[list[str | int | list[int]]], type_: str) -> list[list[str | int]]:
     """Generate a schedule with expanded time slots and dates.
