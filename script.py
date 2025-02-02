@@ -99,6 +99,7 @@ def expand_interval(interval: str) -> list[int]:
 
     Returns:
         list[int]: List of integers in the interval
+
     """
     start, end = map(int, interval.split("-"))
     return list(range(start, end + 1))
@@ -112,6 +113,7 @@ def process_schedule_cell(cell: str) -> list[int]:
 
     Returns:
         list: Processed schedule data with expanded intervals
+
     """
     values = cell.replace(" ", "").split(",")
     result: list[int] = []
@@ -133,6 +135,7 @@ def process_csv_file(file_path: Path) -> list:
 
     Returns:
         list: The processed schedule data, excluding the header row.
+
     """
     schedule_data: list[list[str | int | list[int]]] = []
 
@@ -154,6 +157,7 @@ def process_csv_file(file_path: Path) -> list:
             schedule_data.append(current_row)
 
     return schedule_data[1:]
+
 
 def process_xlsx_file(file_path: Path) -> list:
     """Process a single XLSX file and return the schedule data.
@@ -244,8 +248,8 @@ def gen_schedule(sch: list[list[str | int | list[int]]], type_: str) -> list[lis
 
 
 def prepocess_schedule_for_excel(schedule_data: list[list[str | int | list[int]]]) -> list[list[str | int | list[int]]]:
-    schedule_data = schedule_data.copy()
     """Prepare schedule data for Excel export."""
+    schedule_data = schedule_data.copy()
     for i in range(len(schedule_data)):
         row = [
             schedule_data[i][0],
@@ -303,12 +307,12 @@ def gen_excel_file(schedule_data: list[list[str | int | list[int]]], id_: list) 
     lecture_fill = openpyxl.styles.PatternFill(
         start_color="FFE6E6",
         end_color="FFE6E6",
-        fill_type="solid"
+        fill_type="solid",
         )
     seminar_fill = openpyxl.styles.PatternFill(
         start_color="E6FFE6",
         end_color="E6FFE6",
-        fill_type="solid"
+        fill_type="solid",
         )
 
     # Main loop
@@ -419,6 +423,7 @@ def gen_ical(schedule_data: list[list[str | int | list[int]]], id_: str) -> None
                 event.description = f"{data}"
             event.location = "Piskarovskiy Ave, 47, Sankt-Peterburg, Russia, 195067"
             event.created = datetime.datetime.now(tz=ZoneInfo('Europe/Moscow'))
+            event.categories = [{"Л": "Лекция", "С": "Семинар"}[type_], "СЗГМУ"]
             calendar.events.add(event)
     filename: Path = Path(f"output/{id_}.ics")
     rich.print(f"Saving file: {filename} ({len(calendar.events)} events)")
