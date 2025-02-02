@@ -11,6 +11,7 @@ import rich
 
 from sw import get_sw_dict
 
+SWP_NAME: str = "ФП"
 ADD_BREAKS: bool = False
 ADD_MARK: bool = True
 FIRST_DATE = datetime.date(2025, 2, 3)  # Monday
@@ -428,7 +429,7 @@ def gen_ical(schedule_data: list[list[str | int | list[int]]], id_: str) -> None
         name: str = row[5]
         data: str = ""  # str(row)
         time_key: str = time[0].strftime("%H:%M")
-        if name.split("-")[0] == "ФП":
+        if name.split("-")[0] == SWP_NAME:
             sw = chek_sw(date, time_key, id_.split("_")[-1])
             if sw:
                 name += " [Б]"
