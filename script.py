@@ -9,6 +9,8 @@ import ics
 import openpyxl
 import rich
 
+from sw import get_sw_dict
+
 ADD_BREAKS: bool = False
 ADD_MARK: bool = True
 FIRST_DATE = datetime.date(2025, 2, 3)  # Monday
@@ -389,6 +391,25 @@ def gen_excel_file(schedule_data: list[list[str | int | list[int]]], id_: list) 
     workbook.save(filename)
 
 
+def chek_sw(date: datetime.date, time: str, group: str) -> str:
+    week = (date - FIRST_DATE).days // 7 + 1
+    d = get_sw_dict()
+    week_day: int = date.weekday()
+    o = d.get(week_day)
+    out = []
+    if o:
+        o = o.get(time)
+    if o:
+        o = o.get(week)
+    if o:
+        for i in o: # iter g-list
+            if i[:3] == group:
+                out.append(i)
+    if out:
+        return f"Басейн: f{", ".join(out)}"
+    return ""
+        
+
 def gen_ical(schedule_data: list[list[str | int | list[int]]], id_: str) -> None:
     """Generate an iCal file from the schedule data.
 
@@ -406,6 +427,13 @@ def gen_ical(schedule_data: list[list[str | int | list[int]]], id_: str) -> None
         type_: str = "Л" if row[4] == "l" else "С"
         name: str = row[5]
         data: str = ""  # str(row)
+        time_key: str = time[0].strftime("%H:%M")
+        if name.split("-")[0] == "ФП":
+            sw = chek_sw(date, time_key, id_.split("_")[-1])
+            if sw:
+                name += " [Б]"
+                data += sw + "\n"
+
         for i in [0, 2]:
             event: ics.Event = ics.Event()
             if ADD_BREAKS:
@@ -418,7 +446,7 @@ def gen_ical(schedule_data: list[list[str | int | list[int]]], id_: str) -> None
                 continue
             event.name = f"{type_} {name}"
             if ADD_MARK:
-                event.description = f"{data}\nhttps://t.me/mechnews_1k"
+                event.description = f"{data}https://t.me/mechnews_1k"
             else:
                 event.description = f"{data}"
             event.location = "Piskarovskiy Ave, 47, Sankt-Peterburg, Russia, 195067"
