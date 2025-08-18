@@ -45,27 +45,24 @@ def process_lessons_for_export(
         # Получаем данные о времени из единого источника
         lesson_type_key = "л" if "лекция" in lesson.lessonType.lower() else "с"
 
-        # Определяем номер занятия
-        lesson_time = []
-        for i in lesson.pairTime.split("-"):
-            f = i.split(".")
-            lesson_time.append(datetime.time(int(f[0]), int(f[1])))
-        lesson_time = tuple(lesson_time)
+        # --- НОВАЯ НАДЕЖНАЯ ЛОГИКА ОБРАБОТКИ ВРЕМЕНИ ---
+        # 1. Берем только время начала (часть строки до знака "-")
+        start_time_str = lesson.pairTime.split("-")[0]
+        t = start_time_str.split(".")
+        lesson_start_time = datetime.time(int(t[0]), int(t[1]))
 
+        # 2. Ищем номер пары по совпадению времени НАЧАЛА
         lesson_number = None
         for num, ring in enumerate(RINGS[lesson_type_key]):
-            if ring[0] == lesson_time:
+            # Сверяем только с временем начала первой "половинки" пары
+            if ring[0][0] == lesson_start_time:
                 lesson_number = num
-                break
-            if ring[1] == lesson_time:
-                lesson_number = False
-                # is 2d part of lesson
-                break
-        if lesson_number == False:
+                break  # Нашли пару, выходим из цикла
+
+        # 3. Если номер не найден, значит это вторая часть пары или неизвестное время -> пропускаем
+        if lesson_number is None:
             continue
-        elif lesson_number is None:
-            print("WARN!!! ring not found")
-            continue
+        # --- КОНЕЦ НОВОЙ ЛОГИКИ ---
 
         date = first_monday + datetime.timedelta(weeks=week_num - 1, days=day_index)
 
