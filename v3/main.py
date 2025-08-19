@@ -62,14 +62,17 @@ def main():
     semestr_num: int = 0 if earliest_lesson.semester == "осенний" else 1
     year: int = int(earliest_lesson.academicYear.split("/")[semestr_num])
     month: int = [9, 2][semestr_num]
-    first_monday_of_semestr: datetime.datetime = datetime.datetime(year, month, 1, tzinfo=ZoneInfo('Europe/Moscow'))
+    first_monday_of_semestr: datetime.date = datetime.date(year, month, 1)
+    while first_monday_of_semestr.weekday() != first_day_index:
+        first_monday_of_semestr += datetime.timedelta(days=1)
 
-    first_date = first_monday_of_semestr + datetime.timedelta(weeks=first_week_number - 1, days=first_day_index)
+
+    first_date = first_monday_of_semestr + datetime.timedelta(days=first_day_index)
     
     logger.info(f"Автоматически определена первая дата расписания: {first_date}")
     
     # 3. Обработка данных
-    processed_lessons = process_lessons_for_export(all_lessons, subgroup_name, first_date)
+    processed_lessons = process_lessons_for_export(all_lessons, subgroup_name, first_monday_of_semestr)
     
     if not processed_lessons:
         logger.info(f"Не найдено занятий для подгруппы {subgroup_name} после обработки. Завершение работы.")
