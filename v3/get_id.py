@@ -42,7 +42,7 @@ def find_schedule_ids(
         "courseNumber": course_number,
         "academicYear": academic_year,
         "lessonType": lesson_type,
-        "semester": semester
+        "semester": semester,
     }
     
     headers = {

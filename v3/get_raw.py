@@ -14,7 +14,7 @@ formatter = logging.Formatter('%(message)s')
 console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 
-def get_schedule_data(schedule_id: int) -> Optional[Dict]:
+def get_schedule_data(schedule_id: int) -> dict | None:
     """
     Fetches schedule data from the API by its ID.
     
@@ -35,8 +35,13 @@ def get_schedule_data(schedule_id: int) -> Optional[Dict]:
         logger.info("-" * 20)
         logger.info("General Schedule Information:")
         logger.info(f"  File Name: {data.get('fileName')}")
+        logger.debug(f"  xlsxHeaderDto: {data.get('xlsxHeaderDto')}")
         logger.info(f"  Form Type: {data.get('formType')}")
-        logger.info(f"  Schedule Status: {data.get('scheduleStatus', {}).get('name')}")
+        logger.info(f"  updateTime: {data.get('updateTime')}")
+        logger.info(f"  isUploadedFromExcel: {data.get('isUploadedFromExcel')}")
+        logger.info(f"  Schedule Status: {data.get('statusId')}")
+        #logger.info(f"  Keys: {data.keys()}")
+        logger.info(f"  Lesson: {data.get('scheduleLessonDtoList', [])[0]}")
         logger.info("-" * 20)
 
         return data
@@ -47,7 +52,7 @@ def get_schedule_data(schedule_id: int) -> Optional[Dict]:
         logger.error("JSON decoding error: The response is not valid JSON.")
         return None
 
-def process_lessons(schedule_data: Dict) -> List[Lesson]:
+def process_lessons(schedule_data: Dict) -> list[Lesson]:
     """
     Processes a list of lesson dictionaries, converts them to Lesson objects,
     and returns a list of all lessons.
@@ -68,14 +73,15 @@ def process_lessons(schedule_data: Dict) -> List[Lesson]:
                 logger.error(f"Error creating Lesson object due to missing fields: {e}")
                 logger.error(f"Skipping this lesson entry with keys: {list(lesson_dict.keys())}")
                 continue
+    logger.info(f"proced {len(lessons)} lessons")
     return lessons
 
 def main():
     """
     Main function to fetch, process, and display the schedule.
     """
-    schedule_id = 576
-    subgroup_name = "232б"
+    schedule_id = 541
+    subgroup_name = "102б"
     
     schedule_data = get_schedule_data(schedule_id)
     

@@ -26,7 +26,7 @@ def gen_excel_file(schedule_data: List[PostLesson], subgroup_name: str) -> None:
     worksheet.title = "Расписание"
 
     # --- Заголовок ---
-    worksheet.append([f"Расписание для {subgroup_name}. MechNews: https://t.me/mechnews_1k"])
+    worksheet.append([f"Расписание для {subgroup_name}. tg @wwkff"])
     worksheet.merge_cells("A1:G1")
     worksheet["A1"].alignment = Alignment(horizontal="center")
     worksheet["A1"].font = Font(size=14, name="Roboto")
@@ -70,8 +70,14 @@ def gen_excel_file(schedule_data: List[PostLesson], subgroup_name: str) -> None:
         week_number = (lesson_date - first_date_in_schedule).days // 7 + 1
         day_name = WEEK_DAYS_INVERTED.get(lesson_date.weekday(), "")
         lesson_number_display = lesson.lesson_number + 1
-        
+        lesson.lesson_type = lesson.lesson_type.upper()
         lesson_type_key = lesson.lesson_type.lower()
+        if lesson_type_key == 'с':
+            lesson_number_display = '1-2' if lesson_number_display == 1 else '3-4'
+        else:
+            lesson_number_display = str(lesson_number_display)
+
+
         try:
             time_info = RINGS[lesson_type_key][lesson.lesson_number]
             start_time = time_info[0][0]
@@ -80,11 +86,13 @@ def gen_excel_file(schedule_data: List[PostLesson], subgroup_name: str) -> None:
         except (KeyError, IndexError):
             time_string = "N/A"
 
+
+
         row_data = [
             week_number,
             lesson_date.strftime('%d.%m.%Y'),
             day_name,
-            f"'{lesson_number_display}-{lesson.lesson_seq}", # Добавил ' чтобы Excel не считал это датой
+            lesson_number_display,
             time_string,
             lesson.lesson_type,
             lesson.subject_name

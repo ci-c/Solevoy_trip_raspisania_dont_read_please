@@ -33,22 +33,40 @@ def process_lessons_for_export(
 
     # 1. Фильтрация по подгруппе
     def f_filter(lesson: Lesson) -> bool:
-        return lesson.subgroup == subgroup_name
+        r: bool = lesson.subgroup == subgroup_name.upper()
+        r = r or lesson.subgroup == subgroup_name.lower()
+        return r
 
     filtered_lessons = [lesson for lesson in raw_lessons if f_filter(lesson)]
     processed_lessons: list[PostLesson] = []
 
+    debug_stat = {}
+
     for lesson in filtered_lessons:
+
+
+
+        if lesson.fileName in debug_stat:
+            debug_stat[lesson.fileName] += 1
+        else:
+            debug_stat[lesson.fileName] = 1
+        if lesson.lessonType in debug_stat:
+            debug_stat[lesson.lessonType] += 1
+        else:
+            debug_stat[lesson.lessonType] = 1
+
+
+
         week_num = int(lesson.weekNumber)
-        day_index = WEEK_DAYS.get(lesson.dayName, 0)
+        day_index = WEEK_DAYS.get(lesson.dayName, 8)
 
         # Получаем данные о времени из единого источника
-        lesson_type_key = "л" if "лекция" in lesson.lessonType.lower() else "с"
-
+        lesson_type_key = "л" if "лекционного" == lesson.lessonType.lower() else "с"
         # --- НОВАЯ НАДЕЖНАЯ ЛОГИКА ОБРАБОТКИ ВРЕМЕНИ ---
+        lesson.pairTime = lesson.pairTime.replace(".", ":")
         # 1. Берем только время начала (часть строки до знака "-")
         start_time_str = lesson.pairTime.split("-")[0]
-        t = start_time_str.split(".")
+        t = start_time_str.split(":")
         lesson_start_time = datetime.time(int(t[0]), int(t[1]))
 
         # 2. Ищем номер пары по совпадению времени НАЧАЛА
@@ -84,4 +102,5 @@ def process_lessons_for_export(
     # 3. Сортировка по дате и номеру занятия
     processed_lessons.sort(key=attrgetter("date", "lesson_number"))
     logger.info(f"raw_lessons={len(raw_lessons)};filtered_lessons={len(filtered_lessons)};processed_lessons={len(processed_lessons)}")
+    logger.info(debug_stat)
     return processed_lessons
