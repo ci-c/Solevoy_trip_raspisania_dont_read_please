@@ -76,8 +76,8 @@ def process_lessons_for_export(
             continue
         # --- КОНЕЦ НОВОЙ ЛОГИКИ ---
 
-
-        date = first_day
+        first_monday = first_day - datetime.timedelta(days=first_day.weekday())
+        date = first_monday + datetime.timedelta(weeks=week_num - 1, days=day_index)
         lesson_counter[lesson.subjectName, lesson_type_key] = lesson_counter.get((lesson.subjectName, lesson_type_key), 0) + 1
         # Создаём чистый объект PostLesson
         post_lesson_meta = {
