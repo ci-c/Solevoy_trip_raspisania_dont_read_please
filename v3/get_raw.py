@@ -78,7 +78,7 @@ def process_lessons(schedule_data: Dict) -> list[Lesson]:
 
 def main():
     """
-    Main function to fetch, process, and display the schedule.
+    Main function to fetch, process, and display the schedule for tests.
     """
     schedule_id = 541
     subgroup_name = "102б"
