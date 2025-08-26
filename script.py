@@ -407,7 +407,7 @@ def chek_sw(date: datetime.date, time: str, group: str) -> str:
             if i[:3] == group:
                 out.append(i)
     if out:
-        return f"Басейн: f{", ".join(out)}"
+        return f"Басейн: {', '.join(out)}"
     return ""
         
 

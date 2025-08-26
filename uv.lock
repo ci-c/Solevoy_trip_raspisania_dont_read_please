@@ -1,0 +1,5 @@
+# This file is used by uv to track the project's dependencies.
+# It should be committed to version control.
+
+# To regenerate this file, run:
+# uv lock

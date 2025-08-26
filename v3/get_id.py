@@ -1,7 +1,7 @@
 import requests
 import json
 import logging
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 # Set up logging for the module
 logger = logging.getLogger(__name__)

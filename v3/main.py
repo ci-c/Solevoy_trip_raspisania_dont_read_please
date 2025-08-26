@@ -1,7 +1,6 @@
 import datetime
 import logging
 from pathlib import Path
-from zoneinfo import ZoneInfo
 
 from config import WEEK_DAYS
 from get_raw import get_schedule_data, process_lessons
@@ -56,7 +55,6 @@ def main():
 
     # 2. Определение первой даты расписания (логика остаётся здесь)
     earliest_lesson = min(all_lessons, key=lambda x: (int(x.weekNumber), WEEK_DAYS.get(x.dayName, 999)))
-    first_week_number = int(earliest_lesson.weekNumber)
     first_day_index = WEEK_DAYS.get(earliest_lesson.dayName, 0)
 
     semestr_num: int = 0 if earliest_lesson.semester == "осенний" else 1

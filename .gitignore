@@ -64,6 +64,14 @@ downloads/
 temp/
 tmp/
 
+# Project data files
+input/
+output/
+*.csv
+*.xlsx
+*.xls
+*.ics
+
 # OS
 .DS_Store
 .DS_Store?

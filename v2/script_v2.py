@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from datetime import date, time
 from enum import Enum
 from typing import Any, Union
-import csv
 from pathlib import Path
 
 FIRST_DATE = date(2025, 2, 3)  # Monday
@@ -94,7 +93,6 @@ def walk_days():
     while current_date <= LAST_DATE:
         if current_date.weekday() == 0:
             week_num += 1
-        weekday = current_date.weekday()
 
         print(f"Week {week_num}, {current_date}")
 

@@ -1,7 +1,7 @@
 import requests
 import json
 import logging
-from typing import Dict, List, Optional
+from typing import Dict, List
 from lesson import Lesson
 
 # Set up logging for the module

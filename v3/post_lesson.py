@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import date, time
+from datetime import date
 
 @dataclass
 class PostLesson:
