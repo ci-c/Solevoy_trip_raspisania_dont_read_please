@@ -60,32 +60,61 @@ class GroupSearchService:
     
     async def search_group_by_number(self, group_number: str) -> List[GroupInfo]:
         """Поиск группы по номеру (103а, 204б, etc)."""
-        # Нормализуем номер группы
-        normalized_number = self._normalize_group_number(group_number)
+        from loguru import logger
         
-        # Проверяем кэш
-        if normalized_number in self.groups_cache:
-            return self.groups_cache[normalized_number]
-        
-        # Получаем приоритетные фильтры (текущий семестр)
-        priority_filters = self.semester_detector.get_priority_filters()
-        
-        # Добавляем фильтр по группе
-        search_filters = {
-            **priority_filters,
-            "Группа": [group_number, normalized_number]
-        }
-        
-        # Ищем расписания
-        schedules = await search_schedules(search_filters)
-        
-        # Группируем по типу (лекции/семинары)
-        groups = self._process_schedules_to_groups(schedules, normalized_number)
-        
-        # Кэшируем результат
-        self.groups_cache[normalized_number] = groups
-        
-        return groups
+        try:
+            # Нормализуем номер группы
+            normalized_number = self._normalize_group_number(group_number)
+            logger.info(f"Searching for group: {group_number} (normalized: {normalized_number})")
+            
+            # Проверяем кэш
+            if normalized_number in self.groups_cache:
+                logger.info(f"Found group {normalized_number} in cache")
+                return self.groups_cache[normalized_number]
+            
+            # Получаем приоритетные фильтры (текущий семестр)
+            try:
+                priority_filters = self.semester_detector.get_priority_filters()
+            except Exception as e:
+                logger.warning(f"Failed to get priority filters: {e}, using defaults")
+                priority_filters = {"Семестр": ["осенний"], "Учебный год": ["2024/2025"]}
+            
+            # Добавляем фильтр по группе
+            search_filters = {
+                **priority_filters,
+                "Группа": [group_number, normalized_number]
+            }
+            
+            logger.info(f"Search filters: {search_filters}")
+            
+            # Ищем расписания с защитой от ошибок
+            try:
+                schedules = await search_schedules(search_filters)
+                logger.info(f"Found {len(schedules)} schedules")
+            except Exception as e:
+                logger.error(f"Error in search_schedules: {e}")
+                schedules = []
+            
+            if not schedules:
+                logger.warning(f"No schedules found for group {group_number}")
+                return []
+            
+            # Группируем по типу (лекции/семинары)
+            try:
+                groups = self._process_schedules_to_groups(schedules, normalized_number)
+                logger.info(f"Processed {len(groups)} groups")
+            except Exception as e:
+                logger.error(f"Error processing schedules: {e}")
+                groups = []
+            
+            # Кэшируем результат
+            self.groups_cache[normalized_number] = groups
+            
+            return groups
+            
+        except Exception as e:
+            logger.error(f"Critical error in search_group_by_number: {e}")
+            return []
     
     async def search_groups_by_filters(self, filters: Dict) -> List[GroupInfo]:
         """Поиск групп по фильтрам."""

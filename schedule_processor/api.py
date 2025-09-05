@@ -173,49 +173,124 @@ async def get_available_filters() -> Dict[str, List[str]]:
 
 async def search_schedules(selected_filters: Dict[str, List[str]]) -> List[Dict]:
     """Search schedules based on selected filters."""
-    # Map bot filters to API parameters
-    course_number = selected_filters.get("Курс", [])
-    speciality = selected_filters.get("Специальность", [])
-    group_stream = selected_filters.get("Поток", [])
-    semester = selected_filters.get("Семестр", [])
-    academic_year = selected_filters.get("Учебный год", [])
+    import asyncio
+    from concurrent.futures import ThreadPoolExecutor
     
-    # Find schedule IDs
-    schedule_ids = find_schedule_ids(
-        group_stream=group_stream,
-        speciality=speciality,
-        course_number=course_number,
-        academic_year=academic_year,
-        semester=semester
-    )
+    logger.info(f"Starting schedule search with filters: {selected_filters}")
     
-    if not schedule_ids:
-        return []
-    
-    # Get schedule data for each ID and format for display
-    results = []
-    for schedule_id in schedule_ids[:10]:  # Limit to first 10 results
-        schedule_data = get_schedule_data(schedule_id)
-        if schedule_data:
-            # Extract meaningful display name from schedule data
-            lessons = schedule_data.get('scheduleLessonDtoList', [])
-            if lessons:
-                first_lesson = lessons[0]
-                speciality_name = first_lesson.get('speciality', 'Unknown')
-                course_num = first_lesson.get('courseNumber', 'Unknown')
-                stream = first_lesson.get('groupStream', 'Unknown')
-                semester_name = first_lesson.get('semester', 'Unknown')
-                year = first_lesson.get('academicYear', 'Unknown')
-                
-                display_name = f"{speciality_name} - {course_num} курс, {stream} поток, {semester_name} {year}"
-            else:
-                file_name = schedule_data.get('fileName', f'Schedule {schedule_id}')
-                display_name = file_name
+    try:
+        # Map bot filters to API parameters
+        course_number = selected_filters.get("Курс", [])
+        speciality = selected_filters.get("Специальность", [])
+        group_stream = selected_filters.get("Поток", [])
+        semester = selected_filters.get("Семестр", [])
+        academic_year = selected_filters.get("Учебный год", [])
+        group = selected_filters.get("Группа", [])
+        
+        # Если есть группа, пробуем извлечь параметры из номера группы
+        if group and not course_number:
+            for group_num in group:
+                # Извлекаем курс из номера группы (например, из "103а" -> "1") 
+                if group_num and group_num[0].isdigit():
+                    course_number = [group_num[0]]
+                    break
+        
+        logger.info(f"API parameters: course={course_number}, speciality={speciality}, stream={group_stream}")
+        
+        # Find schedule IDs с защитой от блокировки
+        def _find_schedule_ids_sync():
+            return find_schedule_ids(
+                group_stream=group_stream,
+                speciality=speciality,
+                course_number=course_number,
+                academic_year=academic_year,
+                semester=semester
+            )
+        
+        # Выполняем поиск в отдельном потоке с тайм-аутом
+        loop = asyncio.get_event_loop()
+        with ThreadPoolExecutor() as executor:
+            try:
+                schedule_ids = await asyncio.wait_for(
+                    loop.run_in_executor(executor, _find_schedule_ids_sync),
+                    timeout=20.0
+                )
+            except asyncio.TimeoutError:
+                logger.error("Schedule IDs search timed out")
+                return []
+        
+        logger.info(f"Found {len(schedule_ids)} schedule IDs")
+        
+        if not schedule_ids:
+            logger.warning("No schedule IDs found")
+            return []
+        
+        # Get schedule data for each ID with limits and error handling
+        results = []
+        max_schedules = min(5, len(schedule_ids))  # Ограничиваем до 5 для скорости
+        
+        for i, schedule_id in enumerate(schedule_ids[:max_schedules]):
+            logger.info(f"Processing schedule {i+1}/{max_schedules}: ID {schedule_id}")
             
-            results.append({
-                'id': schedule_id,
-                'display_name': display_name,
-                'data': schedule_data
-            })
-    
-    return results
+            def _get_schedule_data_sync():
+                return get_schedule_data(schedule_id)
+            
+            try:
+                # Получаем данные расписания с тайм-аутом
+                schedule_data = await asyncio.wait_for(
+                    loop.run_in_executor(executor, _get_schedule_data_sync),
+                    timeout=15.0
+                )
+                
+                if schedule_data:
+                    # Extract meaningful display name from schedule data
+                    lessons = schedule_data.get('scheduleLessonDtoList', [])
+                    if lessons:
+                        first_lesson = lessons[0]
+                        speciality_name = first_lesson.get('speciality', 'Unknown')
+                        course_num = first_lesson.get('courseNumber', 'Unknown')
+                        stream = first_lesson.get('groupStream', 'Unknown')
+                        semester_name = first_lesson.get('semester', 'Unknown')
+                        year = first_lesson.get('academicYear', 'Unknown')
+                        
+                        display_name = f"{speciality_name} - {course_num} курс, {stream} поток, {semester_name} {year}"
+                        
+                        # Фильтруем по группе, если указана
+                        if group:
+                            group_found = False
+                            for lesson in lessons[:10]:  # Проверяем первые 10 занятий
+                                lesson_group = lesson.get('group', '')
+                                if any(g.lower() in lesson_group.lower() for g in group):
+                                    group_found = True
+                                    break
+                            if not group_found:
+                                logger.info(f"Schedule {schedule_id} doesn't contain requested group")
+                                continue
+                        
+                    else:
+                        file_name = schedule_data.get('fileName', f'Schedule {schedule_id}')
+                        display_name = file_name
+                    
+                    results.append({
+                        'id': schedule_id,
+                        'display_name': display_name,
+                        'data': schedule_data
+                    })
+                    
+                    logger.info(f"Successfully processed schedule {schedule_id}")
+                else:
+                    logger.warning(f"No data for schedule {schedule_id}")
+                    
+            except asyncio.TimeoutError:
+                logger.warning(f"Timeout getting data for schedule {schedule_id}")
+                continue
+            except Exception as e:
+                logger.error(f"Error processing schedule {schedule_id}: {e}")
+                continue
+        
+        logger.info(f"Returning {len(results)} processed schedules")
+        return results
+        
+    except Exception as e:
+        logger.error(f"Critical error in search_schedules: {e}")
+        return []

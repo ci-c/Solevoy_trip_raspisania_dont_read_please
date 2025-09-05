@@ -349,17 +349,29 @@ def get_group_result_keyboard(group_number: str) -> types.InlineKeyboardMarkup:
     return builder.as_markup()
 
 
-async def show_loading_spinner(message, text_prefix: str = "⏳ Загрузка"):
+async def show_loading_spinner(message, text_prefix: str = "⏳ Загрузка", duration: int = 10):
     """Показать спиннер во время загрузки."""
-    spinner_frames = ["⏳", "⌛", "⏳", "⌛"]
+    spinner_frames = list("🕐🕑🕒🕓🕔🕕🕖🕗🕘🕙🕚🕛")
+    steps = [
+        "Подключение к API...",
+        "Поиск в базе расписаний...", 
+        "Обработка данных...",
+        "Объединение лекций и семинаров...",
+        "Завершение..."
+    ]
     
-    for i in range(8):  # 2 секунды анимации
-        frame = spinner_frames[i % len(spinner_frames)]
-        try:
-            await message.edit_text(f"{frame} {text_prefix}...")
-            await asyncio.sleep(0.25)
-        except Exception:
-            break  # Если не можем редактировать, выходим
+    frames_per_step = max(1, duration // len(steps))
+    
+    for step_idx, step_text in enumerate(steps):
+        for i in range(frames_per_step):
+            frame = spinner_frames[i % len(spinner_frames)]
+            try:
+                progress = f"{step_idx + 1}/{len(steps)}"
+                await message.edit_text(f"{frame} {text_prefix}\n📊 {progress} | {step_text}")
+                await asyncio.sleep(0.5)
+            except Exception as e:
+                logger.warning(f"Could not update spinner: {e}")
+                break
 
 
 # --- 7. File generation function ---
@@ -1353,26 +1365,56 @@ async def handle_group_search(callback: types.CallbackQuery, callback_data: Grou
 async def process_group_number(message: Message, state: FSMContext) -> None:
     group_number = message.text.strip()
     
+    # Валидация ввода
+    if not group_number or len(group_number) > 10:
+        await message.answer(
+            "❌ Неверный формат номера группы.\n\n"
+            "Введите корректный номер (например: 103а, 204б):",
+            reply_markup=InlineKeyboardBuilder().button(
+                text="❌ Отмена", callback_data=MenuCallback(action="search_group")
+            ).as_markup()
+        )
+        return
+    
     # Показываем спиннер
-    loading_msg = await message.answer("⏳ Поиск группы...")
+    loading_msg = await message.answer("🔍 Начинаю поиск группы...")
     
     try:
-        # Создаем задачу поиска и анимации параллельно
+        # Создаем задачи параллельно
         group_search_service = GroupSearchService()
         
-        # Запускаем анимацию в фоне
-        spinner_task = asyncio.create_task(show_loading_spinner(loading_msg, "Поиск группы"))
+        # Запускаем поиск и спиннер параллельно
+        search_task = asyncio.create_task(group_search_service.search_group_by_number(group_number))
+        spinner_task = asyncio.create_task(show_loading_spinner(loading_msg, f"Поиск группы {group_number}", 15))
         
-        # Ищем группу
-        groups = await group_search_service.search_group_by_number(group_number)
-        
-        # Останавливаем анимацию
-        spinner_task.cancel()
+        # Ждем завершения поиска с тайм-аутом
+        try:
+            groups = await asyncio.wait_for(search_task, timeout=30.0)
+            spinner_task.cancel()  # Останавливаем спиннер
+            
+        except asyncio.TimeoutError:
+            spinner_task.cancel()
+            await loading_msg.edit_text(
+                f"⏱️ Поиск группы `{group_number}` занял слишком много времени.\n\n"
+                f"Попробуйте позже или проверьте номер группы.",
+                reply_markup=get_group_search_keyboard()
+            )
+            await state.set_state(GroupSearchStates.choosing_search_type)
+            return
+            
+        except Exception as search_error:
+            spinner_task.cancel()
+            logger.error(f"Search task failed: {search_error}")
+            raise search_error
         
         if not groups:
             await loading_msg.edit_text(
                 f"❌ Группа `{group_number}` не найдена.\n\n"
-                f"Проверьте правильность номера и попробуйте снова.",
+                f"Возможные причины:\n"
+                f"• Неверный номер группы\n"
+                f"• Группа не активна в текущем семестре\n"
+                f"• Временная недоступность данных\n\n"
+                f"Попробуйте другой номер:",
                 reply_markup=get_group_search_keyboard()
             )
             await state.set_state(GroupSearchStates.choosing_search_type)
@@ -1380,6 +1422,7 @@ async def process_group_number(message: Message, state: FSMContext) -> None:
         
         # Берем первую найденную группу
         group_info = groups[0]
+        logger.info(f"Found group: {group_info.number}, speciality: {group_info.speciality}")
         
         # Сохраняем в состояние
         await state.update_data(current_group_info=group_info)
@@ -1389,12 +1432,21 @@ async def process_group_number(message: Message, state: FSMContext) -> None:
         await show_group_schedule(loading_msg, group_info, "current", state)
         
     except Exception as e:
-        logger.error(f"Error searching group {group_number}: {e}")
-        await loading_msg.edit_text(
-            f"❌ Ошибка при поиске группы `{group_number}`.\n\n"
-            f"Попробуйте позже или используйте другой номер.",
-            reply_markup=get_group_search_keyboard()
-        )
+        logger.error(f"Critical error searching group {group_number}: {e}")
+        try:
+            await loading_msg.edit_text(
+                f"❌ Критическая ошибка при поиске группы `{group_number}`.\n\n"
+                f"Техническая информация: {str(e)[:100]}...\n\n"
+                f"Попробуйте позже или обратитесь к администратору.",
+                reply_markup=get_group_search_keyboard()
+            )
+        except Exception as edit_error:
+            logger.error(f"Could not edit error message: {edit_error}")
+            await message.answer(
+                f"❌ Произошла критическая ошибка.\n\n"
+                f"Попробуйте перезапустить бота командой /start"
+            )
+        
         await state.set_state(GroupSearchStates.choosing_search_type)
 
 
@@ -1403,9 +1455,13 @@ async def show_group_schedule(message, group_info, week: str, state: FSMContext)
     try:
         group_search_service = GroupSearchService()
         
-        # Определяем номер недели
-        semester_info = group_search_service.semester_detector.get_current_semester_info()
-        current_week = semester_info.current_week
+        # Определяем номер недели с защитой от ошибок
+        try:
+            semester_info = group_search_service.semester_detector.get_current_semester_info()
+            current_week = semester_info.current_week
+        except Exception as e:
+            logger.warning(f"Failed to get semester info: {e}, using default week")
+            current_week = 1
         
         if week == "current":
             week_number = current_week
@@ -1416,30 +1472,83 @@ async def show_group_schedule(message, group_info, week: str, state: FSMContext)
         else:
             week_number = current_week
         
-        # Форматируем расписание
-        schedule_text = group_search_service.format_group_schedule(group_info, week_number)
+        logger.info(f"Showing schedule for group {group_info.number}, week {week_number}")
         
-        # Добавляем дисклеймер
-        disclaimer_manager = DisclaimerManager(BASE_DIR / "user_data" / "agreements")
-        disclaimer = disclaimer_manager.get_short_disclaimer()
+        # Форматируем расписание с защитой от ошибок
+        try:
+            schedule_text = group_search_service.format_group_schedule(group_info, week_number)
+            
+            if not schedule_text or schedule_text.strip() == "":
+                schedule_text = f"📅 **Расписание группы {group_info.number}**\n\n❌ Нет данных для отображения."
+                
+        except Exception as e:
+            logger.error(f"Error formatting schedule: {e}")
+            schedule_text = f"📅 **Расписание группы {group_info.number}**\n\n❌ Ошибка при обработке данных расписания.\n\nТехническая информация: {str(e)[:100]}"
+        
+        # Добавляем дисклеймер с защитой от ошибок
+        try:
+            disclaimer_manager = DisclaimerManager(BASE_DIR / "user_data" / "agreements")
+            disclaimer = disclaimer_manager.get_short_disclaimer()
+        except Exception as e:
+            logger.warning(f"Failed to get disclaimer: {e}")
+            disclaimer = "\n⚠️ Информация может быть неактуальной. Уточняйте расписание в официальных источниках."
         
         full_text = f"{schedule_text}\n\n{disclaimer}"
         
-        # Ограничиваем длину сообщения
-        if len(full_text) > 4000:
-            full_text = full_text[:3900] + "\n\n... (сокращено)\n\n" + disclaimer
+        # Ограничиваем длину сообщения для Telegram
+        max_length = 4000
+        if len(full_text) > max_length:
+            # Обрезаем текст расписания, сохраняя дисклеймер
+            available_length = max_length - len(disclaimer) - 50  # Запас для "... (сокращено)"
+            truncated_schedule = schedule_text[:available_length] + "\n\n... (сокращено)"
+            full_text = f"{truncated_schedule}\n\n{disclaimer}"
         
-        keyboard = get_group_result_keyboard(group_info.number)
+        # Создаем клавиатуру с защитой от ошибок
+        try:
+            keyboard = get_group_result_keyboard(group_info.number)
+        except Exception as e:
+            logger.warning(f"Failed to create keyboard: {e}")
+            keyboard = InlineKeyboardBuilder().button(
+                text="🏠 В меню", callback_data=MenuCallback(action="home")
+            ).as_markup()
         
-        await message.edit_text(full_text, reply_markup=keyboard)
+        # Отправляем сообщение с защитой от ошибок
+        try:
+            await message.edit_text(full_text, reply_markup=keyboard)
+            logger.info(f"Successfully displayed schedule for group {group_info.number}")
+        except Exception as e:
+            logger.error(f"Failed to edit message: {e}")
+            # Пробуем отправить новое сообщение
+            try:
+                await message.answer(full_text, reply_markup=keyboard)
+            except Exception as send_error:
+                logger.error(f"Failed to send new message: {send_error}")
+                await message.answer("❌ Критическая ошибка при отображении расписания.")
         
     except Exception as e:
-        logger.error(f"Error showing group schedule: {e}")
-        await message.edit_text(
-            "❌ Ошибка при отображении расписания.\n\n"
-            "Попробуйте еще раз.",
-            reply_markup=get_group_search_keyboard()
-        )
+        logger.error(f"Critical error showing group schedule: {e}")
+        try:
+            error_text = (
+                f"❌ Критическая ошибка при отображении расписания.\n\n"
+                f"Группа: {getattr(group_info, 'number', 'Unknown')}\n"
+                f"Ошибка: {str(e)[:200]}...\n\n"
+                f"Попробуйте:\n"
+                f"• Поиск другой группы\n"
+                f"• Повторить попытку позже\n"
+                f"• Обратиться к администратору"
+            )
+            
+            keyboard = InlineKeyboardBuilder()
+            keyboard.button(text="🔍 Новый поиск", callback_data=MenuCallback(action="search_group"))
+            keyboard.button(text="🏠 В меню", callback_data=MenuCallback(action="home"))
+            keyboard.adjust(2)
+            
+            await message.edit_text(error_text, reply_markup=keyboard.as_markup())
+            
+        except Exception as final_error:
+            logger.critical(f"Could not display error message: {final_error}")
+            # Последняя попытка - простое текстовое сообщение
+            await message.answer("❌ Произошла критическая ошибка. Перезапустите бота командой /start")
 
 
 # --- 9. Error handler ---
