@@ -53,7 +53,8 @@ def find_schedule_ids(
     }
     
     try:
-        response = requests.post(url, headers=headers, data=json.dumps(payload))
+        # Добавляем тайм-аут 10 секунд для API запросов
+        response = requests.post(url, headers=headers, data=json.dumps(payload), timeout=10)
         response.raise_for_status()
         data = response.json()
         
@@ -85,7 +86,8 @@ def get_schedule_data(schedule_id: int) -> dict | None:
     api_url = f'https://frsview.szgmu.ru/api/xlsxSchedule/findById?xlsxScheduleId={schedule_id}'
     
     try:
-        response = requests.get(api_url)
+        # Добавляем тайм-аут 15 секунд для загрузки данных расписания
+        response = requests.get(api_url, timeout=15)
         response.raise_for_status()
         data = response.json()
         
@@ -139,19 +141,34 @@ def process_lessons(schedule_data: Dict) -> list[Lesson]:
 
 async def get_available_filters() -> Dict[str, List[str]]:
     """Get available filters for the bot interface."""
-    # This would normally make API calls to get dynamic filters
-    # For now, return common options
-    return {
-        "Курс": ["1", "2", "3", "4", "5", "6"],
-        "Специальность": [
-            "31.05.01 лечебное дело",
-            "32.05.01 медико-профилактическое дело",
-            "33.05.01 фармация"
-        ],
-        "Поток": ["а", "б", "в", "г"],
-        "Семестр": ["весенний", "осенний"],
-        "Учебный год": ["2024/2025", "2025/2026"]
-    }
+    # Return static options to avoid API timeout issues
+    # TODO: Implement dynamic loading with timeout protection
+    logger.info("Loading static filters for bot interface")
+    
+    try:
+        return {
+            "Курс": ["1", "2", "3", "4", "5", "6"],
+            "Специальность": [
+                "Лечебное дело",
+                "Медико-профилактическое дело", 
+                "Фармация",
+                "Педиатрия",
+                "Стоматология",
+                "Биотехнология",
+                "Клиническая психология"
+            ],
+            "Поток": ["а", "б", "в", "г"],
+            "Семестр": ["весенний", "осенний"],
+            "Учебный год": ["2024/2025", "2025/2026"]
+        }
+    except Exception as e:
+        logger.error(f"Error loading filters: {e}")
+        # Fallback to minimal filters
+        return {
+            "Курс": ["1", "2", "3", "4", "5", "6"],
+            "Специальность": ["Лечебное дело", "Педиатрия"],
+            "Поток": ["а", "б", "в"]
+        }
 
 
 async def search_schedules(selected_filters: Dict[str, List[str]]) -> List[Dict]:
