@@ -154,8 +154,8 @@ async def generate_schedule_file(search_result: Dict, format_type: str, subgroup
         import sys
         from pathlib import Path
         
-        # Add v3 to path temporarily
-        v3_path = Path(__file__).parent / "v3"
+        # Add legacy/v3 to path temporarily
+        v3_path = Path(__file__).parent / "legacy" / "v3"
         sys.path.insert(0, str(v3_path))
         
         from get_raw import process_lessons

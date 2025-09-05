@@ -261,12 +261,13 @@ SCHEDULE_ENDPOINT = "/schedule/find"
 - **[.env.example](.env.example)** - Environment configuration template
 
 ### For Developers  
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Detailed architecture overview and version evolution
-- **[TECHNICAL.md](TECHNICAL.md)** - Deep technical documentation with code examples
-- **[ANALYSIS.md](ANALYSIS.md)** - Comparative analysis of all project versions
+- **[ai_docs/ARCHITECTURE.md](ai_docs/ARCHITECTURE.md)** - Detailed architecture overview and version evolution
+- **[ai_docs/TECHNICAL.md](ai_docs/TECHNICAL.md)** - Deep technical documentation with code examples
+- **[ai_docs/ANALYSIS.md](ai_docs/ANALYSIS.md)** - Comparative analysis of all project versions
+- **[ai_docs/modular_structure.md](ai_docs/modular_structure.md)** - Current modular architecture
 
 ### Testing
-- **[test_bot.py](test_bot.py)** - API function testing
+- **[legacy/test_bot.py](legacy/test_bot.py)** - Legacy API function testing
 - **[run.py](run.py)** - Unified runner with test mode
 
 ## License 📄

@@ -33,6 +33,8 @@ dependencies = [
     "requests>=2.31.0",
     "rich>=13.7.0",
     "loguru>=0.7.0",
+    "PyYAML>=6.0.0",
+    "click>=8.0.0",
 ]
 
 [project.optional-dependencies]
@@ -50,6 +52,7 @@ dev = [
 schedule-processor = "main_api:main"
 schedule-bot = "bot_main:main"
 schedule-run = "run:main"
+szgmu-schedule = "cli:cli"
 
 [project.urls]
 Homepage = "https://github.com/yourusername/schedule-processor"

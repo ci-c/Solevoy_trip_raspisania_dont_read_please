@@ -1,0 +1,24 @@
+# Завершенные задачи
+x перениси всё нужное только для ai в эту папку
+x проверь ai_docs, перенеси заметки об архитектуре и прочую шелуху туда, лищнее удали  
+x описать UX бот на русском в ai_docs
+x расширить UX с учетом специфики СЗГМУ (system of applications, пропуски, отработки, КНЛ/КНС)
+x 2025-01-09 перенести конфигурацию из .py в .yaml +config +yaml @ai created:2025-01-09
+x 2025-01-09 создать CLI интерфейс с использованием библеотеки click +cli +click @ai due:2025-01-15 completed:2025-01-09
+x 2025-01-09 создать модели данных для студенческого дневника +models +database @ai completed:2025-01-09
+x 2025-01-09 создать модульную структуру и перенести v3 в legacy +refactor +structure @ai completed:2025-01-09
+
+# Высокий приоритет - требуют документов пользователя 
+(A) конвертировать документы .doc в текст +documents +szgmu @wait_user project:szgmu_integration
+(A) читать положение о текущем контроле успеваемости для понимания КНЛ/КНС +knl_kns +documents @from_user project:szgmu_integration  
+
+# Средний приоритет - основной функционал
+(B) исправить код бота согласно UX описанию +bot +refactor @ai project:bot_v2
+(B) система заявлений на пропуски (по дисциплинам + объяснительная) +bot +szgmu +documents @ai project:bot_v2
+(B) добавить типизацию во все Python модули +types +refactor @ai project:quality
+(B) обновить документацию после изменения структуры проекта +docs +update @ai project:maintenance
+
+# Низкий приоритет - дополнительный функционал  
+(C) интеграция с расписанием экзаменов https://szgmu.ru/rus/m/660/ +integration +pdf +ai @ai due:2025-02-01 project:exam_integration
+(C) создать тесты для основных модулей +testing +pytest @ai project:quality
+(C) интеграция с SDO Moodle для учебных планов +moodle +sdo @wait_user project:integrations 
