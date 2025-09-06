@@ -249,31 +249,7 @@ async def main() -> None:
     finally:
         if app is not None:
             await app.stop()
-    load_dotenv()
-
-    token = os.getenv("BOT_API_KEY")
-    if not token:
-        logger.critical("BOT_API_KEY not found in environment variables")
-        sys.exit(1)
-
-    base_dir = Path(__file__).resolve().parent.parent.parent
-    (base_dir / "logs").mkdir(exist_ok=True)
-    (base_dir / "data").mkdir(exist_ok=True)
-
-    logging_config = LoggingConfig(base_dir)
-    logging_config.setup_logging()
-
-    log_bot_startup()
-
-    app = create_bot_app(token)
-
-    try:
-        await app.start()
-    except KeyboardInterrupt:
-        logger.info("Received keyboard interrupt")
-    finally:
-        log_bot_shutdown()
-        await app.stop()
+            log_bot_shutdown()
 
 
 if __name__ == "__main__":
