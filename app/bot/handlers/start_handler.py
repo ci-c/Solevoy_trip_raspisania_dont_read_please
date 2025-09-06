@@ -14,6 +14,11 @@ from app.services.user_service import UserService
 
 async def cmd_start(message: types.Message, state: FSMContext) -> None:
     """Обработчик команды /start."""
+    if not message.from_user:
+        logger.info("Unknown user started the bot")
+        await message.answer("Error: Could not identify user.")
+        return
+
     logger.info(f"User {message.from_user.id} started the bot")
     await state.clear()
 
