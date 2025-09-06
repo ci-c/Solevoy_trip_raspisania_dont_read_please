@@ -13,6 +13,7 @@ from .education import Semester
 
 class ScheduleType(str, Enum):
     """Типы расписаний."""
+
     LECTURES = "lectures"
     SEMINARS = "seminars"
     PRACTICE = "practice"
@@ -21,6 +22,7 @@ class ScheduleType(str, Enum):
 
 class LessonType(str, Enum):
     """Типы занятий."""
+
     LECTURE = "lecture"
     SEMINAR = "seminar"
     PRACTICE = "practice"
@@ -30,7 +32,7 @@ class LessonType(str, Enum):
 
 class Schedule(BaseModel):
     """Расписание (источник данных)."""
-    
+
     source_id: Optional[str] = Field(None, description="ID из внешнего API")
     file_name: Optional[str] = Field(None, description="Имя файла")
     schedule_type: ScheduleType = Field(..., description="Тип расписания")
@@ -45,31 +47,31 @@ class Schedule(BaseModel):
 
 class Lesson(BaseModel):
     """Занятие (парсированное из расписания)."""
-    
+
     schedule_id: int = Field(..., description="ID расписания")
     subject_id: Optional[int] = Field(None, description="ID предмета")
     teacher_id: Optional[int] = Field(None, description="ID преподавателя")
     room_id: Optional[int] = Field(None, description="ID аудитории")
     group_id: Optional[int] = Field(None, description="ID группы")
-    
+
     lesson_type: LessonType = Field(..., description="Тип занятия")
     subgroup: Optional[str] = Field(None, description="Подгруппа")
-    
+
     week_number: int = Field(..., description="Номер недели")
     day_of_week: int = Field(..., description="День недели (1-7)")
     day_name: Optional[str] = Field(None, description="Название дня")
     time_start: str = Field(..., description="Время начала")
     time_end: str = Field(..., description="Время окончания")
-    
+
     duration_minutes: Optional[int] = Field(None, description="Длительность в минутах")
     is_online: bool = Field(False, description="Онлайн занятие")
     notes: Optional[str] = Field(None, description="Примечания")
-    
+
     @property
     def time_range(self) -> str:
         """Временной диапазон занятия."""
         return f"{self.time_start}-{self.time_end}"
-    
+
     def get_display_info(self) -> str:
         """Получить информацию для отображения."""
         type_emoji = {
@@ -77,8 +79,8 @@ class Lesson(BaseModel):
             LessonType.SEMINAR: "📝",
             LessonType.PRACTICE: "🔬",
             LessonType.EXAM: "📊",
-            LessonType.CONSULTATION: "💬"
+            LessonType.CONSULTATION: "💬",
         }.get(self.lesson_type, "📋")
-        
+
         subgroup_info = f" | Подгр. {self.subgroup}" if self.subgroup else ""
         return f"{type_emoji} {self.lesson_type}{subgroup_info}"

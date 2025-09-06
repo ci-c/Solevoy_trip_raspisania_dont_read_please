@@ -12,10 +12,22 @@ from .system import Setting, ActivityLog, SearchCache
 
 __all__ = [
     "BaseModel",
-    "User", "StudentProfile", "Subscription",
-    "Invitation", "InvitationUsage", 
-    "Speciality", "StudyGroup", "Subject", "Teacher", "Room",
-    "Schedule", "Lesson",
-    "Grade", "Attendance", "Homework",
-    "Setting", "ActivityLog", "SearchCache"
+    "User",
+    "StudentProfile",
+    "Subscription",
+    "Invitation",
+    "InvitationUsage",
+    "Speciality",
+    "StudyGroup",
+    "Subject",
+    "Teacher",
+    "Room",
+    "Schedule",
+    "Lesson",
+    "Grade",
+    "Attendance",
+    "Homework",
+    "Setting",
+    "ActivityLog",
+    "SearchCache",
 ]

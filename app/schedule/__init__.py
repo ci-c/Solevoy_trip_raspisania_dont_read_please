@@ -1,13 +1,7 @@
-"""
-Модули для работы с расписаниями и API СЗГМУ.
-"""
+"""Schedule management package."""
 
-from .api_client import APIClient
-from .semester_detector import SemesterDetector
-from .group_search import GroupSearchService
+from app.schedule.api import search_schedules, get_available_filters
+from app.schedule.group_search import GroupSearchService
+from app.schedule.semester_detector import SemesterDetector
 
-__all__ = [
-    "APIClient",
-    "SemesterDetector", 
-    "GroupSearchService"
-]
+__all__ = ["search_schedules", "get_available_filters", "GroupSearchService", "SemesterDetector"]

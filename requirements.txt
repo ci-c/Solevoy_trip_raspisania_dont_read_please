@@ -1,6 +1,23 @@
-ics
-openpyxl
-python-dateutil
-rich
-zoneinfo
-aiogram
+# Основные зависимости бота
+aiogram==3.13.1
+loguru==0.7.2
+python-dotenv==1.0.0
+requests==2.31.0
+
+# База данных
+aiosqlite==0.20.0
+pydantic==2.9.2
+
+# Дополнительные утилиты
+python-dateutil==2.8.2
+pytz==2023.3
+rich==13.7.0
+
+# Для работы с Excel и календарями
+openpyxl==3.1.2
+ics==0.7.2
+
+# Для тестирования (dev зависимости)
+pytest==7.4.4
+pytest-asyncio==0.21.1
+ruff==0.1.15

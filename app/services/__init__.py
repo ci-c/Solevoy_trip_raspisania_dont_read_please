@@ -10,8 +10,8 @@ from .academic_service import AcademicService
 
 __all__ = [
     "UserService",
-    "InvitationService", 
+    "InvitationService",
     "EducationService",
     "ScheduleService",
-    "AcademicService"
+    "AcademicService",
 ]

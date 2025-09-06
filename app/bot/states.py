@@ -7,6 +7,7 @@ from aiogram.fsm.state import State, StatesGroup
 
 class ProfileSetup(StatesGroup):
     """Состояния настройки профиля."""
+
     waiting_name = State()
     selecting_speciality = State()
     selecting_course = State()
@@ -17,6 +18,7 @@ class ProfileSetup(StatesGroup):
 
 class MainMenu(StatesGroup):
     """Главное меню."""
+
     home = State()
     schedule_view = State()
     diary_view = State()
@@ -27,6 +29,7 @@ class MainMenu(StatesGroup):
 
 class SearchForm(StatesGroup):
     """Состояния поиска расписания."""
+
     waiting_activation = State()
     selecting_filters = State()
     selecting_options = State()
@@ -38,6 +41,7 @@ class SearchForm(StatesGroup):
 
 class DiaryStates(StatesGroup):
     """Состояния дневника."""
+
     main_view = State()
     adding_grade = State()
     adding_homework = State()
@@ -47,6 +51,7 @@ class DiaryStates(StatesGroup):
 
 class ApplicationStates(StatesGroup):
     """Состояния заявлений."""
+
     selecting_dates = State()
     selecting_reason = State()
     generating_docs = State()
@@ -54,6 +59,7 @@ class ApplicationStates(StatesGroup):
 
 class AttestationStates(StatesGroup):
     """Состояния справочника аттестации."""
+
     main_view = State()
     asking_question = State()
     viewing_info = State()
@@ -61,6 +67,7 @@ class AttestationStates(StatesGroup):
 
 class GradeStates(StatesGroup):
     """Состояния управления оценками."""
+
     main_view = State()
     selecting_subject = State()
     viewing_subject = State()
@@ -72,6 +79,7 @@ class GradeStates(StatesGroup):
 
 class GroupSearchStates(StatesGroup):
     """Состояния поиска групп."""
+
     choosing_search_type = State()
     entering_group_number = State()
     selecting_speciality = State()
