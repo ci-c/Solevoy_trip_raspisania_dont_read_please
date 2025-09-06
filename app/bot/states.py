@@ -1,6 +1,7 @@
-"""
-FSM состояния для бота.
-"""
+# Copyright (c) 2024 SZGMU Bot Project
+# See LICENSE for details.
+
+"""Bot FSM states."""
 
 from aiogram.fsm.state import State, StatesGroup
 
@@ -86,3 +87,4 @@ class GroupSearchStates(StatesGroup):
     selecting_course = State()
     viewing_results = State()
     viewing_schedule = State()
+    confirming_selection = State()

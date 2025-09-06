@@ -73,9 +73,30 @@ class GradeCallback(CallbackData, prefix="grade"):
     data: str = ""
 
 
-class GroupSearchCallback(CallbackData, prefix="group"):
-    """Callback для поиска групп."""
+# Copyright (c) 2024 SZGMU Bot Project
+# See LICENSE for details.
+
+"""Bot callback data factories."""
+
+from aiogram.filters.callback_data import CallbackData
+
+
+class MenuCallback(CallbackData, prefix="menu"):
+    """Колбек для главного меню."""
 
     action: str
-    group_number: str = ""
-    week: str = "current"
+
+
+class ProfileCallback(CallbackData, prefix="profile"):
+    """Колбек для настройки профиля."""
+
+    action: str
+    value: str
+
+
+class GroupSearchCallback(CallbackData, prefix="group_search"):
+    """Колбек для поиска группы."""
+
+    action: str
+    value: str | None = None
+    group_id: str | None = None
