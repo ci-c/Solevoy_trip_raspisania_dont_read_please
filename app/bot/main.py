@@ -91,43 +91,47 @@ class BotApplication:
     @staticmethod
     async def _check_token() -> str:
         """Validate and retrieve bot token.
-        
+
         Returns:
             Valid bot token from environment.
-        
+
         Raises:
             ConfigError: If BOT_TOKEN is not set.
+
         """
-        token = os.environ.get("BOT_TOKEN")
+        param = "BOT_TOKEN"
+        token = os.environ.get(param)
         if not token:
-            raise ConfigError("BOT_TOKEN")
+            raise ConfigError(param)
         return token
 
     @staticmethod
     async def _init_database() -> None:
         """Initialize database connection.
-        
+
         Raises:
             SetupError: If database initialization fails.
+
         """
         try:
             await init_db()
         except Exception as e:
-            raise SetupError(f"Database initialization failed: {e}") from e
+            msg = f"Database initialization failed: {e}"
+            logger.error(msg)
+            raise SetupError(msg) from e
 
-    @staticmethod
-    async def _init_scheduler() -> None:
+    async def _init_scheduler(self) -> None:
         """Initialize background task scheduler.
-        
+
         Sets _background_started flag if successful.
         Logs but does not raise on failure.
+
         """
         try:
             await start_background_scheduler()
-            return True
+            self._background_started = True
         except Exception as e:
             logger.warning(f"Background scheduler failed to start: {e}")
-            return False
 
     async def setup(self) -> "BotApplication":
         """Set up the bot application.
@@ -152,19 +156,19 @@ class BotApplication:
                 default=DefaultBotProperties(parse_mode=ParseMode.HTML),
             )
             self.dp = Dispatcher()
-            register_handlers(self.dp)
+            await register_handlers(self.dp)
 
             await self._init_database()
             await self._init_scheduler()
 
-            return self
-
         except BotError:
             raise
         except Exception as e:
-            err_msg = f"Failed to setup bot: {e}"
-            logger.error(err_msg)
-            raise SetupError(err_msg) from e
+            msg = f"Failed to setup bot: {e}"
+            logger.error(msg)
+            raise SetupError(msg) from e
+
+        return self
 
     async def start(self) -> None:
         """Start bot application.
