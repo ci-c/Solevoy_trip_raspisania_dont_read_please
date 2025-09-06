@@ -12,13 +12,16 @@ from aiogram.exceptions import TelegramAPIError
 from dotenv import load_dotenv
 from loguru import logger
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from app.bot.handlers import register_handlers
+from app.database import DatabaseError
 from app.database.session import init_db
 from app.services.background_scheduler import (
     start_background_scheduler,
     stop_background_scheduler,
 )
-from app.utils.logger import LoggingConfig, log_bot_startup, log_bot_shutdown
+from app.utils.logger import LoggingConfig, log_bot_shutdown
 
 __all__ = ["BotError", "create_bot", "main"]
 
