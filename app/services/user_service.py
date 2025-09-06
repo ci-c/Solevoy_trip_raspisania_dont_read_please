@@ -34,7 +34,7 @@ class UserService:
         async for conn in self.db.get_connection():
             cursor = await conn.execute(
                 """
-                INSERT INTO users (telegram_id, telegram_username, full_name, access_level, last_seen)
+                INSERT INTO users (telegram_id, telegramaccess_level_username, full_name, access_level, last_seen)
                 VALUES (?, ?, ?, ?, ?)
             """,
                 (

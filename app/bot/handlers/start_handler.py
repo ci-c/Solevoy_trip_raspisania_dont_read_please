@@ -36,7 +36,8 @@ async def cmd_start(message: types.Message, state: FSMContext) -> None:
             logger.info(f"Created new user: {user.id}")
 
         # Обновляем активность
-        await user_service.update_user_activity(user.id)
+        if user and user.id:
+            await user_service.update_user_activity(user.id)
 
         # Получаем профиль студента
         user_profile = await user_service.get_user_profile(user.id)
