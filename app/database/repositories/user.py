@@ -18,6 +18,7 @@ class UserRepository(BaseRepository[User]):
 
         Args:
             session: Database session.
+
         """
         super().__init__(User, session)
 
