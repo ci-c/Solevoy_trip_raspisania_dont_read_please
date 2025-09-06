@@ -12,18 +12,13 @@ from aiogram.exceptions import TelegramAPIError
 from dotenv import load_dotenv
 from loguru import logger
 
-from sqlalchemy.exc import SQLAlchemyError
-
 from app.bot.handlers import register_handlers
-from app.database import DatabaseError
-from app.database.session import init_db
+from app.database.session import DatabaseError, init_db
 from app.services.background_scheduler import (
     start_background_scheduler,
     stop_background_scheduler,
 )
-from app.utils.logger import LoggingConfig, log_bot_shutdown
-
-__all__ = ["BotError", "create_bot", "main"]
+from app.utils.logger import LoggingConfig, log_bot_startup, log_bot_shutdown
 
 
 class BotError(Exception):
@@ -91,44 +86,41 @@ class BotApplication:
         self.dp: Dispatcher | None = None
         self._background_started: bool = False
 
-    @staticmethod
-    async def _check_token() -> str:
+    async def _check_token(self) -> str:
         """Validate and retrieve bot token.
-
+        
         Returns:
             Valid bot token from environment.
-
+        
         Raises:
             ConfigError: If BOT_TOKEN is not set.
-
+        
         """
-        param = "BOT_TOKEN"
-        token = os.environ.get(param)
+        token = os.environ.get("BOT_TOKEN")
         if not token:
+            param = "BOT_TOKEN"
             raise ConfigError(param)
         return token
 
-    @staticmethod
-    async def _init_database() -> None:
+    async def _init_database(self) -> None:
         """Initialize database connection.
-
+        
         Raises:
             SetupError: If database initialization fails.
-
+        
         """
         try:
             await init_db()
-        except Exception as e:
-            msg = f"Database initialization failed: {e}"
-            logger.error(msg)
-            raise SetupError(msg) from e
+        except DatabaseError as e:
+            cause = f"Database initialization failed: {e}"
+            raise SetupError(cause) from e
 
     async def _init_scheduler(self) -> None:
         """Initialize background task scheduler.
-
+        
         Sets _background_started flag if successful.
         Logs but does not raise on failure.
-
+        
         """
         try:
             await start_background_scheduler()
@@ -159,69 +151,46 @@ class BotApplication:
                 default=DefaultBotProperties(parse_mode=ParseMode.HTML),
             )
             self.dp = Dispatcher()
-            await register_handlers(self.dp)
+            register_handlers(self.dp)
 
             await self._init_database()
             await self._init_scheduler()
 
+            return self
+
         except BotError:
             raise
         except Exception as e:
-            msg = f"Failed to setup bot: {e}"
-            logger.error(msg)
-            raise SetupError(msg) from e
-
-        return self
+            err_msg = f"Failed to setup bot: {e}"
+            logger.error(err_msg)
+            raise SetupError(err_msg) from e
 
     async def start(self) -> None:
         """Start bot application.
 
         Raises:
-            NotInitializedError: If setup() was not called.
-            TelegramAPIError: If connection to Telegram API fails.
-            BotError: If bot fails to start for other reasons.
-
+            NotInitializedError: If setup() was not called
+            TelegramAPIError: If connection to Telegram API fails
         """
-        if not self.bot or not self.dp:
-            raise NotInitializedError
+        if not (self.bot and self.dp):
+            raise NotInitializedError()
 
         try:
-            await self.dp.start_polling(self.bot)
+            log_bot_startup()
+
+            # Start polling
+            await self.dp.start_polling(
+                self.bot,
+                allowed_updates=self.dp.resolve_used_update_types(),
+            )
         except TelegramAPIError as e:
-            msg = f"Failed to connect to Telegram API: {e}"
-            logger.error(msg)
+            logger.critical(f"Bot failed to start: {e}")
             raise
-        except (SQLAlchemyError, DatabaseError) as e:
-            msg = f"Database error while starting bot: {e}"
-            logger.error(msg)
-            raise BotError(msg) from e
         except Exception as e:
-            msg = f"Failed to start bot: {e}"
-            logger.error(msg)
-            raise BotError(msg) from e
-
-
-async def create_bot() -> BotApplication:
-    """Create and configure a new bot application instance.
-
-    Returns:
-        Configured BotApplication instance.
-
-    Raises:
-        BotError: If bot application creation fails.
-
-    """
-    try:
-        bot = BotApplication()
-        return await bot.setup()
-    except (ConfigError, SetupError) as e:
-        msg = f"Failed to configure bot application: {e}"
-        logger.error(msg)
-        raise
-    except Exception as e:
-        msg = f"Unexpected error creating bot application: {e}"
-        logger.error(msg)
-        raise BotError(msg) from e
+            logger.critical(f"Bot failed to start: {e}")
+            raise BotError(str(e)) from e
+        finally:
+            await self.stop()
 
     async def stop(self) -> None:
         """Stop bot application and cleanup."""
