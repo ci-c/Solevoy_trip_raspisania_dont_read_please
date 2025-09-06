@@ -62,7 +62,8 @@ Issues = "https://github.com/yourusername/schedule-processor/issues"
 [tool.uv]
 dev-dependencies = [
     "pytest>=8.3.4",
-    "pytest-asyncio>=0.25.1", 
+    "pytest-asyncio>=0.25.1",
+    "pytest-mock>=3.12.0", 
     "black>=25.1.0",
     "isort>=5.13.2",
     "flake8>=7.1.1",
