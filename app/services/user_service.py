@@ -2,7 +2,7 @@
 Сервис для работы с пользователями и профилями.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 from loguru import logger
 
@@ -23,12 +23,17 @@ class UserService:
         full_name: Optional[str] = None,
     ) -> User:
         """Создать нового пользователя."""
+        now = datetime.now(tz=timezone.utc)
         user = User(
+            id=None,  # Will be set after DB insert
             telegram_id=telegram_id,
             telegram_username=telegram_username,
             full_name=full_name,
             access_level=AccessLevel.GUEST,
-            last_seen=datetime.now(),
+            created_at=now,
+            updated_at=now,
+            is_active=True,
+            last_seen=now,
         )
 
         async for conn in self.db.get_connection():
@@ -41,7 +46,7 @@ class UserService:
                     user.telegram_id,
                     user.telegram_username,
                     user.full_name,
-                    user.access_level.value,
+                    user.access_level,
                     user.last_seen,
                 ),
             )
