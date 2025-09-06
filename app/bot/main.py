@@ -20,6 +20,8 @@ from app.services.background_scheduler import (
 )
 from app.utils.logger import LoggingConfig, log_bot_startup, log_bot_shutdown
 
+__all__ = ["BotError", "create_bot", "main"]
+
 
 class BotError(Exception):
     """Base class for bot-related errors."""
