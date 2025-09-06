@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 from loguru import logger
 
 from app.bot.handlers import register_handlers
-from app.database.session import DatabaseError, init_db
+from app.database.session import init_db
 from app.services.background_scheduler import (
     start_background_scheduler,
     stop_background_scheduler,
@@ -111,7 +111,7 @@ class BotApplication:
         """
         try:
             await init_db()
-        except DatabaseError as e:
+        except Exception as e:
             cause = f"Database initialization failed: {e}"
             raise SetupError(cause) from e
 
