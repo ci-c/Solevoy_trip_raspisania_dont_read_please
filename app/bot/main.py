@@ -174,28 +174,51 @@ class BotApplication:
         """Start bot application.
 
         Raises:
-            NotInitializedError: If setup() was not called
-            TelegramAPIError: If connection to Telegram API fails
+            NotInitializedError: If setup() was not called.
+            TelegramAPIError: If connection to Telegram API fails.
+            BotError: If bot fails to start for other reasons.
+
         """
-        if not (self.bot and self.dp):
-            raise NotInitializedError()
+        if not self.bot or not self.dp:
+            raise NotInitializedError
 
         try:
-            log_bot_startup()
-
-            # Start polling
-            await self.dp.start_polling(
-                self.bot,
-                allowed_updates=self.dp.resolve_used_update_types(),
-            )
+            await self.dp.start_polling(self.bot)
         except TelegramAPIError as e:
-            logger.critical(f"Bot failed to start: {e}")
+            msg = f"Failed to connect to Telegram API: {e}"
+            logger.error(msg)
             raise
+        except (SQLAlchemyError, DatabaseError) as e:
+            msg = f"Database error while starting bot: {e}"
+            logger.error(msg)
+            raise BotError(msg) from e
         except Exception as e:
-            logger.critical(f"Bot failed to start: {e}")
-            raise BotError(str(e)) from e
-        finally:
-            await self.stop()
+            msg = f"Failed to start bot: {e}"
+            logger.error(msg)
+            raise BotError(msg) from e
+
+
+async def create_bot() -> BotApplication:
+    """Create and configure a new bot application instance.
+
+    Returns:
+        Configured BotApplication instance.
+
+    Raises:
+        BotError: If bot application creation fails.
+
+    """
+    try:
+        bot = BotApplication()
+        return await bot.setup()
+    except (ConfigError, SetupError) as e:
+        msg = f"Failed to configure bot application: {e}"
+        logger.error(msg)
+        raise
+    except Exception as e:
+        msg = f"Unexpected error creating bot application: {e}"
+        logger.error(msg)
+        raise BotError(msg) from e
 
     async def stop(self) -> None:
         """Stop bot application and cleanup."""
