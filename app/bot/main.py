@@ -1,131 +1,254 @@
-"""
-Главный файл Telegram бота с улучшенной архитектурой.
-"""
+"""Main Telegram bot application module."""
 
 import asyncio
+import os
 import sys
 from pathlib import Path
-from typing import Optional
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
+from aiogram.exceptions import TelegramAPIError
+from dotenv import load_dotenv
 from loguru import logger
 
-from app.database.connection import DatabaseConnection
 from app.bot.handlers import register_handlers
+from app.database.session import DatabaseError, init_db
 from app.services.background_scheduler import (
     start_background_scheduler,
     stop_background_scheduler,
 )
+from app.utils.logger import LoggingConfig, log_bot_startup, log_bot_shutdown
+
+
+class BotError(Exception):
+    """Base class for bot-related errors."""
+
+    def __init__(self, message: str) -> None:
+        """Initialize error.
+        
+        Args:
+            message: Error description.
+        
+        """
+        self.message = message
+        super().__init__(message)
+
+
+class ConfigError(BotError):
+    """Raised when bot configuration is invalid."""
+
+    def __init__(self, parameter: str) -> None:
+        """Initialize error.
+        
+        Args:
+            parameter: Missing configuration parameter name.
+        
+        """
+        message = f"Missing required config parameter: {parameter}"
+        super().__init__(message)
+
+
+class SetupError(BotError):
+    """Raised when bot setup fails."""
+
+    def __init__(self, cause: str | None = None) -> None:
+        """Initialize error.
+        
+        Args:
+            cause: Optional description of what caused the failure.
+        
+        """
+        message = "Bot setup failed. See logs for details."
+        if cause:
+            message = f"{message} Cause: {cause}"
+        super().__init__(message)
+
+
+class NotInitializedError(BotError):
+    """Raised when trying to use uninitialized bot."""
+
+    def __init__(self) -> None:
+        """Initialize error."""
+        super().__init__("Bot not initialized. Call setup() first.")
 
 
 class BotApplication:
-    """Основное приложение бота."""
+    """Manage the Telegram bot application lifecycle.
 
-    def __init__(self, token: str):
-        self.token = token
-        self.bot: Optional[Bot] = None
-        self.dp: Optional[Dispatcher] = None
+    This class handles bot initialization, startup, and shutdown,
+    providing a high-level interface for bot operations.
+    """
 
-    async def create_bot(self) -> Bot:
-        """Создать экземпляр бота."""
-        if not self.bot:
-            self.bot = Bot(
-                token=self.token,
-                default=DefaultBotProperties(parse_mode=ParseMode.HTML),
-            )
-        return self.bot
+    def __init__(self) -> None:
+        """Initialize an empty bot application instance."""
+        self.bot: Bot | None = None
+        self.dp: Dispatcher | None = None
+        self._background_started: bool = False
 
-    async def create_dispatcher(self) -> Dispatcher:
-        """Создать диспетчер."""
-        if not self.dp:
-            self.dp = Dispatcher()
+    async def _check_token(self) -> str:
+        """Validate and retrieve bot token.
+        
+        Returns:
+            Valid bot token from environment.
+        
+        Raises:
+            ConfigError: If BOT_TOKEN is not set.
+        
+        """
+        token = os.environ.get("BOT_TOKEN")
+        if not token:
+            param = "BOT_TOKEN"
+            raise ConfigError(param)
+        return token
 
-            # Регистрируем обработчики
-            await register_handlers(self.dp)
-
-        return self.dp
-
-    async def setup(self):
-        """Настройка приложения."""
-        logger.info("Setting up bot application...")
-
-        # Инициализация базы данных
+    async def _init_database(self) -> None:
+        """Initialize database connection.
+        
+        Raises:
+            SetupError: If database initialization fails.
+        
+        """
         try:
-            db_connection = DatabaseConnection()
-            await db_connection.init_database()
-            logger.info("Database initialized successfully")
-        except Exception as e:
-            logger.error(f"Failed to initialize database: {e}")
-            raise
+            await init_db()
+        except DatabaseError as e:
+            cause = f"Database initialization failed: {e}"
+            raise SetupError(cause) from e
 
-        # Создаем бота и диспетчер
-        self.bot = await self.create_bot()
-        self.dp = await self.create_dispatcher()
-
-        # Запускаем фоновый планировщик
+    async def _init_scheduler(self) -> None:
+        """Initialize background task scheduler.
+        
+        Sets _background_started flag if successful.
+        Logs but does not raise on failure.
+        
+        """
         try:
             await start_background_scheduler()
-            logger.info("Background scheduler started successfully")
+            self._background_started = True
         except Exception as e:
-            logger.error(f"Failed to start background scheduler: {e}")
-            # Не критичная ошибка, продолжаем без планировщика
+            logger.warning(f"Background scheduler failed to start: {e}")
 
-        logger.info("Bot application setup completed")
+    async def setup(self) -> "BotApplication":
+        """Set up the bot application.
 
-    async def start(self):
-        """Запуск бота."""
-        logger.info("Starting bot...")
+        Load configuration and initialize all components.
 
-        if not self.bot or not self.dp:
-            await self.setup()
+        Returns:
+            Configured bot application instance.
+
+        Raises:
+            ConfigError: If required configuration is missing.
+            SetupError: If initialization of any component fails.
+            BotError: Base class for all bot-related errors.
+
+        """
+        try:
+            load_dotenv()
+            token = await self._check_token()
+
+            self.bot = Bot(
+                token=token,
+                default=DefaultBotProperties(parse_mode=ParseMode.HTML),
+            )
+            self.dp = Dispatcher()
+            register_handlers(self.dp)
+
+            await self._init_database()
+            await self._init_scheduler()
+
+            return self
+
+        except BotError:
+            raise
+        except Exception as e:
+            err_msg = f"Failed to setup bot: {e}"
+            logger.error(err_msg)
+            raise SetupError(err_msg) from e
+
+    async def start(self) -> None:
+        """Start bot application.
+
+        Raises:
+            NotInitializedError: If setup() was not called
+            TelegramAPIError: If connection to Telegram API fails
+        """
+        if not (self.bot and self.dp):
+            raise NotInitializedError()
 
         try:
-            # Очищаем webhook если есть
-            await self.bot.delete_webhook(drop_pending_updates=True)
+            log_bot_startup()
 
-            # Запускаем polling
-            await self.dp.start_polling(self.bot)
-
-        except Exception as e:
-            logger.error(f"Error starting bot: {e}")
+            # Start polling
+            await self.dp.start_polling(
+                self.bot,
+                allowed_updates=self.dp.resolve_used_update_types(),
+            )
+        except TelegramAPIError as e:
+            logger.critical(f"Bot failed to start: {e}")
             raise
+        except Exception as e:
+            logger.critical(f"Bot failed to start: {e}")
+            raise BotError(str(e)) from e
         finally:
+            await self.stop()
+
+    async def stop(self) -> None:
+        """Stop bot application and cleanup."""
+        try:
+            if self._background_started:
+                await stop_background_scheduler()
+
             if self.bot:
                 await self.bot.session.close()
-
-    async def stop(self):
-        """Остановка бота."""
-        logger.info("Stopping bot...")
-
-        # Останавливаем фоновый планировщик
-        try:
-            await stop_background_scheduler()
-            logger.info("Background scheduler stopped")
         except Exception as e:
-            logger.error(f"Error stopping background scheduler: {e}")
+            logger.error(f"Error during bot shutdown: {e}")
 
-        if self.dp:
-            await self.dp.stop_polling()
+async def create_bot() -> BotApplication:
+    """Create and set up a new bot application.
 
-        if self.bot:
-            await self.bot.session.close()
+    Returns:
+        Configured bot application instance.
 
-        logger.info("Bot stopped")
-
-
-def create_bot_app(token: str) -> BotApplication:
-    """Создать приложение бота."""
-    return BotApplication(token)
+    """
+    app = BotApplication()
+    await app.setup()
+    return app
 
 
-async def main():
-    """Главная функция для запуска бота."""
-    from dotenv import load_dotenv
-    import os
+async def main() -> None:
+    """Run the bot application.
 
-    # Загрузка переменных окружения
+    Initialize and start the bot, handle shutdown on interrupt.
+    """
+    # Load environment variables
+    load_dotenv()
+
+    # Get bot token
+    token = os.getenv("BOT_TOKEN")
+    if not token:
+        logger.critical("BOT_TOKEN not found in environment variables")
+        sys.exit(1)
+
+    # Set up logging
+    base_dir = Path(__file__).resolve().parent.parent.parent
+    (base_dir / "logs").mkdir(exist_ok=True)
+    (base_dir / "data").mkdir(exist_ok=True)
+
+    LoggingConfig(base_dir).setup_logging()
+
+    # Create and start bot
+    app = None
+    try:
+        app = await create_bot()
+        await app.start()
+    except KeyboardInterrupt:
+        logger.info("Received keyboard interrupt")
+    except BotError as e:
+        logger.critical(f"Bot error: {e}")
+        sys.exit(1)
+    finally:
+        if app is not None:
+            await app.stop()
     load_dotenv()
 
     token = os.getenv("BOT_API_KEY")
@@ -133,28 +256,21 @@ async def main():
         logger.critical("BOT_API_KEY not found in environment variables")
         sys.exit(1)
 
-    # Настройка логирования
-    from ..utils.logger import LoggingConfig, log_bot_startup, log_bot_shutdown
-
     base_dir = Path(__file__).resolve().parent.parent.parent
     (base_dir / "logs").mkdir(exist_ok=True)
     (base_dir / "data").mkdir(exist_ok=True)
 
-    # Инициализируем систему логирования
     logging_config = LoggingConfig(base_dir)
     logging_config.setup_logging()
 
     log_bot_startup()
 
-    # Создание и запуск приложения
     app = create_bot_app(token)
 
     try:
         await app.start()
     except KeyboardInterrupt:
         logger.info("Received keyboard interrupt")
-    except Exception as e:
-        logger.critical(f"Critical error: {e}")
     finally:
         log_bot_shutdown()
         await app.stop()

@@ -1,5 +1,6 @@
-# Copyright (c) 2024 SZGMU Bot Project
-# See LICENSE for details.
+# Copyright (c) 2024-2025 SZGMU Bot Project
+# This software is proprietary and confidential.
+# See LICENSE for terms of use.
 
 """User repository implementation."""
 

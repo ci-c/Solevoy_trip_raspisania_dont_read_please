@@ -27,7 +27,6 @@ requires-python = ">=3.10"
 dependencies = [
     # Database
     "sqlalchemy[asyncio]>=2.0.0",
-    "alembic>=1.13.0",
     "aiosqlite>=0.20.0",
     "greenlet>=3.0.0",  # Required for async SQLAlchemy
     "typing-extensions>=4.9.0",
@@ -41,10 +40,6 @@ dependencies = [
     "loguru>=0.7.0",
     "PyYAML>=6.0.0",
     "click>=8.0.0",
-    "aiosqlite>=0.19.0",
-    "sqlalchemy>=2.0.0",
-    "alembic>=1.13.0",
-    "asyncpg>=0.29.0",
     "greenlet>=3.0.0",  # Required for async SQLAlchemy
     "python-telegram-bot>=20.7",
     "loguru>=0.7.2",
@@ -85,6 +80,4 @@ dev-dependencies = [
     "pre-commit>=4.0.1",
 ]
 
-[tool.alembic]
-script_location = "app/database/migrations"
-sqlalchemy.url = "sqlite:///data/database.db"
+
