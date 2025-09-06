@@ -1,24 +1,17 @@
--- Миграция для обновления схемы БД под новую архитектуру
--- Дата: 2025-01-24
--- Описание: Добавление недостающих настроек и конфигураций
+-- Migration for updating schema structure
+-- Date: 2025-09-07
+-- Description: Adding initial settings
+-- Note: Faculties and specialities are populated through the API by the application code
 
--- Примечание: Основные таблицы уже определены в schema.sql
--- Здесь добавляем только дополнительные настройки и данные
-
--- Вставляем стандартные специальности СЗГМУ если их еще нет
-INSERT OR IGNORE INTO specialities (code, name, full_name, faculty) VALUES 
-('31.05.01', 'лечебное дело', '31.05.01 лечебное дело', 'Лечебный факультет'),
-('31.05.02', 'педиатрия', '31.05.02 педиатрия', 'Лечебный факультет'),
-('31.05.03', 'стоматология', '31.05.03 стоматология', 'Стоматологический факультет'),
-('33.05.01', 'фармация', '33.05.01 фармация', 'Фармацевтический факультет'),
-('32.05.01', 'медико-профилактическое дело', '32.05.01 медико-профилактическое дело', 'Медико-профилактический факультет');
-
--- Настройки системы по умолчанию
-INSERT OR IGNORE INTO settings (key, value, description) VALUES 
-('bot_version', '2.0.0', 'Версия бота'),
-('schedule_sync_enabled', 'true', 'Включена ли автоматическая синхронизация расписаний'),
-('schedule_sync_interval_hours', '6', 'Интервал синхронизации расписаний в часах'),
-('max_schedule_cache_days', '30', 'Максимальное время хранения кэша расписаний в днях'),
-('maintenance_mode', 'false', 'Режим обслуживания'),
-('current_semester', 'осенний', 'Текущий семестр'),
-('current_academic_year', '2024/2025', 'Текущий учебный год');
+-- Default system settings
+INSERT INTO settings (key, value, description) VALUES 
+('bot_version', '2.0.0', 'Bot version'),
+('schedule_sync_enabled', 'true', 'Enable automatic schedule synchronization'),
+('schedule_sync_interval_hours', '6', 'Schedule sync interval in hours'),
+('max_schedule_cache_days', '30', 'Maximum days to keep schedule cache'),
+('maintenance_mode', 'false', 'Maintenance mode'),
+('current_semester', 'autumn', 'Current semester'),
+('current_academic_year', '2024/2025', 'Current academic year')
+ON CONFLICT(key) DO UPDATE SET 
+    value = excluded.value,
+    description = excluded.description;

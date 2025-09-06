@@ -1,17 +1,38 @@
-"""
-Модели академической деятельности.
-"""
+"""Academic activity models for SZGMU."""
 
-from datetime import datetime, date
+from datetime import date, datetime
 from enum import Enum
-from typing import Optional
+from typing import Any
 from pydantic import Field
 
 from .base import BaseModel
 
 
+class Faculty(BaseModel):
+    """Faculty model."""
+
+    faculty_id: int = Field(..., description="Faculty ID")
+    name: str = Field(..., description="Faculty name")
+    short_name: str = Field("", description="Faculty short name")
+    code: str = Field("", description="Faculty code")
+
+
+class Speciality(BaseModel):
+    """Speciality model."""
+
+    code: str = Field(
+        ...,
+        description="Speciality code",
+        json_schema_extra={"pattern": r"^\d{2}\.\d{2}\.\d{2}$"},
+    )
+    name: str = Field(..., description="Speciality name")
+    full_name: str = Field(..., description="Full speciality name with code")
+    faculty_id: int = Field(..., description="ID of associated faculty")
+    degree_type: str = Field("speciality", description="Type of degree")
+
+
 class GradeType(str, Enum):
-    """Типы оценок."""
+    """Types of grades."""
 
     CURRENT = "current"
     MIDTERM = "midterm"
