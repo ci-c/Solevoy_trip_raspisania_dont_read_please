@@ -203,11 +203,16 @@ class BotApplication:
         except Exception as e:
             logger.error(f"Error during bot shutdown: {e}")
 
-async def create_bot() -> BotApplication:
+async def create_bot_app() -> BotApplication:
     """Create and set up a new bot application.
 
     Returns:
-        Configured bot application instance.
+        BotApplication: Configured bot application instance.
+
+    Raises:
+        ConfigError: If required configuration is missing
+        SetupError: If initialization of any component fails
+        BotError: For other bot-related errors
 
     """
     app = BotApplication()
@@ -239,7 +244,7 @@ async def main() -> None:
     # Create and start bot
     app = None
     try:
-        app = await create_bot()
+        app = await create_bot_app()
         await app.start()
     except KeyboardInterrupt:
         logger.info("Received keyboard interrupt")
