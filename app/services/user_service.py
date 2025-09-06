@@ -39,8 +39,10 @@ class UserService:
         async for conn in self.db.get_connection():
             cursor = await conn.execute(
                 """
-                INSERT INTO users (telegram_id, telegramaccess_level_username, full_name, access_level, last_seen)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO users (
+                    telegram_id, telegram_username, full_name, 
+                    access_level, last_seen, created_at, updated_at, is_active
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
                 (
                     user.telegram_id,
@@ -48,6 +50,9 @@ class UserService:
                     user.full_name,
                     user.access_level,
                     user.last_seen,
+                    user.created_at,
+                    user.updated_at,
+                    user.is_active,
                 ),
             )
 
@@ -93,7 +98,7 @@ class UserService:
                 """
                 UPDATE users SET last_seen = ? WHERE id = ?
             """,
-                (datetime.now(), user_id),
+                (datetime.now(tz=timezone.utc), user_id),
             )
             await conn.commit()
 
@@ -163,7 +168,7 @@ class UserService:
                         profile.group_id,
                         profile.student_id,
                         profile.preferred_format,
-                        datetime.now(),
+                        datetime.now(tz=timezone.utc),
                         profile.user_id,
                     ),
                 )

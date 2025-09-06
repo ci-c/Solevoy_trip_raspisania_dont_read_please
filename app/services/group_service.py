@@ -1,5 +1,5 @@
 """
-Сервис для работы с группами и факультетами.
+Service for managing groups and faculties.
 """
 
 from typing import List, Optional, Dict, Any
@@ -15,7 +15,7 @@ class GroupService:
         self.db = db_manager or DatabaseConnection()
 
     async def get_available_faculties(self) -> List[str]:
-        """Получить список названий доступных факультетов."""
+        """Get list of available faculties."""
         async for conn in self.db.get_connection():
             cursor = await conn.execute("""
                 SELECT DISTINCT name FROM faculties 
