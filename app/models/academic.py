@@ -2,7 +2,7 @@
 
 from datetime import date, datetime
 from enum import Enum
-from typing import Any
+from typing import Any, Optional
 from pydantic import Field
 
 from .base import BaseModel
@@ -11,8 +11,8 @@ from .base import BaseModel
 class Faculty(BaseModel):
     """Faculty model."""
 
-    faculty_id: int = Field(..., description="Faculty ID")
-    name: str = Field(..., description="Faculty name")
+    faculty_id: int | None = Field(None, description="Faculty ID")
+    name: str | None = Field(None, description="Faculty name")
     short_name: str = Field("", description="Faculty short name")
     code: str = Field("", description="Faculty code")
 
@@ -20,14 +20,14 @@ class Faculty(BaseModel):
 class Speciality(BaseModel):
     """Speciality model."""
 
-    code: str = Field(
-        ...,
+    code: str | None = Field(
+        None,
         description="Speciality code",
         json_schema_extra={"pattern": r"^\d{2}\.\d{2}\.\d{2}$"},
     )
-    name: str = Field(..., description="Speciality name")
-    full_name: str = Field(..., description="Full speciality name with code")
-    faculty_id: int = Field(..., description="ID of associated faculty")
+    name: str | None = Field(None, description="Speciality name")
+    full_name: str | None = Field(None, description="Full speciality name with code")
+    faculty_id: int | None = Field(None, description="ID of associated faculty")
     degree_type: str = Field("speciality", description="Type of degree")
 
 
@@ -56,12 +56,12 @@ class Grade(BaseModel):
     subject_id: int = Field(..., description="ID предмета")
     grade: int = Field(..., description="Оценка (2-5)", ge=2, le=5)
     grade_type: GradeType = Field(GradeType.CURRENT, description="Тип оценки")
-    control_point: Optional[str] = Field(None, description="Контрольная точка")
+    control_point: str | None = Field(None, description="Контрольная точка")
     date_received: date = Field(
         default_factory=date.today, description="Дата получения"
     )
-    teacher_id: Optional[int] = Field(None, description="ID преподавателя")
-    notes: Optional[str] = Field(None, description="Примечания")
+    teacher_id: int | None = Field(None, description="ID преподавателя")
+    notes: str | None = Field(None, description="Примечания")
 
 
 class Attendance(BaseModel):
@@ -71,8 +71,8 @@ class Attendance(BaseModel):
     lesson_id: int = Field(..., description="ID занятия")
     is_present: bool = Field(..., description="Присутствовал ли студент")
     is_excused: bool = Field(False, description="Уважительная причина")
-    excuse_reason: Optional[str] = Field(None, description="Причина отсутствия")
-    excuse_document: Optional[str] = Field(
+    excuse_reason: str | None = Field(None, description="Причина отсутствия")
+    excuse_document: str | None = Field(
         None, description="Документ об уважительной причине"
     )
     date_marked: date = Field(default_factory=date.today, description="Дата отметки")
@@ -84,8 +84,8 @@ class Homework(BaseModel):
     student_id: int = Field(..., description="ID студента")
     subject_id: int = Field(..., description="ID предмета")
     title: str = Field(..., description="Название задания")
-    description: Optional[str] = Field(None, description="Описание")
-    due_date: Optional[date] = Field(None, description="Срок сдачи")
+    description: str | None = Field(None, description="Описание")
+    due_date: date | None = Field(None, description="Срок сдачи")
     status: HomeworkStatus = Field(HomeworkStatus.PENDING, description="Статус")
     priority: int = Field(3, description="Приоритет (1-5)", ge=1, le=5)
-    completed_at: Optional[datetime] = Field(None, description="Время выполнения")
+    completed_at: datetime | None = Field(None, description="Время выполнения")

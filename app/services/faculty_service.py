@@ -1,14 +1,15 @@
 """Service for managing faculties and specialities."""
 
-import asyncio
 from datetime import datetime, timezone
+
+import asyncio
 from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.academic import Faculty, Speciality  # Pydantic models
-from app.models.academic_db import FacultyDB, SpecialityDB  # SQLAlchemy models
+from app.models.academic import Faculty, Speciality
+from app.models.academic_db import FacultyDB, SpecialityDB
 from app.schedule.faculty_api_client import FacultyAPIClient
 
 
@@ -20,6 +21,7 @@ class FacultyService:
         
         Args:
             session: SQLAlchemy async database session.
+            
         """
         self.session = session
         self.api_client = FacultyAPIClient()
@@ -42,7 +44,7 @@ class FacultyService:
                 
                 # Check if faculty exists
                 stmt = select(FacultyDB).where(
-                    FacultyDB.faculty_id == faculty_data["id"]
+                    FacultyDB.faculty_id == faculty_data["id"],
                 )
                 result = await self.session.execute(stmt)
                 faculty_db = result.scalar_one_or_none()
@@ -81,6 +83,7 @@ class FacultyService:
         Args:
             faculty_id: Optional ID of faculty to sync specialities for.
                 If None, syncs all specialities.
+                
         """
         try:
             specialities = await asyncio.get_event_loop().run_in_executor(
@@ -98,7 +101,9 @@ class FacultyService:
                 )
                 
                 # Check if speciality exists
-                stmt = select(SpecialityDB).where(SpecialityDB.code == spec_data["code"])
+                stmt = select(SpecialityDB).where(
+                    SpecialityDB.code == spec_data["code"],
+                )
                 result = await self.session.execute(stmt)
                 spec_db = result.scalar_one_or_none()
                 

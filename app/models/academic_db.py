@@ -1,19 +1,37 @@
+# Copyright (c) 2024 SZGMU Bot Project
+# See LICENSE for details.
+
 """Base SQLAlchemy models for academic data."""
 
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.ext.declarative import declarative_base
+try:
+    import sqlalchemy
+    from sqlalchemy.orm import declarative_base
 
-Base = declarative_base()
+    Base = declarative_base()
+
+    # SQLAlchemy columns
+    Column = sqlalchemy.Column
+    DateTime = sqlalchemy.DateTime
+    ForeignKey = sqlalchemy.ForeignKey
+    Integer = sqlalchemy.Integer
+    String = sqlalchemy.String
+except ImportError as e:
+    error_msg = "Failed to import SQLAlchemy"
+    raise ImportError(error_msg) from e
 
 
 class TimestampMixin:
     """Mixin to add created_at and updated_at timestamps."""
-    
+
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    updated_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        nullable=False,
+    )
 
 
 class FacultyDB(Base, TimestampMixin):
