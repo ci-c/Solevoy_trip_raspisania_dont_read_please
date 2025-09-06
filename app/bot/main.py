@@ -88,7 +88,8 @@ class BotApplication:
         self.dp: Dispatcher | None = None
         self._background_started: bool = False
 
-    async def _check_token(self) -> str:
+    @staticmethod
+    async def _check_token() -> str:
         """Validate and retrieve bot token.
         
         Returns:
@@ -96,39 +97,37 @@ class BotApplication:
         
         Raises:
             ConfigError: If BOT_TOKEN is not set.
-        
         """
         token = os.environ.get("BOT_TOKEN")
         if not token:
-            param = "BOT_TOKEN"
-            raise ConfigError(param)
+            raise ConfigError("BOT_TOKEN")
         return token
 
-    async def _init_database(self) -> None:
+    @staticmethod
+    async def _init_database() -> None:
         """Initialize database connection.
         
         Raises:
             SetupError: If database initialization fails.
-        
         """
         try:
             await init_db()
         except Exception as e:
-            cause = f"Database initialization failed: {e}"
-            raise SetupError(cause) from e
+            raise SetupError(f"Database initialization failed: {e}") from e
 
-    async def _init_scheduler(self) -> None:
+    @staticmethod
+    async def _init_scheduler() -> None:
         """Initialize background task scheduler.
         
         Sets _background_started flag if successful.
         Logs but does not raise on failure.
-        
         """
         try:
             await start_background_scheduler()
-            self._background_started = True
+            return True
         except Exception as e:
             logger.warning(f"Background scheduler failed to start: {e}")
+            return False
 
     async def setup(self) -> "BotApplication":
         """Set up the bot application.
