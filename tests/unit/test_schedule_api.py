@@ -9,8 +9,7 @@
 """
 
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
-from datetime import datetime
+from unittest.mock import patch, MagicMock
 
 from app.schedule.api import search_schedules, get_available_filters, find_schedule_ids, get_schedule_data
 
@@ -153,7 +152,7 @@ class TestScheduleAPI:
 
             filters = {"Группа": ["101а"]}
 
-            result = await search_schedules(filters)
+            await search_schedules(filters)
 
             # Проверяем что курс был автоматически извлечен из номера группы
             mock_find_ids.assert_called_once()

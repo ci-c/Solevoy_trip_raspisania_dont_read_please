@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.database.models import Group, Schedule
+from app.database.models import Group
 from app.database.repositories.base import BaseRepository
 
 

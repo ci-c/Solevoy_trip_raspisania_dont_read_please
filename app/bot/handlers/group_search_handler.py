@@ -21,6 +21,8 @@ from app.bot.utils import (
     validate_group_number,
     format_error_message,
 )
+from app.utils.validation import validate_user_input, ValidationError
+from app.utils.error_handling import ErrorHandler, APIError, DatabaseError
 from app.schedule.group_search import GroupSearchService
 from app.schedule.semester_detector import SemesterDetector
 
@@ -29,6 +31,13 @@ async def handle_group_search(
     callback: types.CallbackQuery, callback_data: GroupSearchCallback, state: FSMContext
 ) -> None:
     """Обработчик поиска групп."""
+    # Rate limiting
+    from app.utils.rate_limiter import check_rate_limit_manual
+    is_allowed, error_message = check_rate_limit_manual(callback.from_user.id, "callback")
+    if not is_allowed:
+        await callback.answer(f"⏱️ {error_message}", show_alert=True)
+        return
+    
     await callback.answer()
     action = callback_data.action
 
@@ -80,9 +89,26 @@ async def handle_group_search(
 
 async def process_group_number(message: types.Message, state: FSMContext) -> None:
     """Обработка введенного номера группы."""
+    # Rate limiting
+    from app.utils.rate_limiter import check_rate_limit_manual
+    is_allowed, error_message = check_rate_limit_manual(message.from_user.id, "search")
+    if not is_allowed:
+        await message.answer(f"⏱️ {error_message}")
+        return
+    
     group_number = message.text.strip()
 
-    # Валидация ввода
+    # Дополнительная валидация ввода
+    try:
+        group_number = validate_user_input("group_number", group_number, required=True)
+    except ValidationError as e:
+        await message.answer(
+            f"❌ {e}\n\nВведите корректный номер (например: 103а, 204б):",
+            reply_markup=get_error_keyboard(),
+        )
+        return
+
+    # Валидация ввода (существующая)
     is_valid, error_msg = validate_group_number(group_number)
     if not is_valid:
         await message.answer(
@@ -158,6 +184,12 @@ async def process_group_number(message: types.Message, state: FSMContext) -> Non
         # Показываем расписание
         await show_group_schedule_safe(loading_msg, group_info, "current", state)
 
+    except ValidationError as e:
+        await ErrorHandler.handle_validation_error(e, loading_msg)
+    except APIError as e:
+        await ErrorHandler.handle_api_error(e, loading_msg)
+    except DatabaseError as e:
+        await ErrorHandler.handle_database_error(e, loading_msg)
     except Exception as e:
         logger.error(f"Critical error searching group {group_number}: {e}")
 

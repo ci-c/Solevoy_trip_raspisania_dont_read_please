@@ -11,7 +11,6 @@ from app.bot.callbacks import MenuCallback
 from app.bot.keyboards import get_main_menu_keyboard, get_group_selection_keyboard
 from app.services.user_service import UserService
 from app.services.schedule_service import ScheduleService
-from app.services.group_service import GroupService
 
 
 async def handle_menu_action(
@@ -102,8 +101,10 @@ async def show_group_selection(message: types.Message, state: FSMContext) -> Non
     """Показать меню выбора группы."""
     try:
         # Получаем список доступных факультетов из БД
-        group_service = GroupService()
-        faculties = await group_service.get_available_faculties()
+        from app.services.schedule_service import ScheduleService
+        schedule_service = ScheduleService()
+        faculties_data = await schedule_service.get_available_faculties()
+        faculties = [faculty["name"] for faculty in faculties_data]
 
         if faculties:
             text = (

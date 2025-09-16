@@ -50,7 +50,40 @@ class APIClient:
 
             if "content" in data:
                 schedule_ids = [item["id"] for item in data["content"]]
-                logger.info(f"Found {len(schedule_ids)} schedule IDs")
+                total_elements = data.get("totalElements", 0)
+                logger.info(f"Found {len(schedule_ids)} schedule IDs (total: {total_elements})")
+                
+                # Если есть еще страницы, получаем их все
+                if total_elements > len(schedule_ids):
+                    logger.info(f"Fetching all pages to get {total_elements} total schedules...")
+                    
+                    page = 0
+                    all_schedule_ids = schedule_ids.copy()
+                    
+                    while len(all_schedule_ids) < total_elements:
+                        page += 1
+                        page_url = f"{self.base_url}/findAll/{page}"
+                        
+                        try:
+                            page_response = self.session.post(page_url, data=json.dumps(payload), timeout=15)
+                            page_response.raise_for_status()
+                            page_data = page_response.json()
+                            
+                            if "content" in page_data and page_data["content"]:
+                                page_ids = [item["id"] for item in page_data["content"]]
+                                all_schedule_ids.extend(page_ids)
+                                logger.info(f"Page {page}: found {len(page_ids)} more schedule IDs")
+                            else:
+                                logger.info(f"Page {page}: empty, stopping pagination")
+                                break
+                                
+                        except Exception as e:
+                            logger.warning(f"Error fetching page {page}: {e}")
+                            break
+                    
+                    logger.info(f"Total schedule IDs collected: {len(all_schedule_ids)}")
+                    return all_schedule_ids
+                
                 return schedule_ids
             else:
                 logger.warning("API response missing 'content' key")

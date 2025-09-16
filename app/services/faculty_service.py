@@ -1,140 +1,212 @@
-"""Service for managing faculties and specialities."""
+"""
+Сервис для работы с факультетами через реальный SZGMU API.
+"""
 
-from datetime import datetime, timezone
-
-import asyncio
+from typing import List, Dict, Any, Optional
 from loguru import logger
-from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.academic import Faculty, Speciality
-from app.models.academic_db import FacultyDB, SpecialityDB
+from app.database.session import get_session
+from app.database.models import Faculty
 from app.schedule.faculty_api_client import FacultyAPIClient
 
 
 class FacultyService:
-    """Service for managing faculties and specialities."""
-    
-    def __init__(self, session: AsyncSession) -> None:
-        """Initialize the service.
-        
-        Args:
-            session: SQLAlchemy async database session.
-            
-        """
-        self.session = session
+    """Сервис для работы с факультетами."""
+
+    def __init__(self):
         self.api_client = FacultyAPIClient()
-        
-    async def sync_faculties(self) -> None:
-        """Sync faculties from API to database."""
+
+    async def load_faculties_from_api(self) -> List[Dict[str, Any]]:
+        """Загрузить факультеты из реального SZGMU API."""
         try:
-            faculties = await asyncio.get_event_loop().run_in_executor(
-                None, self.api_client.get_faculties,
-            )
-            logger.info(f"Syncing {len(faculties)} faculties")
+            import requests
+            import json
             
-            for faculty_data in faculties:
-                faculty_model = Faculty(
-                    faculty_id=faculty_data["id"],
-                    name=faculty_data["name"],
-                    short_name=faculty_data.get("shortName", ""),
-                    code=faculty_data.get("code", ""),
-                )
+            # Получаем все расписания для извлечения факультетов
+            url = "https://frsview.szgmu.ru/api/xlsxSchedule/findAll/0"
+            payload = {}
+            headers = {"Content-Type": "application/json"}
+            
+            response = requests.post(url, headers=headers, data=json.dumps(payload), timeout=15)
+            response.raise_for_status()
+            data = response.json()
+            
+            if "content" not in data:
+                logger.warning("API response missing 'content' key")
+                return []
+            
+            # Извлекаем уникальные факультеты из специальностей
+            faculties = set()
+            for schedule in data["content"]:
+                if "xlsxHeaderDto" in schedule:
+                    for header in schedule["xlsxHeaderDto"]:
+                        if "speciality" in header:
+                            speciality = header["speciality"]
+                            # Извлекаем факультет из специальности
+                            faculty = self._extract_faculty_from_speciality(speciality)
+                            if faculty:
+                                faculties.add(faculty)
+            
+            # Преобразуем в список словарей
+            faculties_data = []
+            for i, faculty_name in enumerate(sorted(faculties), 1):
+                faculties_data.append({
+                    "id": i,
+                    "name": faculty_name,
+                    "short_name": self._generate_short_name(faculty_name),
+                    "description": f"Факультет {faculty_name}"
+                })
+            
+            if faculties_data:
+                logger.info(f"Extracted {len(faculties_data)} faculties from SZGMU API")
+                return faculties_data
+            else:
+                logger.warning("No faculties extracted from API")
+                return []
                 
-                # Check if faculty exists
-                stmt = select(FacultyDB).where(
-                    FacultyDB.faculty_id == faculty_data["id"],
-                )
-                result = await self.session.execute(stmt)
-                faculty_db = result.scalar_one_or_none()
-                
-                if faculty_db:
-                    # Update existing faculty
-                    faculty_db.name = faculty_model.name
-                    faculty_db.short_name = faculty_model.short_name
-                    faculty_db.code = faculty_model.code
-                    faculty_db.updated_at = datetime.now(tz=timezone.utc)
-                else:
-                    # Create new faculty
-                    faculty_db = FacultyDB(
-                        faculty_id=faculty_model.faculty_id,
-                        name=faculty_model.name,
-                        short_name=faculty_model.short_name,
-                        code=faculty_model.code,
+        except Exception as e:
+            logger.error(f"Error loading faculties from API: {e}")
+            return []
+
+    def _extract_faculty_from_speciality(self, speciality: str) -> str:
+        """Извлечь название факультета из специальности."""
+        # Маппинг специальностей на факультеты
+        if "лечебное дело" in speciality.lower():
+            return "Лечебный факультет"
+        elif "педиатрия" in speciality.lower():
+            return "Педиатрический факультет"
+        elif "медико-профилактическое дело" in speciality.lower():
+            return "Медико-профилактический факультет"
+        elif "стоматология" in speciality.lower():
+            return "Стоматологический факультет"
+        elif "фармация" in speciality.lower():
+            return "Фармацевтический факультет"
+        elif "сестринское дело" in speciality.lower():
+            return "Факультет сестринского дела"
+        elif "медицинская кибернетика" in speciality.lower():
+            return "Факультет медицинской кибернетики"
+        elif "управление сестринской деятельностью" in speciality.lower():
+            return "Факультет управления сестринской деятельностью"
+        else:
+            # Если не удалось определить, возвращаем общее название
+            return "Неизвестный факультет"
+
+    async def save_faculties_to_db(self, faculties_data: List[Dict[str, Any]]) -> bool:
+        """Сохранить факультеты в базу данных."""
+        try:
+            async for session in get_session():
+                for faculty_data in faculties_data:
+                    # API возвращает данные в формате: {"id": 1, "name": "Лечебный факультет"}
+                    faculty = Faculty(
+                        name=faculty_data.get("name", ""),
+                        short_name=self._generate_short_name(faculty_data.get("name", "")),
+                        description=f"Факультет {faculty_data.get('name', '')}"
                     )
-                    self.session.add(faculty_db)
+                    
+                    # Используем merge для обновления существующих записей
+                    await session.merge(faculty)
                 
-                try:
-                    await self.session.commit()
-                    # Sync specialities for this faculty
-                    await self.sync_specialities(faculty_model.faculty_id)
-                except IntegrityError as e:
-                    await self.session.rollback()
-                    logger.error(f"Error saving faculty {faculty_model.name}: {e}")
+                await session.commit()
+                logger.info(f"Saved {len(faculties_data)} faculties to database")
+                return True
+        except Exception as e:
+            logger.error(f"Error saving faculties to database: {e}")
+            return False
+
+    def _generate_short_name(self, full_name: str) -> str:
+        """Генерировать сокращенное название факультета."""
+        # Простая логика для сокращения названий
+        if "лечебный" in full_name.lower():
+            return "ЛФ"
+        elif "педиатрический" in full_name.lower():
+            return "ПФ"
+        elif "медико-профилактический" in full_name.lower():
+            return "МПФ"
+        elif "стоматологический" in full_name.lower():
+            return "СФ"
+        elif "фармацевтический" in full_name.lower():
+            return "ФФ"
+        else:
+            # Берем первые буквы слов
+            words = full_name.split()
+            return "".join([word[0].upper() for word in words[:2]])
+
+    async def get_faculties_from_db(self) -> List[Dict[str, Any]]:
+        """Получить факультеты из базы данных."""
+        try:
+            from sqlalchemy import select
+            
+            async for session in get_session():
+                result = await session.execute(
+                    select(Faculty).order_by(Faculty.name)
+                )
+                faculties = []
                 
+                for faculty in result.scalars():
+                    faculties.append({
+                        "id": faculty.id,
+                        "name": faculty.name,
+                        "short_name": faculty.short_name,
+                        "description": faculty.description
+                    })
+                
+                return faculties
+        except Exception as e:
+            logger.error(f"Error getting faculties from database: {e}")
+            return []
+
+    async def sync_faculties(self) -> bool:
+        """Синхронизировать факультеты с API."""
+        try:
+            # Загружаем с API
+            api_faculties = await self.load_faculties_from_api()
+            
+            if api_faculties:
+                # Сохраняем в БД
+                success = await self.save_faculties_to_db(api_faculties)
+                if success:
+                    logger.info("Successfully synced faculties")
+                    return True
+            
+            return False
         except Exception as e:
             logger.error(f"Error syncing faculties: {e}")
-            raise
+            return False
 
-    async def sync_specialities(self, faculty_id: int | None = None) -> None:
-        """Sync specialities from API to database.
-        
-        Args:
-            faculty_id: Optional ID of faculty to sync specialities for.
-                If None, syncs all specialities.
-                
-        """
+    async def get_faculty_names(self) -> List[str]:
+        """Получить только названия факультетов."""
         try:
-            specialities = await asyncio.get_event_loop().run_in_executor(
-                None, self.api_client.get_specialities, faculty_id,
-            )
-            logger.info(f"Syncing {len(specialities)} specialities")
+            from sqlalchemy import select
             
-            for spec_data in specialities:
-                spec_model = Speciality(
-                    code=spec_data["code"],
-                    name=spec_data["name"],
-                    full_name=spec_data["fullName"],
-                    faculty_id=spec_data["facultyId"],
-                    degree_type=spec_data.get("degreeType", "speciality"),
+            async for session in get_session():
+                result = await session.execute(
+                    select(Faculty.name).order_by(Faculty.name)
                 )
-                
-                # Check if speciality exists
-                stmt = select(SpecialityDB).where(
-                    SpecialityDB.code == spec_data["code"],
-                )
-                result = await self.session.execute(stmt)
-                spec_db = result.scalar_one_or_none()
-                
-                if spec_db:
-                    # Update existing speciality
-                    spec_db.name = spec_model.name
-                    spec_db.full_name = spec_model.full_name
-                    spec_db.faculty_id = spec_model.faculty_id
-                    spec_db.degree_type = spec_model.degree_type
-                    spec_db.updated_at = datetime.now(tz=timezone.utc)
-                else:
-                    # Create new speciality
-                    spec_db = SpecialityDB(
-                        code=spec_model.code,
-                        name=spec_model.name,
-                        full_name=spec_model.full_name,
-                        faculty_id=spec_model.faculty_id,
-                        degree_type=spec_model.degree_type,
-                    )
-                    self.session.add(spec_db)
-                
-                try:
-                    await self.session.commit()
-                except IntegrityError as e:
-                    await self.session.rollback()
-                    logger.error(f"Error saving speciality {spec_model.name}: {e}")
-                    
+                return [row[0] for row in result.fetchall()]
         except Exception as e:
-            logger.error(f"Error syncing specialities: {e}")
-            raise
+            logger.error(f"Error getting faculty names: {e}")
+            return []
+
+    async def get_faculty_by_name(self, name: str) -> Optional[Dict[str, Any]]:
+        """Получить факультет по названию."""
+        try:
+            from sqlalchemy import select
             
-    def close(self) -> None:
-        """Close the API client connection."""
-        self.api_client.close()
+            async for session in get_session():
+                result = await session.execute(
+                    select(Faculty).filter(Faculty.name == name)
+                )
+                faculty = result.scalar_one_or_none()
+                
+                if faculty:
+                    return {
+                        "id": faculty.id,
+                        "name": faculty.name,
+                        "short_name": faculty.short_name,
+                        "description": faculty.description
+                    }
+                
+                return None
+        except Exception as e:
+            logger.error(f"Error getting faculty by name: {e}")
+            return None

@@ -21,6 +21,32 @@ from app.services.user_service import UserService
 from app.services.group_service import GroupService
 
 
+def detect_group_info(group_number: str) -> Dict[str, Any]:
+    """Автоматическое определение информации о группе по номеру."""
+    # Простая логика определения факультета по номеру
+    if group_number.startswith(('1', '2')):
+        faculty = "ЛФ"  # Лечебный факультет
+    elif group_number.startswith(('3', '4')):
+        faculty = "ПФ"  # Педиатрический факультет
+    elif group_number.startswith(('5', '6')):
+        faculty = "МПФ"  # Медико-профилактический факультет
+    else:
+        faculty = "ЛФ"  # По умолчанию
+    
+    # Определяем курс по первой цифре
+    course = int(group_number[0]) if group_number[0].isdigit() else 1
+    
+    # Определяем поток по последней букве
+    stream = group_number[-1] if group_number[-1].isalpha() else "а"
+    
+    return {
+        "faculty": faculty,
+        "course": course,
+        "stream": stream,
+        "number": group_number
+    }
+
+
 async def handle_group_selection(
     callback: types.CallbackQuery, callback_data: GroupSearchCallback, state: FSMContext
 ) -> None:
@@ -87,7 +113,7 @@ async def process_manual_group_input(message: types.Message, state: FSMContext) 
 
         # Ищем или создаем группу в БД
         group_service = GroupService()
-        group_info = await group_service.find_or_create_group(normalized_group)
+        group_info = await group_service.find_or_create_group({"number": normalized_group})
 
         if group_info:
             # Автоматически определяем факультет, курс, поток
@@ -178,7 +204,7 @@ async def show_group_confirmation(
 ) -> None:
     """Показать подтверждение выбора группы."""
     try:
-        group_number = group_info["number"]
+        group_number = group_info.get("name", group_info.get("number", "Неизвестно"))
         faculty = detected_info.get("faculty", "Не определен")
         course = detected_info.get("course", "Не определен")
         stream = detected_info.get("stream", "Не определен")
@@ -277,77 +303,6 @@ async def confirm_group_selection(
         )
 
 
-def detect_group_info(group_number: str) -> Dict[str, Any]:
-    """
-    Автоматическое определение информации о группе по номеру.
-
-    Args:
-        group_number: Номер группы (например, "103а", "204б")
-
-    Returns:
-        Словарь с определенной информацией
-    """
-    # Извлекаем цифры из номера группы
-    digits = "".join(filter(str.isdigit, group_number))
-
-    if len(digits) < 3:
-        return {
-            "faculty": "Не определен",
-            "course": "Не определен",
-            "stream": "Не определен",
-            "speciality": "Не определена",
-        }
-
-    # Первая цифра - курс
-    course = int(digits[0])
-
-    # Вторая и третья цифры - номер группы на курсе
-    group_num = int(digits[1:3]) if len(digits) >= 3 else 0
-
-    # Буква потока
-    stream_letter = "".join(filter(str.isalpha, group_number.lower()))
-
-    # Определяем факультет по номеру группы
-    faculty_map = {
-        (1, 100): "Медико-профилактический факультет",
-        (2, 200): "Лечебный факультет",
-        (3, 300): "Стоматологический факультет",
-        (4, 400): "Медико-биологический факультет",
-        (5, 500): "Факультет постдипломного образования",
-    }
-
-    faculty = "Не определен"
-    for (course_key, group_key), faculty_name in faculty_map.items():
-        if course == course_key or (
-            group_num >= group_key and group_num < group_key + 100
-        ):
-            faculty = faculty_name
-            break
-
-    # Определяем специальность по факультету
-    speciality_map = {
-        "Медико-профилактический факультет": "Медико-профилактическое дело",
-        "Лечебный факультет": "Лечебное дело",
-        "Стоматологический факультет": "Стоматология",
-        "Медико-биологический факультет": "Медицинская биофизика",
-        "Факультет постдипломного образования": "Ординатура/Аспирантура",
-    }
-
-    speciality = speciality_map.get(faculty, "Не определена")
-
-    # Определяем поток по букве
-    stream_map = {"а": "А", "б": "Б", "в": "В", "г": "Г", "": "Основной"}
-
-    stream = stream_map.get(
-        stream_letter, stream_letter.upper() if stream_letter else "Основной"
-    )
-
-    return {
-        "faculty": faculty,
-        "course": course,
-        "stream": stream,
-        "speciality": speciality,
-    }
 
 
 async def register_group_selection_handlers(dp: Dispatcher):

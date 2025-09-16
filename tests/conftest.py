@@ -1,27 +1,16 @@
 """
 Конфигурация pytest с фикстурами для всех тестов.
-
-Зона ответственности:
-- Создание тестовых фикстур для базы данных
-- Настройка тестового окружения
-- Инициализация mock объектов для внешних сервисов
-- Предоставление тестовых данных для всех тестов
 """
 
 import asyncio
-import tempfile
-from pathlib import Path
-from typing import AsyncGenerator, Dict, Any
-from unittest.mock import AsyncMock, MagicMock
+from typing import Dict, Any
+from unittest.mock import AsyncMock
 
 import pytest
-import pytest_asyncio
-import aiosqlite
 
-from app.database.connection import DatabaseConnection
 from app.services.user_service import UserService
 from app.services.schedule_service import ScheduleService
-from app.models.user import User, AccessLevel
+from app.models.user import AccessLevel
 
 
 @pytest.fixture(scope="session")
@@ -30,24 +19,6 @@ def event_loop():
     loop = asyncio.new_event_loop()
     yield loop
     loop.close()
-
-
-@pytest.fixture
-async def test_db() -> AsyncGenerator[DatabaseConnection, None]:
-    """Фикстура для тестовой базы данных в памяти."""
-    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as temp_file:
-        test_db_path = Path(temp_file.name)
-    
-    test_connection = DatabaseConnection(db_path=test_db_path)
-    
-    # Инициализируем схему
-    await test_connection.initialize_database()
-    
-    yield test_connection
-    
-    # Очистка после тестов
-    if test_db_path.exists():
-        test_db_path.unlink()
 
 
 @pytest.fixture
@@ -89,15 +60,15 @@ def mock_szgmu_api():
 
 
 @pytest.fixture
-async def test_user_service(test_db: DatabaseConnection) -> UserService:
+def test_user_service() -> UserService:
     """Сервис пользователей для тестов."""
-    return UserService(db_connection=test_db)
+    return UserService()
 
 
 @pytest.fixture
-async def test_schedule_service(test_db: DatabaseConnection) -> ScheduleService:
+def test_schedule_service() -> ScheduleService:
     """Сервис расписания для тестов.""" 
-    return ScheduleService(db_connection=test_db)
+    return ScheduleService()
 
 
 @pytest.fixture
@@ -137,45 +108,6 @@ def sample_lesson_data() -> Dict[str, Any]:
         "day_of_week": 1,
         "week_number": 1,
         "date": "2024-09-02"
-    }
-
-
-@pytest.fixture
-async def populated_test_db(test_db: DatabaseConnection, sample_user_data, sample_group_data) -> DatabaseConnection:
-    """База данных с тестовыми данными."""
-    async with aiosqlite.connect(str(test_db.db_path)) as conn:
-        # Добавляем тестового пользователя
-        await conn.execute(
-            "INSERT INTO users (telegram_id, telegram_username, full_name, access_level) VALUES (?, ?, ?, ?)",
-            (sample_user_data["telegram_id"], sample_user_data["telegram_username"], 
-             sample_user_data["full_name"], sample_user_data["access_level"].value)
-        )
-        
-        # Добавляем специальность
-        await conn.execute(
-            "INSERT INTO specialities (code, name, full_name, faculty) VALUES (?, ?, ?, ?)",
-            ("31.05.01", "лечебное дело", "31.05.01 лечебное дело", "Лечебный факультет")
-        )
-        
-        # Добавляем группу
-        await conn.execute(
-            "INSERT INTO study_groups (number, course, stream, speciality_id, academic_year) VALUES (?, ?, ?, ?, ?)",
-            (sample_group_data["number"], sample_group_data["course"], sample_group_data["stream"], 1, 
-             sample_group_data["academic_year"])
-        )
-        
-        await conn.commit()
-    
-    return test_db
-
-
-@pytest.fixture
-def pytest_configure():
-    """Конфигурация pytest."""
-    pytest.main_test_data = {
-        "test_user_id": 123456789,
-        "test_group": "101а", 
-        "test_academic_year": "2024/2025"
     }
 
 

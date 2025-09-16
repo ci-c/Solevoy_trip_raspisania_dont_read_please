@@ -18,7 +18,7 @@ from app.services.background_scheduler import (
     start_background_scheduler,
     stop_background_scheduler,
 )
-from app.utils.logger import LoggingConfig, log_bot_startup, log_bot_shutdown
+from app.utils.logger import LoggingConfig, log_bot_shutdown, log_bot_startup
 
 
 class BotError(Exception):

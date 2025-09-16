@@ -1443,8 +1443,8 @@ async def process_group_number(message: Message, state: FSMContext) -> None:
         except Exception as edit_error:
             logger.error(f"Could not edit error message: {edit_error}")
             await message.answer(
-                f"❌ Произошла критическая ошибка.\n\n"
-                f"Попробуйте перезапустить бота командой /start"
+                "❌ Произошла критическая ошибка.\n\n"
+                "Попробуйте перезапустить бота командой /start"
             )
         
         await state.set_state(GroupSearchStates.choosing_search_type)

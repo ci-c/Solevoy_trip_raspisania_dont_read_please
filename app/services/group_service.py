@@ -1,241 +1,129 @@
 """
-Service for managing groups and faculties.
+Сервис для работы с группами студентов.
 """
 
 from typing import List, Optional, Dict, Any
 from loguru import logger
 
-from app.database.connection import DatabaseConnection
+from app.database.session import get_session
+from app.database.models import Group
+from sqlalchemy import select
 
 
 class GroupService:
-    """Сервис для работы с группами, факультетами и академической структурой."""
+    """Сервис для управления группами студентов."""
 
-    def __init__(self, db_manager: Optional[DatabaseConnection] = None):
-        self.db = db_manager or DatabaseConnection()
+    def __init__(self):
+        pass
 
-    async def get_available_faculties(self) -> List[str]:
-        """Get list of available faculties."""
-        async for conn in self.db.get_connection():
-            cursor = await conn.execute("""
-                SELECT DISTINCT name FROM faculties 
-                WHERE is_active = 1
-                ORDER BY name
-            """)
-
-            rows = await cursor.fetchall()
-            if rows:
-                return [row[0] for row in rows]
-
-            # Возвращаем стандартные факультеты СЗГМУ если в БД пусто
-            return [
-                "Медико-профилактический факультет",
-                "Лечебный факультет",
-                "Стоматологический факультет",
-                "Медико-биологический факультет",
-                "Факультет постдипломного образования",
-            ]
-
-    async def get_groups_by_faculty(self, faculty_name: str) -> List[Dict[str, Any]]:
-        """Получить группы по названию факультета."""
-        async for conn in self.db.get_connection():
-            cursor = await conn.execute(
-                """
-                SELECT g.id, g.number, g.course, g.stream, g.is_active,
-                       f.name as faculty_name
-                FROM groups g
-                JOIN faculties f ON g.faculty_id = f.id
-                WHERE f.name = ? AND g.is_active = 1
-                ORDER BY g.course, g.number
-            """,
-                (faculty_name,),
-            )
-
-            rows = await cursor.fetchall()
-            return [dict(row) for row in rows]
-
-    async def get_active_groups(self) -> List[Dict[str, Any]]:
-        """Получить все активные группы."""
-        async for conn in self.db.get_connection():
-            cursor = await conn.execute("""
-                SELECT id, number, faculty_id, course, stream, last_sync
-                FROM groups 
-                WHERE is_active = 1
-                ORDER BY number
-            """)
-
-            rows = await cursor.fetchall()
-            return [dict(row) for row in rows]
+    async def get_all_groups(self) -> List[Dict[str, Any]]:
+        """Получить все группы."""
+        logger.info("Getting all groups (stub)")
+        return []
 
     async def get_group_by_id(self, group_id: int) -> Optional[Dict[str, Any]]:
         """Получить группу по ID."""
-        async for conn in self.db.get_connection():
-            cursor = await conn.execute(
-                """
-                SELECT g.id, g.number, g.faculty_id, g.course, g.stream, 
-                       g.is_active, g.last_sync, f.name as faculty_name
-                FROM groups g
-                LEFT JOIN faculties f ON g.faculty_id = f.id
-                WHERE g.id = ?
-            """,
-                (group_id,),
-            )
+        logger.info(f"Getting group {group_id} (stub)")
+        return None
 
-            row = await cursor.fetchone()
-            return dict(row) if row else None
+    async def create_group(self, group_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Создать новую группу."""
+        logger.info("Creating group (stub)")
+        return group_data
 
-    async def find_or_create_group(self, group_number: str) -> Optional[Dict[str, Any]]:
-        """Найти группу по номеру или создать новую."""
-        # Сначала ищем существующую группу
-        async for conn in self.db.get_connection():
-            cursor = await conn.execute(
-                """
-                SELECT id, number, faculty_id, course, stream, is_active
-                FROM groups 
-                WHERE LOWER(number) = ?
-            """,
-                (group_number.lower(),),
-            )
+    async def update_group(self, group_id: int, group_data: Dict[str, Any]) -> bool:
+        """Обновить группу."""
+        logger.info(f"Updating group {group_id} (stub)")
+        return True
 
-            row = await cursor.fetchone()
-            if row:
-                return dict(row)
+    async def delete_group(self, group_id: int) -> bool:
+        """Удалить группу."""
+        logger.info(f"Deleting group {group_id} (stub)")
+        return True
 
-        # Создаем новую группу
+    async def find_groups_by_number(self, group_number: str) -> List[Dict[str, Any]]:
+        """Найти группы по номеру."""
+        logger.info(f"Finding groups by number {group_number} (stub)")
+        return []
+
+    async def get_groups_by_faculty(self, faculty: str) -> List[Dict[str, Any]]:
+        """Получить группы по факультету."""
+        logger.info(f"Getting groups by faculty {faculty} (stub)")
+        return []
+
+    async def get_available_faculties(self) -> List[str]:
+        """Получить список доступных факультетов из базы данных."""
         try:
-            async for conn in self.db.get_connection():
-                cursor = await conn.execute(
-                    """
-                    INSERT INTO groups (number, is_active, created_at)
-                    VALUES (?, 1, CURRENT_TIMESTAMP)
-                """,
-                    (group_number,),
+            # Сначала пытаемся получить из таблицы факультетов
+            from app.services.faculty_service import FacultyService
+            faculty_service = FacultyService()
+            faculty_names = await faculty_service.get_faculty_names()
+            
+            if faculty_names:
+                logger.info(f"Found {len(faculty_names)} faculties from faculty table")
+                return faculty_names
+            
+            # Если нет, получаем из групп
+            async for session in get_session():
+                from sqlalchemy import select, distinct
+                result = await session.execute(
+                    select(distinct(Group.faculty)).filter(Group.faculty.isnot(None))
                 )
-
-                group_id = cursor.lastrowid
-                await conn.commit()
-
-                logger.info(f"Created new group: {group_number} (ID: {group_id})")
-
-                # Возвращаем созданную группу
-                return {
-                    "id": group_id,
-                    "number": group_number,
-                    "faculty_id": None,
-                    "course": None,
-                    "stream": None,
-                    "is_active": True,
-                }
-
+                faculties = [row[0] for row in result.fetchall()]
+                
+                if not faculties:
+                    logger.info("No faculties found in database")
+                    return []
+                
+                logger.info(f"Found {len(faculties)} faculties from groups")
+                return sorted(faculties)
         except Exception as e:
-            logger.error(f"Error creating group {group_number}: {e}")
-            return None
+            logger.error(f"Error getting faculties from database: {e}")
+            return []
+
+    async def find_or_create_group(self, group_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Найти или создать группу."""
+        try:
+            async for session in get_session():
+                # Ищем существующую группу
+                result = await session.execute(
+                    select(Group).filter(Group.name == group_data["number"])
+                )
+                group = result.scalar_one_or_none()
+                
+                if group:
+                    logger.info(f"Found existing group {group.name}")
+                    return {
+                        "id": group.id,
+                        "name": group.name,
+                        "faculty": group.faculty,
+                        "speciality": group.speciality,
+                        "course": group.course
+                    }
+                
+                # Создаем новую группу
+                new_group = Group(
+                    name=group_data["number"],
+                    faculty="Unknown",
+                    speciality="Unknown",
+                    course=1
+                )
+                session.add(new_group)
+                await session.commit()
+                
+                logger.info(f"Created new group {new_group.name} with ID {new_group.id}")
+                return {
+                    "id": new_group.id,
+                    "name": new_group.name,
+                    "faculty": new_group.faculty,
+                    "speciality": new_group.speciality,
+                    "course": new_group.course
+                }
+        except Exception as e:
+            logger.error(f"Error finding or creating group: {e}")
+            return group_data
 
     async def update_group_info(self, group_id: int, info: Dict[str, Any]) -> bool:
         """Обновить информацию о группе."""
-        try:
-            # Сначала найдем или создадим факультет
-            faculty_id = None
-            if info.get("faculty"):
-                faculty_id = await self._find_or_create_faculty(info["faculty"])
-
-            async for conn in self.db.get_connection():
-                await conn.execute(
-                    """
-                    UPDATE groups SET
-                        faculty_id = ?,
-                        course = ?,
-                        stream = ?,
-                        speciality = ?,
-                        updated_at = CURRENT_TIMESTAMP
-                    WHERE id = ?
-                """,
-                    (
-                        faculty_id,
-                        info.get("course"),
-                        info.get("stream"),
-                        info.get("speciality"),
-                        group_id,
-                    ),
-                )
-
-                await conn.commit()
-                logger.info(f"Updated group {group_id} info")
-                return True
-
-        except Exception as e:
-            logger.error(f"Error updating group {group_id}: {e}")
-            return False
-
-    async def update_group_last_sync(self, group_id: int) -> None:
-        """Обновить время последней синхронизации группы."""
-        async for conn in self.db.get_connection():
-            await conn.execute(
-                """
-                UPDATE groups SET
-                    last_sync = CURRENT_TIMESTAMP
-                WHERE id = ?
-            """,
-                (group_id,),
-            )
-
-            await conn.commit()
-
-    async def _find_or_create_faculty(self, faculty_name: str) -> int:
-        """Найти или создать факультет по названию."""
-        async for conn in self.db.get_connection():
-            # Ищем существующий
-            cursor = await conn.execute(
-                """
-                SELECT id FROM faculties WHERE name = ?
-            """,
-                (faculty_name,),
-            )
-
-            row = await cursor.fetchone()
-            if row:
-                return row[0]
-
-            # Создаем новый
-            cursor = await conn.execute(
-                """
-                INSERT INTO faculties (name, is_active, created_at)
-                VALUES (?, 1, CURRENT_TIMESTAMP)
-            """,
-                (faculty_name,),
-            )
-
-            faculty_id = cursor.lastrowid
-            await conn.commit()
-
-            logger.info(f"Created new faculty: {faculty_name} (ID: {faculty_id})")
-            return faculty_id
-
-    async def get_faculty_by_id(self, faculty_id: int) -> Optional[Dict[str, Any]]:
-        """Получить факультет по ID."""
-        async for conn in self.db.get_connection():
-            cursor = await conn.execute(
-                """
-                SELECT id, name, short_name, code, description, 
-                       is_active, created_at, updated_at
-                FROM faculties 
-                WHERE id = ?
-            """,
-                (faculty_id,),
-            )
-
-            row = await cursor.fetchone()
-            return dict(row) if row else None
-
-    async def get_all_faculties(self) -> List[Dict[str, Any]]:
-        """Получить все факультеты."""
-        async for conn in self.db.get_connection():
-            cursor = await conn.execute("""
-                SELECT id, name, short_name, code, description, 
-                       is_active, created_at, updated_at
-                FROM faculties
-                ORDER BY name
-            """)
-
-            rows = await cursor.fetchall()
-            return [dict(row) for row in rows]
+        logger.info(f"Updating group {group_id} with info {info} (stub)")
+        return True

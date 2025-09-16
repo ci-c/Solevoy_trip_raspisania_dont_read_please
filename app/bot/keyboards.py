@@ -64,12 +64,14 @@ def get_group_selection_keyboard(faculties: List[str] = None) -> InlineKeyboardM
     builder = InlineKeyboardBuilder()
 
     if faculties:
-        # Показываем факультеты
+        # Показываем факультеты как есть (без хардкода)
         for faculty in faculties[:10]:  # Ограничиваем количество
+            # Сокращаем длинные названия для callback data
+            short_faculty = faculty[:10] if len(faculty) > 10 else faculty
             builder.button(
                 text=f"🏛️ {faculty}",
                 callback_data=GroupSearchCallback(
-                    action="select_faculty", value=faculty
+                    action="select_faculty", value=short_faculty
                 ),
             )
         builder.adjust(1)

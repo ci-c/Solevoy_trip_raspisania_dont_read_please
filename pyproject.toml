@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "schedule-processor"
+name = "szgmu-schedule-bot"
 version = "2.0.0"
-description = "Schedule processor for converting CSV/XLSX to ICS and Excel formats with Telegram bot interface"
+description = "SZGMU Schedule Bot - Telegram bot for university schedule management"
 readme = "README.md"
 license = "MIT"
 authors = [
@@ -58,15 +58,15 @@ dev = [
 ]
 
 [project.scripts]
-schedule-processor = "main_api:main"
-schedule-bot = "bot_main:main"
-schedule-run = "run:main"
-szgmu-schedule = "cli:cli"
+szgmu-bot = "main:main"
 
 [project.urls]
 Homepage = "https://github.com/yourusername/schedule-processor"
 Repository = "https://github.com/yourusername/schedule-processor" 
 Issues = "https://github.com/yourusername/schedule-processor/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
 
 [tool.uv]
 dev-dependencies = [
