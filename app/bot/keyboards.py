@@ -128,3 +128,37 @@ def get_error_keyboard() -> InlineKeyboardMarkup:
     builder.button(text="🏠 В меню", callback_data=MenuCallback(action="home"))
     builder.adjust(2)
     return builder.as_markup()
+
+
+def get_simple_group_keyboard() -> InlineKeyboardMarkup:
+    """Простая клавиатура для настройки группы."""
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text="✍️ Ввести номер группы", 
+        callback_data="group_setup:enter_manually"
+    )
+    builder.button(
+        text="📋 Выбрать из списка", 
+        callback_data="group_setup:select_from_list"
+    )
+    builder.button(
+        text="❌ Отмена", 
+        callback_data="group_setup:cancel"
+    )
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def get_confirm_keyboard(confirm_action: str, cancel_action: str = "cancel") -> InlineKeyboardMarkup:
+    """Клавиатура подтверждения."""
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text="✅ Подтвердить", 
+        callback_data=f"group_setup:{confirm_action}"
+    )
+    builder.button(
+        text="❌ Отмена", 
+        callback_data=f"group_setup:{cancel_action}"
+    )
+    builder.adjust(2)
+    return builder.as_markup()

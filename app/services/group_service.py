@@ -2,7 +2,7 @@
 Сервис для работы с группами студентов.
 """
 
-from typing import List, Optional, Dict, Any
+from typing import List, Dict
 from loguru import logger
 
 from app.database.session import get_session
@@ -81,13 +81,13 @@ class GroupService:
             logger.error(f"Error getting faculties from database: {e}")
             return []
 
-    async def find_or_create_group(self, group_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Найти или создать группу."""
+    async def find_or_create_group(self, group_number: str) -> Dict[str, str] | None:
+        """Найти или создать группу по номеру."""
         try:
             async for session in get_session():
                 # Ищем существующую группу
                 result = await session.execute(
-                    select(Group).filter(Group.name == group_data["number"])
+                    select(Group).filter(Group.name == group_number)
                 )
                 group = result.scalar_one_or_none()
                 
@@ -103,7 +103,7 @@ class GroupService:
                 
                 # Создаем новую группу
                 new_group = Group(
-                    name=group_data["number"],
+                    name=group_number,
                     faculty="Unknown",
                     speciality="Unknown",
                     course=1
@@ -121,9 +121,9 @@ class GroupService:
                 }
         except Exception as e:
             logger.error(f"Error finding or creating group: {e}")
-            return group_data
+            return None
 
-    async def update_group_info(self, group_id: int, info: Dict[str, Any]) -> bool:
+    async def update_group_info(self, group_id: int, info: Dict[str, str]) -> bool:
         """Обновить информацию о группе."""
         logger.info(f"Updating group {group_id} with info {info} (stub)")
         return True

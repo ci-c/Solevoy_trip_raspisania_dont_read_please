@@ -8,7 +8,7 @@ from aiogram.fsm.context import FSMContext
 from loguru import logger
 
 from app.bot.keyboards import get_main_menu_keyboard
-from app.bot.states import MainMenu
+from app.bot.states import MainMenu, GroupSetupStates
 from app.services.user_service import UserService
 from app.utils.validation import validate_user_input, ValidationError
 from app.utils.error_handling import ErrorHandler, DatabaseError
@@ -79,13 +79,17 @@ async def cmd_start(message: types.Message, state: FSMContext) -> None:
                 reply_markup=get_main_menu_keyboard(user),
             )
         else:
-            # Новый пользователь
-            await message.answer(
-                "👋 Добро пожаловать в СЗГМУ Schedule Bot!\n\n"
-                "🤖 Я помогу вам с расписанием занятий, оценками и документами.\n\n"
-                "Для начала настройте свой профиль или воспользуйтесь поиском:",
-                reply_markup=get_main_menu_keyboard(),
+            # Новый пользователь - настройка группы
+            text = (
+                "🎓 **Настройка группы**\n\n"
+                "Выберите способ настройки:"
             )
+            
+            from app.bot.keyboards import get_simple_group_keyboard
+            keyboard = get_simple_group_keyboard()
+            
+            await message.answer(text, reply_markup=keyboard)
+            await state.set_state(GroupSetupStates.choosing_method)
 
     except ValidationError as e:
         await ErrorHandler.handle_validation_error(e, message)

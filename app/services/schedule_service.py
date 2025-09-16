@@ -3,7 +3,7 @@
 """
 
 from datetime import date, datetime
-from typing import List, Dict, Any, Optional
+from typing import List, Dict
 from loguru import logger
 
 from app.database.session import get_session
@@ -19,9 +19,9 @@ class ScheduleService:
     async def get_user_schedule(
         self, 
         user_id: int, 
-        start_date: Optional[date] = None,
-        end_date: Optional[date] = None
-    ) -> List[Dict[str, Any]]:
+        start_date: date | None = None,
+        end_date: date | None = None
+    ) -> List[Dict[str, str]]:
         """
         Получить расписание пользователя.
         

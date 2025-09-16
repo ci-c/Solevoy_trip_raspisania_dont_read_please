@@ -88,10 +88,17 @@ async def handle_group_selection(
 
     except Exception as e:
         logger.error(f"Error in group selection handler: {e}")
-        await callback.message.edit_text(
-            "❌ Ошибка при выборе группы. Попробуйте позже.",
-            reply_markup=get_group_selection_keyboard(),
-        )
+        try:
+            await callback.message.edit_text(
+                "❌ Ошибка при выборе группы. Попробуйте позже.",
+                reply_markup=get_group_selection_keyboard(),
+            )
+        except Exception as edit_error:
+            logger.error(f"Could not edit message: {edit_error}")
+            await callback.message.answer(
+                "❌ Ошибка при выборе группы. Попробуйте позже.",
+                reply_markup=get_group_selection_keyboard(),
+            )
 
 
 async def process_manual_group_input(message: types.Message, state: FSMContext) -> None:
@@ -137,11 +144,19 @@ async def process_manual_group_input(message: types.Message, state: FSMContext) 
 
     except Exception as e:
         logger.error(f"Error processing manual group input: {e}")
-        await message.answer(
-            f"❌ Ошибка при обработке номера группы `{group_number}`.\n\n"
-            "Попробуйте позже или обратитесь к администратору.",
-            reply_markup=get_group_selection_keyboard(),
-        )
+        try:
+            await message.edit_text(
+                f"❌ Ошибка при обработке номера группы `{group_number}`.\n\n"
+                "Попробуйте позже или обратитесь к администратору.",
+                reply_markup=get_group_selection_keyboard(),
+            )
+        except Exception as edit_error:
+            logger.error(f"Could not edit message: {edit_error}")
+            await message.answer(
+                f"❌ Ошибка при обработке номера группы `{group_number}`.\n\n"
+                "Попробуйте позже или обратитесь к администратору.",
+                reply_markup=get_group_selection_keyboard(),
+            )
 
 
 async def show_faculty_groups(
@@ -179,7 +194,18 @@ async def show_faculty_groups(
             text += "✍️ Введите номер вашей группы из списка выше:"
 
             await state.set_state(GroupSearchStates.entering_group_number)
-            await message.edit_text(text, reply_markup=get_group_selection_keyboard())
+            
+            # Проверяем, изменился ли текст
+            current_text = message.text or ""
+            if text != current_text:
+                try:
+                    await message.edit_text(text, reply_markup=get_group_selection_keyboard())
+                except Exception as edit_error:
+                    logger.error(f"Could not edit message: {edit_error}")
+                    await message.answer(text, reply_markup=get_group_selection_keyboard())
+            else:
+                # Сообщение не изменилось, ничего не делаем
+                pass
 
         else:
             await message.edit_text(
@@ -231,15 +257,27 @@ async def show_group_confirmation(
         await state.update_data(selected_group=group_info, detected_info=detected_info)
         await state.set_state(GroupSearchStates.confirming_selection)
 
-        await message.edit_text(text, reply_markup=keyboard)
+        try:
+            await message.edit_text(text, reply_markup=keyboard)
+        except Exception as edit_error:
+            logger.error(f"Could not edit message: {edit_error}")
+            await message.answer(text, reply_markup=keyboard)
 
     except Exception as e:
         logger.error(f"Error showing group confirmation: {e}")
-        await message.edit_text(
-            "❌ Ошибка при подготовке подтверждения.\n\n"
-            "Попробуйте выбрать группу заново:",
-            reply_markup=get_group_selection_keyboard(),
-        )
+        try:
+            await message.edit_text(
+                "❌ Ошибка при подготовке подтверждения.\n\n"
+                "Попробуйте выбрать группу заново:",
+                reply_markup=get_group_selection_keyboard(),
+            )
+        except Exception as edit_error:
+            logger.error(f"Could not edit error message: {edit_error}")
+            await message.answer(
+                "❌ Ошибка при подготовке подтверждения.\n\n"
+                "Попробуйте выбрать группу заново:",
+                reply_markup=get_group_selection_keyboard(),
+            )
 
 
 async def confirm_group_selection(

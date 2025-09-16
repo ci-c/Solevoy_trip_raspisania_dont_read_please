@@ -88,3 +88,12 @@ class GroupSearchStates(StatesGroup):
     viewing_results = State()
     viewing_schedule = State()
     confirming_selection = State()
+
+
+class GroupSetupStates(StatesGroup):
+    """Состояния настройки группы."""
+
+    choosing_method = State()
+    entering_group_number = State()
+    selecting_faculty = State()
+    confirming_selection = State()

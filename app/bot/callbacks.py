@@ -73,6 +73,29 @@ class GradeCallback(CallbackData, prefix="grade"):
     data: str = ""
 
 
+class GroupSearchCallback(CallbackData, prefix="group_search"):
+    """Callback для поиска группы."""
+
+    action: str
+    value: str | None = None
+    group_id: str | None = None
+
+
+class GroupSelectionCallback(CallbackData, prefix="group_select"):
+    """Callback для выбора группы."""
+
+    action: str
+    group_id: int = 0
+    faculty: str = ""
+
+
+class GroupConfirmationCallback(CallbackData, prefix="group_confirm"):
+    """Callback для подтверждения выбора группы."""
+
+    action: str
+    group_id: int = 0
+
+
 # Copyright (c) 2024 SZGMU Bot Project
 # See LICENSE for details.
 

@@ -151,7 +151,7 @@ class BotApplication:
                 default=DefaultBotProperties(parse_mode=ParseMode.HTML),
             )
             self.dp = Dispatcher()
-            register_handlers(self.dp)
+            await register_handlers(self.dp)
 
             await self._init_database()
             await self._init_scheduler()
