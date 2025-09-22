@@ -9,4 +9,4 @@ workflow:
   timezone: Europe/Moscow
 traits:
   preferred_models:
-  - claude-3-haiku
+    - claude-3-haiku

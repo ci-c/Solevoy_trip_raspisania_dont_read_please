@@ -4,7 +4,9 @@ agent:
   name: Backend Developer 1
   created: '2025-09-20'
   status: active
-workflow: {}
+workflow:
+  standup_time: 09:30
+  timezone: Europe/Moscow
 traits:
   preferred_models:
-  - gpt-4o-mini
+    - gpt-4o-mini

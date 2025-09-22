@@ -4,7 +4,9 @@ agent:
   name: Frontend Developer 1
   created: '2025-09-20'
   status: active
-workflow: {}
+workflow:
+  standup_time: 09:30
+  timezone: Europe/Moscow
 traits:
   preferred_models:
-  - claude-3.5-sonnet
+    - claude-3.5-sonnet

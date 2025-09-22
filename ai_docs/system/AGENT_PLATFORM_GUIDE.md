@@ -3,7 +3,7 @@
 Актуальная система для LLM-агентов включает три ключевых части:
 
 1. **Конфигурация** — `ai_docs/system/agent_policies.yaml` (роли, приоритеты, планировщик) и `ai_docs/system/initial_tasks.yaml` (стартовые задачи).
-2. **Состояние** — `ai_docs/state/agent_state.yaml`, `ai_docs/state/tasks.yaml` и каталоги `ai_docs/state/agents/*` с профилями и логами.
+2. **Состояние** — `ai_docs/state/agents.yaml`, `ai_docs/state/issues.yaml`, `ai_docs/state/events.yaml`, `ai_docs/state/communications.yaml` и каталоги `ai_docs/state/agents/*` с профилями и логами.
 3. **Инструмент** — `python ai_docs/system/agent_system_cli.py` заменяет shell-скрипты и управляет онбордингом, задачами и планировщиком.
 
 ## Быстрый старт
@@ -13,7 +13,7 @@
 python ai_docs/system/agent_system_cli.py agents list
 
 # Автоматический онбординг (роль, промпт и задача выдаются системой)
-python ai_docs/system/agent_system_cli.py agents onboard "Новый участник"
+python ai_docs/system/agent_system_cli.py agents ingest "Новый участник" "Помогаю команде"
 
 # Просмотреть подробности и активные задачи
 python ai_docs/system/agent_system_cli.py agents info BE_001_v1
@@ -30,10 +30,10 @@ python ai_docs/system/agent_system_cli.py scheduler run
 
 ## Онбординг и первая задача
 
-Команда `agents onboard` выполняет за один шаг:
+Команда `agents ingest` (alias `agents onboard`) выполняет за один шаг:
 
 1. Подбор роли по приоритетам, минимумам и флагам `auto_fill_capacity` из `agent_policies.yaml`.
-2. Запись агента в `agent_state.yaml` и формирование профиля `ai_docs/state/agents/<ID>/profile.yaml`.
+2. Запись агента в `agents.yaml` и формирование профиля `ai_docs/state/agents/<ID>/profile.yaml`.
 3. Формирование приветственного пакета `welcome.md` с промптом (из `ai_docs/prompts/roles/<ROLE>_AGENT_PROMPT.md`) и списком рекомендуемых моделей.
 4. Генерацию стартовой задачи на основе `ai_docs/system/initial_tasks.yaml` — запись попадает в `tasks.yaml` и `todo.txt` с тегами `+agent_id:<ID>` и `+task_id:<TSK>`.
 
@@ -58,9 +58,11 @@ python ai_docs/system/agent_system_cli.py agents touch QA_001_v1
 
 ## Формат данных
 
-- **Агенты**: `agent_state.yaml` содержит инфраструктурные данные (id, роль, статус, последнее обновление).
+- **Агенты**: `agents.yaml` содержит инфраструктурные данные (id, роль, статус, компетенции, временные отметки).
 - **Каталоги агентов**: `ai_docs/state/agents/<ID>/profile.yaml` и `welcome.md` хранят настройки, промпт и ссылки на стартовые задачи.
-- **Задачи**: `tasks.yaml` — структурированное хранилище с дополнительными полями (`description`, `story_points`). Каждая задача дублируется в `todo.txt` с тегами `+agent_id` и `+task_id`.
+- **Задачи**: `issues.yaml` — структурированное хранилище (`type`, `status`, `dependencies`, `story_points`). Каждая активная задача экспортируется в `todo.txt` с тегами `+issue_id`, `+assignee`, `+status`.
+- **Коммуникации**: `communications.yaml` фиксирует диалоги пользователя и агентов.
+- **Журнал**: `events.yaml` отслеживает ключевые действия (назначения ролей, создание задач, перемещения по workflow).
 
 ## Полезные команды
 

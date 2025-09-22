@@ -310,7 +310,10 @@ python ai_docs/system/agent_system_cli.py agents list | awk -F'|' '{print $1}' |
 ```bash
 BACKUP_DIR="backups/agents_$(date +%Y%m%d_%H%M%S)"
 mkdir -p "$BACKUP_DIR"
-cp ai_docs/state/agent_state.yaml "$BACKUP_DIR/"
+cp ai_docs/state/agents.yaml "$BACKUP_DIR/"
+cp ai_docs/state/issues.yaml "$BACKUP_DIR/"
+cp ai_docs/state/events.yaml "$BACKUP_DIR/"
+cp ai_docs/state/communications.yaml "$BACKUP_DIR/"
 cp -r ai_docs/state/agents "$BACKUP_DIR/"
 cp -r logs "$BACKUP_DIR/"
 ```
@@ -318,11 +321,13 @@ cp -r logs "$BACKUP_DIR/"
 ### Восстановление из резервной копии
 ```bash
 BACKUP_DIR="$1"
-cp "$BACKUP_DIR/agent_state.yaml" ai_docs/state/agent_state.yaml
+cp "$BACKUP_DIR/agents.yaml" ai_docs/state/agents.yaml
+cp "$BACKUP_DIR/issues.yaml" ai_docs/state/issues.yaml
+cp "$BACKUP_DIR/events.yaml" ai_docs/state/events.yaml
+cp "$BACKUP_DIR/communications.yaml" ai_docs/state/communications.yaml
 rm -rf ai_docs/state/agents
 cp -r "$BACKUP_DIR/agents" ai_docs/state/
 cp -r "$BACKUP_DIR/logs" .
 ```
 
 ---
-

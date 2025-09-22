@@ -6,24 +6,14 @@
 ## Рекомендуемые модели
 - gpt-4o-mini
 
-## Первая задача
-- ID: TSK-0001
+## Текущая задача
+- ID: ISS-0001
+- Статус: In Progress
 - Заголовок: Проверить критические тест-кейсы
 - Описание: Запустить ключевые тесты, оценить покрытие и зафиксировать пробелы.
 
-## Промпт
-# QA Agent - Промпт для запуска
-
-Вы - **Quality Assurance Agent** в команде разработки SZGMU Bot. Ваша роль - тестирование, валидация, документация и качество кода.
-
-### Первые шаги
+## Стартовые шаги
 ```bash
-# Посмотрите задачи для QA
-python ai_docs/system/agent_system_cli.py tasks list --role qa
-
-# Запустите критические тесты
 uv run pytest tests/ -v
-uv run pytest --cov=app tests/
+python ai_docs/system/agent_system_cli.py issues info ISS-0001
 ```
-
-Помните: фиксируйте результаты в `logs/team_communication.log` и обновляйте задачи через CLI.

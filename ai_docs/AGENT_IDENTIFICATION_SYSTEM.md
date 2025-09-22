@@ -71,10 +71,10 @@ AGENT_ID: [ROLE]_[NUMBER]_[VERSION]
 ## Регистрация агентов
 
 ### Где хранится реестр
-- `ai_docs/state/agent_state.yaml` — основная информация (ID, роль, статус, последняя активность).
+- `ai_docs/state/agents.yaml` — основная информация (ID, роль, статус, отметки времени, компетенции).
 - `ai_docs/state/agents/<ID>/profile.yaml` — индивидуальные настройки.
 
-### Пример записи в `agent_state.yaml`
+### Пример записи в `agents.yaml`
 ```yaml
 agents:
   - id: BE_001_v1
@@ -113,7 +113,7 @@ python ai_docs/system/agent_system_cli.py agents update-status FE_001_v1 paused
 - `python ai_docs/system/agent_system_cli.py tasks list --agent-id AGENT_ID` — посмотреть задачи конкретного агента.
 - `python ai_docs/system/agent_system_cli.py tasks complete TSK-0001` — закрыть задачу.
 
-Все изменения автоматически отражаются в `ai_docs/state/agent_state.yaml` и `todo.txt`.
+Все изменения автоматически отражаются в `ai_docs/state/agents.yaml`, `issues.yaml` и экспортируются в `todo.txt`.
 
 ## Использование ID в коммуникации
 
@@ -174,7 +174,7 @@ grep "+agent_id:AGENT_ID" todo.txt | grep -o "+[0-9]*sp" | sed 's/+//;s/sp//' | 
 
 Версия хранится в идентификаторе (`BE_001_v1`). При необходимости изменить версию:
 1. Отредактируйте поле `agent.id` и `agent.status` в `ai_docs/state/agents/<ID>/profile.yaml`.
-2. Обновите запись в `ai_docs/state/agent_state.yaml`, заменив `id` на новый (`v2`).
+2. Обновите запись в `ai_docs/state/agents.yaml`, заменив `id` на новый (`v2`).
 3. Проверьте, что задачи в `todo.txt` и `tasks.yaml` используют обновлённый ID.
 
 Для массового обновления используйте Python-скрипт, который загружает YAML, меняет ID и пересохраняет файлы.
@@ -223,12 +223,12 @@ python ai_docs/system/agent_system_cli.py tasks list --agent-id BE_002_v1 --incl
 
 ### Автоматическое резервное копирование
 ```bash
-cp ai_docs/state/agent_state.yaml backups/agent_state_$(date +%Y%m%d_%H%M%S).yaml
+cp ai_docs/state/agents.yaml backups/agents_$(date +%Y%m%d_%H%M%S).yaml
 ```
 
 ### Восстановление реестра
 ```bash
-cp backups/agent_state_20250920_0100.yaml ai_docs/state/agent_state.yaml
+cp backups/agents_20250920_0100.yaml ai_docs/state/agents.yaml
 ```
 
 ---
