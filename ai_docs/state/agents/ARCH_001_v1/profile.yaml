@@ -1,0 +1,11 @@
+agent:
+  id: ARCH_001_v1
+  role: ARCH
+  name: Architect Agent
+  created: '2025-09-22'
+  status: active
+workflow: {}
+traits:
+  preferred_models:
+  - gpt-4o
+  - claude-3-opus

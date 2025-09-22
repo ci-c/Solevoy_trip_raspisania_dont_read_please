@@ -1,18 +1,10 @@
 agent:
   id: FE_001_v1
   role: FE
-  name: Backend Developer Agent
+  name: Frontend Developer 1
   created: '2025-09-20'
   status: active
-workflow:
-  daily_standup_time: 09:00
-  sprint_planning_day: monday
-  review_day: friday
-notifications:
-  email: ''
-  slack_channel: '#fe'
-  telegram_chat: ''
-preferences:
-  language: ru
-  timezone: Europe/Moscow
-  working_hours: 09:00-18:00
+workflow: {}
+traits:
+  preferred_models:
+  - claude-3.5-sonnet

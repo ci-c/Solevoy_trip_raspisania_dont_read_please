@@ -1,149 +1,213 @@
-version: 1
+version: 2
 metadata:
-  updated_at: 2025-09-20T02:30:00
-  description: >-
-    Конфигурация ролей и правил взаимодействия агентов. Используется Python-CLI
-    инструментом для управления агентами и задачами.
-roles:
-  PO:
-    name: Product Owner
-    description: Управление backlog, приоритизация и связь с пользователем.
-    allowed_actions:
-      - tasks.view
-      - tasks.create
-      - tasks.assign
-      - planning.prioritize
-    communication_channels:
-      - general
-      - planning
-    workspace_access:
-      read_only:
-        - app/
-        - docs/
-    workflow:
-      standup_time: "09:00"
-      timezone: Europe/Moscow
-  BE:
-    name: Backend Engineer
-    description: Серверная логика, база данных, API.
-    allowed_actions:
-      - tasks.view
-      - tasks.create
-      - tasks.complete
-      - code.review
-    communication_channels:
-      - general
-      - backend
-    workspace_access:
-      read_write:
-        - app/services/
-        - app/database/
-      read_only:
-        - app/bot/
-    workflow:
-      standup_time: "09:30"
-      timezone: Europe/Moscow
-  FE:
-    name: Frontend Engineer
-    description: UX бота, handlers и клавиатуры.
-    allowed_actions:
-      - tasks.view
-      - tasks.create
-      - tasks.complete
-    communication_channels:
-      - general
-      - frontend
-    workspace_access:
-      read_write:
-        - app/bot/
-      read_only:
-        - app/services/
-    workflow:
-      standup_time: "09:30"
-      timezone: Europe/Moscow
-  QA:
-    name: QA Engineer
-    description: Тесты, документация и контроль качества.
-    allowed_actions:
-      - tasks.view
-      - tasks.create
-      - tasks.verify
-      - tasks.complete
-    communication_channels:
-      - general
-      - qa
-    workspace_access:
-      read_write:
-        - tests/
-        - docs/
-      read_only:
-        - app/
-    workflow:
-      standup_time: "09:15"
-      timezone: Europe/Moscow
-  DO:
-    name: DevOps Engineer
-    description: Инфраструктура, CI/CD и наблюдаемость.
-    allowed_actions:
-      - tasks.view
-      - tasks.create
-      - infra.deploy
-    communication_channels:
-      - general
-      - devops
-    workspace_access:
-      read_write:
-        - scripts/
-        - infra/
-      read_only:
-        - app/
-    workflow:
-      standup_time: "09:00"
-      timezone: Europe/Moscow
-  SM:
-    name: Scrum Master
-    description: Координация процессов и устранение блокеров.
-    allowed_actions:
-      - tasks.view
-      - tasks.assign
-      - agents.touch
-      - coordination.resolve
-    communication_channels:
-      - general
-      - planning
-      - coordination
-    workspace_access:
-      read_only:
-        - app/
-        - docs/
-    workflow:
-      standup_time: "08:45"
-      timezone: Europe/Moscow
+  updated_at: 2025-09-22 15:00:00
+  description: Конфигурация ролей, приоритетов и расписателя агентов
+role_priorities:
+- ARCH
+- BE
+- FE
+- QA
+- DO
+- PO
+- SM
+role_policies:
   ARCH:
-    name: Architect
-    description: Ответственность за архитектуру проекта и стратегические решения.
+    title: Architect
+    description: Архитектурные решения, стратегия и координация команды.
+    capacity: 1
+    minimum: 1
+    prompt_path: ai_docs/prompts/roles/ARCH_AGENT_PROMPT.md
+    initial_task_key: architect_bootstrap
+    preferred_models:
+    - gpt-4o
+    - claude-3-opus
     allowed_actions:
-      - tasks.view
-      - tasks.create
-      - tasks.assign
-      - agents.register
-      - agents.status
-      - coordination.override
+    - tasks.view
+    - tasks.create
+    - tasks.assign
+    - agents.register
+    - agents.status
+    - coordination.override
     communication_channels:
-      - general
-      - planning
-      - backend
-      - frontend
-      - qa
-      - devops
+    - general
+    - planning
+    - backend
+    - frontend
+    - qa
+    - devops
     workspace_access:
       read_write:
-        - app/
-        - docs/
-        - ai_docs/
+      - app/
+      - docs/
+      - ai_docs/
     workflow:
-      standup_time: "08:30"
+      standup_time: 08:30
       timezone: Europe/Moscow
+    auto_fill_capacity: false
+  BE:
+    title: Backend Engineer
+    description: Серверная логика, база данных, API интеграции.
+    capacity: 2
+    minimum: 1
+    prompt_path: ai_docs/prompts/roles/BE_AGENT_PROMPT.md
+    initial_task_key: backend_orientation
+    preferred_models:
+    - gpt-4o-mini
+    - claude-3.5-sonnet
+    allowed_actions:
+    - tasks.view
+    - tasks.create
+    - tasks.complete
+    - code.review
+    communication_channels:
+    - general
+    - backend
+    workspace_access:
+      read_write:
+      - app/services/
+      - app/database/
+      read_only:
+      - app/bot/
+    workflow:
+      standup_time: 09:30
+      timezone: Europe/Moscow
+    auto_fill_capacity: true
+  FE:
+    title: Frontend Engineer
+    description: UX бота, обработчики, клавиатуры и состояния.
+    capacity: 2
+    minimum: 1
+    prompt_path: ai_docs/prompts/roles/FE_AGENT_PROMPT.md
+    initial_task_key: frontend_orientation
+    preferred_models:
+    - claude-3.5-sonnet
+    - gpt-4o-mini
+    allowed_actions:
+    - tasks.view
+    - tasks.create
+    - tasks.complete
+    communication_channels:
+    - general
+    - frontend
+    workspace_access:
+      read_write:
+      - app/bot/
+      read_only:
+      - app/services/
+    workflow:
+      standup_time: 09:30
+      timezone: Europe/Moscow
+    auto_fill_capacity: false
+  QA:
+    title: QA Engineer
+    description: Тесты, документация и контроль качества.
+    capacity: 1
+    minimum: 1
+    prompt_path: ai_docs/prompts/roles/QA_AGENT_PROMPT.md
+    initial_task_key: qa_orientation
+    preferred_models:
+    - gpt-4o-mini
+    allowed_actions:
+    - tasks.view
+    - tasks.create
+    - tasks.verify
+    - tasks.complete
+    communication_channels:
+    - general
+    - qa
+    workspace_access:
+      read_write:
+      - tests/
+      - docs/
+      read_only:
+      - app/
+    workflow:
+      standup_time: 09:15
+      timezone: Europe/Moscow
+    auto_fill_capacity: false
+  DO:
+    title: DevOps Engineer
+    description: Инфраструктура, CI/CD и мониторинг.
+    capacity: 1
+    minimum: 0
+    prompt_path: ai_docs/prompts/roles/DO_AGENT_PROMPT.md
+    initial_task_key: devops_orientation
+    preferred_models:
+    - gpt-4o-mini
+    allowed_actions:
+    - tasks.view
+    - tasks.create
+    - infra.deploy
+    communication_channels:
+    - general
+    - devops
+    workspace_access:
+      read_write:
+      - scripts/
+      - infra/
+      read_only:
+      - app/
+    workflow:
+      standup_time: 09:00
+      timezone: Europe/Moscow
+    auto_fill_capacity: false
+  PO:
+    title: Product Owner
+    description: Работа с backlog, приоритеты и общение с пользователем.
+    capacity: 1
+    minimum: 0
+    prompt_path: ai_docs/prompts/roles/PO_AGENT_PROMPT.md
+    initial_task_key: po_orientation
+    preferred_models:
+    - claude-3-haiku
+    allowed_actions:
+    - tasks.view
+    - tasks.create
+    - tasks.assign
+    - planning.prioritize
+    communication_channels:
+    - general
+    - planning
+    workspace_access:
+      read_only:
+      - app/
+      - docs/
+    workflow:
+      standup_time: 09:00
+      timezone: Europe/Moscow
+    auto_fill_capacity: false
+  SM:
+    title: Scrum Master
+    description: Координация, процессы и устранение блокеров.
+    capacity: 1
+    minimum: 0
+    prompt_path: ai_docs/prompts/roles/SM_AGENT_PROMPT.md
+    initial_task_key: sm_orientation
+    preferred_models:
+    - gpt-4o-mini
+    allowed_actions:
+    - tasks.view
+    - tasks.assign
+    - agents.touch
+    - coordination.resolve
+    communication_channels:
+    - general
+    - planning
+    - coordination
+    workspace_access:
+      read_only:
+      - app/
+      - docs/
+    workflow:
+      standup_time: 08:45
+      timezone: Europe/Moscow
+    auto_fill_capacity: false
+scheduler:
+  auto_assign: true
+  allow_auto_reassignment: true
+  max_reassign_per_run: 1
+  fallback_role: QA
+  log_file: logs/team_communication.log
 status_definitions:
   active:
     description: Агент в строю и может брать задачи.
@@ -151,28 +215,7 @@ status_definitions:
     description: Агент временно приостановлен, задачи удерживаются.
   retired:
     description: Агент больше не участвует, задачи перераспределены.
-communication_channels:
-  general:
-    purpose: Общее информационное поле.
-  backend:
-    purpose: Координация backend-задач.
-  frontend:
-    purpose: Работа над UX и интерфейсом бота.
-  qa:
-    purpose: Тестирование и контроль качества.
-  devops:
-    purpose: Инфраструктура и развёртывание.
-  planning:
-    purpose: Планирование, спринты, приоритеты.
-  coordination:
-    purpose: Разрешение конфликтов и блокировок.
 workflow_defaults:
-  workday: "09:00-18:00"
+  workday: 09:00-18:00
   timezone: Europe/Moscow
-  standup_time: "09:00"
-task_policy:
-  default_priority_order: ["A", "B", "C", "D"]
-  status_values: ["active", "in_progress", "blocked", "completed"]
-  agent_tag_prefix: "+agent_id:"
-  task_id_prefix: "+task_id:"
-  story_points_prefix: "+sp"
+  standup_time: 09:00

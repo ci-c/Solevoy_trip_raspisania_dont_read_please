@@ -1,0 +1,65 @@
+tasks:
+  architect_bootstrap:
+    role: ARCH
+    title: "Сформировать обзор состояния проекта"
+    description: "Соберите актуальные статусы агентов и задач, определите ключевые блокеры."
+    priority: A
+    tags:
+      - +architecture
+      - +planning
+    story_points: 5
+  backend_orientation:
+    role: BE
+    title: "Проверить сервисы расписаний"
+    description: "Пройтись по app/services/*, зафиксировать основные точки расширения и открытые mypy-ошибки."
+    priority: A
+    tags:
+      - +orientation
+      - +backend
+      - +analysis
+    story_points: 3
+  frontend_orientation:
+    role: FE
+    title: "Аудит пользовательских сценариев"
+    description: "Проверить актуальные handlers и клавиатуры, составить короткий список UX-проблем."
+    priority: A
+    tags:
+      - +ux
+      - +frontend
+    story_points: 2
+  qa_orientation:
+    role: QA
+    title: "Проверить критические тест-кейсы"
+    description: "Запустить ключевые тесты, оценить покрытие и зафиксировать пробелы."
+    priority: B
+    tags:
+      - +testing
+      - +quality
+    story_points: 2
+  devops_orientation:
+    role: DO
+    title: "Проверить состояние мониторинга"
+    description: "Проанализировать логи и конфигурацию CI/CD, отметить риски."
+    priority: B
+    tags:
+      - +monitoring
+      - +devops
+    story_points: 3
+  po_orientation:
+    role: PO
+    title: "Отсортировать backlog"
+    description: "Пересмотреть todo.txt, выставить приоритеты и собрать вопросы для пользователя."
+    priority: A
+    tags:
+      - +planning
+      - +backlog
+    story_points: 2
+  sm_orientation:
+    role: SM
+    title: "Организовать синхронизацию"
+    description: "Собрать сведения о блокерах и подготовить короткий план координации."
+    priority: A
+    tags:
+      - +coordination
+      - +process
+    story_points: 2

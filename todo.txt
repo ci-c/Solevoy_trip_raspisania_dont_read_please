@@ -70,3 +70,6 @@ x 2025-09-19 NameError в APIClient.__del__ - неправильная обра�
 (B) 2025-09-19 Конфликты getUpdates при множественных процессах бота +telegram
 x 2025-09-19 Отсутствуют методы в сервисах для работы с группами +services +completed
 x 2025-09-19 Тестовая система конфликтует с основным ботом +testing +completedу
+(B) 2025-09-22 Проверить критические тест-кейсы @qa +testing +quality +origin:scheduler +2sp +agent_id:QA_001_v1 +task_id:TSK-0001
+(B) 2025-09-22 Проверить состояние мониторинга @do +monitoring +devops +origin:scheduler +3sp +agent_id:DO_001_v1 +task_id:TSK-0002
+(A) 2025-09-22 Отсортировать backlog @po +planning +backlog +origin:scheduler +2sp +agent_id:PO_001_v1 +task_id:TSK-0003

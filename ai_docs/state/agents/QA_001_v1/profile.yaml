@@ -1,0 +1,12 @@
+agent:
+  id: QA_001_v1
+  role: QA
+  name: QA Specialist
+  created: '2025-09-20'
+  status: active
+workflow:
+  standup_time: 09:15
+  timezone: Europe/Moscow
+traits:
+  preferred_models:
+    - gpt-4o-mini
