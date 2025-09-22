@@ -26,6 +26,9 @@ python ai_docs/system/agent_system_cli.py tasks complete TSK-0001
 
 # Принудительно запустить распределение
 python ai_docs/system/agent_system_cli.py scheduler run
+
+# Отправить запрос Product Owner через систему коммуникаций
+python ai_docs/system/agent_system_cli.py communications send product "Нужны уточнения по платежам" --sender user --recipient PO --create-issue
 ```
 
 ## Онбординг и первая задача
@@ -33,9 +36,9 @@ python ai_docs/system/agent_system_cli.py scheduler run
 Команда `agents ingest` (alias `agents onboard`) выполняет за один шаг:
 
 1. Подбор роли по приоритетам, минимумам и флагам `auto_fill_capacity` из `agent_policies.yaml`.
-2. Запись агента в `agents.yaml` и формирование профиля `ai_docs/state/agents/<ID>/profile.yaml`.
-3. Формирование приветственного пакета `welcome.md` с промптом (из `ai_docs/prompts/roles/<ROLE>_AGENT_PROMPT.md`) и списком рекомендуемых моделей.
-4. Генерацию стартовой задачи на основе `ai_docs/system/initial_tasks.yaml` — запись попадает в `tasks.yaml` и `todo.txt` с тегами `+agent_id:<ID>` и `+task_id:<TSK>`.
+2. Запись агента в `agents.yaml` (один агент может держать несколько ролей — поле `roles`).
+3. Формирование профиля `ai_docs/state/agents/<ID>/profile.yaml` и пакета `welcome.md` с промптом (из `ai_docs/prompts/roles/<ROLE>_AGENT_PROMPT.md`).
+4. Генерацию стартовой задачи на основе `ai_docs/system/initial_tasks.yaml` — запись попадает в `issues.yaml` и экспортируется в `todo.txt` с тегами `+issue_id`, `+assignee`, `+status`.
 
 Если роль подобрать нельзя (например, все квоты заняты и авто-перераспределение запрещено), агент помещается в `pending_agents`, а ближайший `scheduler run` обработает очередь.
 

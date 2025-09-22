@@ -1,8 +1,8 @@
 messages:
-- timestamp: '2025-09-22T17:46:41+00:00'
+- timestamp: '2025-09-22T21:29:05+00:00'
   channel: onboarding
   sender: user
   recipient: scheduler
-  message: Готов писать тесты и повышать coverage
+  message: Хочу помогать с API
   metadata:
-    agent_id: QA_002_v1
+    agent_id: BE_001_v1

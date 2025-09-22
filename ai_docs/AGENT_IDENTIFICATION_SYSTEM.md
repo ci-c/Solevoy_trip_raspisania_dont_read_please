@@ -109,9 +109,9 @@ python ai_docs/system/agent_system_cli.py agents update-status FE_001_v1 paused
 
 Для работы с задачами используйте:
 
-- `python ai_docs/system/agent_system_cli.py tasks add ...` — создать задачу с нужным `+agent_id`.
-- `python ai_docs/system/agent_system_cli.py tasks list --agent-id AGENT_ID` — посмотреть задачи конкретного агента.
-- `python ai_docs/system/agent_system_cli.py tasks complete TSK-0001` — закрыть задачу.
+- `python ai_docs/system/agent_system_cli.py issues create ...` — создать Issue (story/bug/task) с требуемой ролью.
+- `python ai_docs/system/agent_system_cli.py issues list --assignee AGENT_ID` — посмотреть задачи конкретного агента.
+- `python ai_docs/system/agent_system_cli.py issues move ISS-0001 --status "Done"` — изменить статус.
 
 Все изменения автоматически отражаются в `ai_docs/state/agents.yaml`, `issues.yaml` и экспортируются в `todo.txt`.
 

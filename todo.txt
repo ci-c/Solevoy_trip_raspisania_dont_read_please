@@ -1,8 +1,7 @@
-(B) 2025-09-22 Проверить критические тест-кейсы @qa +issue_id:ISS-0001 +status:in_progress +assignee:QA_001_v1 +sp2 +testing +quality
-(B) 2025-09-22 Проверить состояние мониторинга @do +issue_id:ISS-0002 +status:in_progress +assignee:DO_001_v1 +sp3 +monitoring +devops
-(A) 2025-09-22 Аудит пользовательских сценариев @fe +issue_id:ISS-0003 +status:ready +assignee:FE_001_v1 +sp2 +ux +frontend
-(A) 2025-09-22 Проверить сервисы расписаний @be +issue_id:ISS-0004 +status:ready +assignee:BE_001_v1 +sp3 +orientation +backend +analysis
-(A) 2025-09-22 Проверить сервисы расписаний @be +issue_id:ISS-0005 +status:ready +assignee:BE_002_v1 +sp3 +orientation +backend +analysis
-(A) 2025-09-22 Отсортировать backlog @po +issue_id:ISS-0006 +status:in_refinement +assignee:PO_001_v1 +sp2 +planning +backlog
-(A) 2025-09-22 Сформировать архитектурный план @arch +issue_id:ISS-0007 +status:in_refinement +assignee:ARCH_001_v1 +sp5 +architecture +planning
-(B) 2025-09-22 Проверить критические тест-кейсы @qa +issue_id:ISS-0008 +status:in_refinement +assignee:QA_002_v1 +sp2 +testing +quality
+(A) 2025-09-22 Архитектурный обзор @arch +issue_id:ISS-0001 +status:in_progress +assignee:AGENT_001_v1 +sp5 +architecture +planning
+(A) 2025-09-22 Проверить сервисы расписаний @be +issue_id:ISS-0002 +status:ready +assignee:AGENT_001_v1 +sp3 +backend +orientation
+(A) 2025-09-22 Аудит пользовательских сценариев @fe +issue_id:ISS-0003 +status:ready +assignee:AGENT_001_v1 +sp2 +frontend +ux
+(B) 2025-09-22 Критические тест-кейсы @qa +issue_id:ISS-0004 +status:ready +assignee:AGENT_001_v1 +sp2 +testing +quality
+(B) 2025-09-22 Мониторинг и алерты @do +issue_id:ISS-0005 +status:ready +assignee:AGENT_001_v1 +sp3 +devops +monitoring
+(A) 2025-09-22 Уточнить требования пользователя @po +issue_id:ISS-0006 +status:in_refinement +assignee:AGENT_001_v1 +sp2 +planning +backlog
+(A) 2025-09-22 Организовать процесс @sm +issue_id:ISS-0007 +status:ready +assignee:AGENT_001_v1 +sp2 +scrum +coordination

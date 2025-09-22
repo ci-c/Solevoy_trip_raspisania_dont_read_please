@@ -200,13 +200,20 @@ def generate_issue_id(issues: List[Dict]) -> str:
     return f"ISS-{next_number:04d}"
 
 
+def agent_roles(agent: Dict) -> List[str]:
+    roles = agent.get("roles")
+    if roles:
+        return sorted({role for role in roles if role})
+    role = agent.get("role")
+    return [role] if role else []
+
+
 def get_role_counts(agents: List[Dict]) -> Dict[str, int]:
     counts: Dict[str, int] = {}
     for agent in agents:
         if agent.get("status") != "active":
             continue
-        role = agent.get("role")
-        if role:
+        for role in agent_roles(agent):
             counts[role] = counts.get(role, 0) + 1
     return counts
 
@@ -373,10 +380,14 @@ def assign_role_to_agent(
     agents = state.agents
     old_id = agent.get("id")
     new_id = generate_agent_id(role, agents)
+    roles = agent_roles(agent)
+    if role not in roles:
+        roles.append(role)
     agent.update(
         {
             "id": new_id,
             "role": role,
+            "roles": roles,
             "status": "active",
             "preferred_models": role_policy.get("preferred_models", []),
             "updated_at": iso_now(),
@@ -407,6 +418,7 @@ def build_agent_assets(agent: Dict, role_policy: Dict, state: State, initial_tas
         "agent": {
             "id": agent["id"],
             "role": agent.get("role"),
+            "roles": agent_roles(agent),
             "name": agent.get("name"),
             "created": agent.get("created_at", agent.get("updated_at", iso_now()))[:10],
             "status": agent.get("status"),
@@ -423,10 +435,24 @@ def build_agent_assets(agent: Dict, role_policy: Dict, state: State, initial_tas
     welcome_lines = [
         f"# Добро пожаловать, {agent['name']} ({agent['id']})",
         "",
-        f"## Роль: {role_policy.get('title', agent.get('role'))}",
-        role_policy.get("description", ""),
-        "",
     ]
+    roles = agent_roles(agent)
+    if len(roles) > 1:
+        policies = load_policies()
+        welcome_lines.append("## Роли")
+        for role_code in roles:
+            rp = policies.get("role_policies", {}).get(role_code, {})
+            title = rp.get("title", role_code)
+            descr = rp.get("description")
+            line = f"- {role_code}: {title}"
+            welcome_lines.append(line)
+            if descr:
+                welcome_lines.append(f"  {descr}")
+        welcome_lines.append("")
+    else:
+        welcome_lines.append(f"## Роль: {role_policy.get('title', agent.get('role'))}")
+        welcome_lines.append(role_policy.get("description", ""))
+        welcome_lines.append("")
     models = agent.get("preferred_models", [])
     if models:
         welcome_lines.append("## Рекомендуемые модели")
@@ -454,7 +480,11 @@ def build_agent_assets(agent: Dict, role_policy: Dict, state: State, initial_tas
 
 
 def ensure_initial_issue(state: State, agent: Dict, template: Dict) -> None:
-    existing = [issue for issue in state.issues if issue.get("assignee") == agent["id"]]
+    existing = [
+        issue
+        for issue in state.issues
+        if issue.get("assignee") == agent["id"] and issue.get("status") not in {"Done", "Archived"}
+    ]
     if existing:
         return
     labels = [label.lstrip('+') for label in template.get("tags", [])]
@@ -463,7 +493,7 @@ def ensure_initial_issue(state: State, agent: Dict, template: Dict) -> None:
         title=template.get("title", "Онбординг"),
         description=template.get("description", ""),
         issue_type="task",
-        role=agent.get("role"),
+        role=template.get("role") or agent_roles(agent)[0] if agent_roles(agent) else None,
         assignee=agent["id"],
         priority=template.get("priority", "B"),
         labels=labels,
@@ -560,19 +590,22 @@ def list_agents(state: State, args: argparse.Namespace) -> None:
     if args.role:
         policies = load_policies()
         role_code = resolve_role(args.role, policies)
-        agents = [agent for agent in agents if agent.get("role") == role_code]
+        agents = [agent for agent in agents if role_code in agent_roles(agent)]
     if not agents:
         print("Агенты не найдены")
         return
     for agent in agents:
+        roles_display = "/".join(agent_roles(agent)) or "-"
         print(
-            f"{agent['id']:>12} | {agent.get('role','-'):<4} | {agent.get('status','-'):<9} | {agent['name']}"
+            f"{agent['id']:>12} | {roles_display:<32} | {agent.get('status','-'):<9} | {agent['name']}"
         )
 
 
 def info_agent(state: State, args: argparse.Namespace) -> None:
     agent = ensure_agent_exists(state.agents, args.agent_id)
-    print(json.dumps(agent, ensure_ascii=False, indent=2))
+    agent_copy = dict(agent)
+    agent_copy["roles"] = agent_roles(agent)
+    print(json.dumps(agent_copy, ensure_ascii=False, indent=2))
     issues = [issue for issue in state.issues if issue.get("assignee") == agent["id"]]
     if issues:
         print("Активные задачи:")
@@ -619,6 +652,7 @@ def create_manual_agent(state: State, policies: Dict, initial_tasks: Dict, args:
         "name": args.name,
         "status": "active",
         "role": role,
+        "roles": [role],
         "competencies": [],
         "desired_role": None,
         "entry_message": None,
@@ -702,7 +736,12 @@ def assign_issue(state: State, args: argparse.Namespace) -> None:
     issue = find_issue_by_id(state.issues, args.issue_id)
     agent = ensure_agent_exists(state.agents, args.agent_id)
     issue["assignee"] = agent["id"]
-    issue["role"] = agent.get("role")
+    current_role = issue.get("role")
+    roles = agent_roles(agent)
+    if current_role and current_role not in roles:
+        raise SystemExit(f"Агент {agent['id']} не обладает ролью {current_role}")
+    if not current_role and roles:
+        issue["role"] = roles[0]
     issue["updated_at"] = iso_now()
     log_event(state, args.actor, f"Issue {issue['id']} назначено {agent['id']}", f"issue:{issue['id']}")
 

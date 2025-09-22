@@ -1,106 +1,33 @@
 agents:
-- id: ARCH_001_v1
-  name: Architect Agent
+- id: AGENT_001_v1
+  name: Unified Agent
   status: active
   role: ARCH
-  competencies: []
+  roles:
+  - ARCH
+  - BE
+  - FE
+  - QA
+  - DO
+  - PO
+  - SM
+  competencies:
+  - architecture
+  - backend
+  - frontend
+  - testing
+  - devops
+  - product
+  - scrum
   desired_role: null
-  entry_message: null
-  created_at: '2025-09-22T00:00:00'
-  updated_at: '2025-09-22T02:00:00'
-  last_activity: '2025-09-22T02:00:00'
+  entry_message: Готов вести проект и закрывать все роли.
+  created_at: '2025-09-22T00:00:00+00:00'
+  updated_at: '2025-09-22T20:30:00+00:00'
+  last_activity: '2025-09-22T20:30:00+00:00'
   preferred_models:
   - gpt-4o
   - claude-3-opus
-  notes: null
-- id: BE_001_v1
-  name: Backend Developer 1
-  status: active
-  role: BE
-  competencies: []
-  desired_role: null
-  entry_message: null
-  created_at: '2025-09-20T00:00:00'
-  updated_at: '2025-09-20T01:41:00'
-  last_activity: '2025-09-20T01:41:00'
-  preferred_models:
   - gpt-4o-mini
-  notes: null
-- id: BE_002_v1
-  name: Backend Developer 2
-  status: active
-  role: BE
-  competencies: []
-  desired_role: null
-  entry_message: null
-  created_at: '2025-09-20T00:00:00'
-  updated_at: '2025-09-20T01:44:00'
-  last_activity: '2025-09-20T01:44:00'
-  preferred_models:
-  - gpt-4o-mini
-  notes: null
-- id: DO_001_v1
-  name: DevOps Engineer
-  status: active
-  role: DO
-  competencies: []
-  desired_role: null
-  entry_message: null
-  created_at: '2025-09-22T00:00:00'
-  updated_at: '2025-09-22T19:12:00'
-  last_activity: '2025-09-22T19:12:00'
-  preferred_models:
-  - gpt-4o-mini
-  notes: null
-- id: FE_001_v1
-  name: Frontend Developer 1
-  status: active
-  role: FE
-  competencies: []
-  desired_role: null
-  entry_message: null
-  created_at: '2025-09-20T00:00:00'
-  updated_at: '2025-09-20T02:03:00'
-  last_activity: '2025-09-20T02:03:00'
-  preferred_models:
   - claude-3.5-sonnet
-  notes: null
-- id: PO_001_v1
-  name: Product Owner Candidate
-  status: active
-  role: PO
-  competencies: []
-  desired_role: null
-  entry_message: null
-  created_at: '2025-09-22T00:00:00'
-  updated_at: '2025-09-22T20:04:00'
-  last_activity: '2025-09-22T20:04:00'
-  preferred_models:
   - claude-3-haiku
-  notes: null
-- id: QA_001_v1
-  name: QA Specialist
-  status: active
-  role: QA
-  competencies: []
-  desired_role: null
-  entry_message: null
-  created_at: '2025-09-20T00:00:00'
-  updated_at: '2025-09-22T16:17:00'
-  last_activity: '2025-09-22T16:17:00'
-  preferred_models:
-  - gpt-4o-mini
-  notes: null
-- id: QA_002_v1
-  name: New QA Trainee
-  status: active
-  role: QA
-  competencies: []
-  desired_role: null
-  entry_message: Готов писать тесты и повышать coverage
-  created_at: '2025-09-22T17:46:41+00:00'
-  updated_at: '2025-09-22T17:46:41+00:00'
-  last_activity: '2025-09-22T17:46:41+00:00'
-  preferred_models:
-  - gpt-4o-mini
   notes: null

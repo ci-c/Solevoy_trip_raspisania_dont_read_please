@@ -1,25 +1,9 @@
 events:
-- timestamp: '2025-09-22T16:17:00'
-  actor: scheduler
-  entity: agent:QA_001_v1
-  message: Назначена роль QA агенту QA_001_v1
-- timestamp: '2025-09-22T17:46:41+00:00'
-  actor: user
-  entity: agent:PENDING_0001
-  message: Получен запрос на онбординг PENDING_0001
-- timestamp: '2025-09-22T17:46:41+00:00'
-  actor: scheduler
-  entity: agent:QA_002_v1
-  message: Агент PENDING_0001 получил роль QA и новый ID QA_002_v1
-- timestamp: '2025-09-22T17:46:41+00:00'
-  actor: scheduler
-  entity: issue:ISS-0008
-  message: 'Создано Issue ISS-0008: Проверить критические тест-кейсы'
-- timestamp: '2025-09-22T19:12:00'
-  actor: scheduler
-  entity: agent:DO_001_v1
-  message: Назначена роль DO агенту DO_001_v1
-- timestamp: '2025-09-22T20:04:00'
-  actor: scheduler
-  entity: agent:PO_001_v1
-  message: Назначена роль PO агенту PO_001_v1
+- timestamp: '2025-09-22T20:30:00+00:00'
+  actor: system
+  entity: agent:AGENT_001_v1
+  message: Создан агент AGENT_001_v1 с полным набором ролей
+- timestamp: '2025-09-22T20:30:00+00:00'
+  actor: system
+  entity: issue:ISS-0001
+  message: Стартовая задача ISS-0001 выдана агенту AGENT_001_v1
