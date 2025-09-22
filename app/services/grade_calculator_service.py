@@ -3,7 +3,7 @@
 """
 
 from datetime import date
-from typing import List, Dict, Any, Optional
+from typing import List, Dict
 from dataclasses import dataclass
 from loguru import logger
 
@@ -32,7 +32,7 @@ class Attendance:
     date: date
     is_present: bool
     is_excused: bool = False  # Уважительная причина
-    reason: Optional[str] = None
+    reason: str | None = None
 
 
 @dataclass
@@ -227,7 +227,7 @@ class GradeCalculatorService:
         date: date,
         is_present: bool,
         is_excused: bool = False,
-        reason: Optional[str] = None
+        reason: str | None = None
     ) -> bool:
         """Добавить запись о посещаемости."""
         try:
@@ -254,19 +254,19 @@ class GradeCalculatorService:
         reason_lower = reason.lower()
         return any(excused_reason in reason_lower for excused_reason in self.excused_reasons.keys())
 
-    async def _get_grades(self, user_id: int, subject: str) -> List[Grade]:
+    async def _get_grades(self, user_id: int, subject: str) -> List[Grade] | None:
         """Получить оценки пользователя по предмету."""
         # TODO: Реализовать получение из базы данных
         # Пока возвращаем заглушку
         return []
 
-    async def _get_attendance(self, user_id: int, subject: str, lesson_type: str) -> List[Attendance]:
+    async def _get_attendance(self, user_id: int, subject: str, lesson_type: str) -> List[Attendance] | None:
         """Получить посещаемость пользователя по предмету и типу занятия."""
         # TODO: Реализовать получение из базы данных
         # Пока возвращаем заглушку
         return []
 
-    async def get_user_subjects(self, user_id: int) -> List[str]:
+    async def get_user_subjects(self, user_id: int) -> List[str] | None:
         """Получить список предметов пользователя."""
         try:
             # Получаем группу пользователя
@@ -286,9 +286,10 @@ class GradeCalculatorService:
                 
         except Exception as e:
             logger.error(f"Error getting user subjects: {e}")
-            return []
+            logger.error(f"Traceback: {e.__traceback__}")
+        return None
 
-    async def get_user_overall_stats(self, user_id: int) -> Dict[str, Any]:
+    async def get_user_overall_stats(self, user_id: int) -> Dict[str, str] | None:
         """Получить общую статистику пользователя."""
         try:
             subjects = await self.get_user_subjects(user_id)

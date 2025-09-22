@@ -4,6 +4,7 @@
 
 import sys
 from pathlib import Path
+from datetime import datetime
 from loguru import logger
 from typing import Optional
 
@@ -129,7 +130,7 @@ def get_error_details_for_user(error: Exception, user_access_level: AccessLevel)
             f"🔧 **Техническая информация:**\n"
             f"• Тип ошибки: `{error_type}`\n"
             f"• Сообщение: `{error_msg[:300]}{'...' if len(error_msg) > 300 else ''}`\n"
-            f"• Время: `{logger._core.get_time().isoformat()}`\n\n"
+            f"• Время: `{datetime.now().isoformat()}`\n\n"
             f"💡 Данная информация доступна только администраторам."
         )
 

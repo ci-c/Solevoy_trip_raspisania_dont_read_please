@@ -102,12 +102,11 @@ async def handle_menu(
             )
 
         elif action == "grades":
-            await callback.message.edit_text(
-                "🔢 **Мои оценки (ОСБ/КНЛ/КНС)**\n\n"
-                "🚧 В разработке...\n"
-                "Просмотр оценок будет доступен после интеграции с системой СЗГМУ.",
-                reply_markup=get_main_menu_keyboard(user),
-            )
+            # Перенаправляем на обработчик оценок
+            from app.bot.callbacks import GradeCallback
+            from app.bot.handlers.grade_handler import handle_grades_main
+            grade_callback = GradeCallback(action="main")
+            await handle_grades_main(callback, grade_callback, state)
 
         elif action == "reminders":
             await callback.message.edit_text(

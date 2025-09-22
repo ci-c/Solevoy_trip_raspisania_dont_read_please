@@ -130,7 +130,8 @@ class GroupSearchService:
 
         except Exception as e:
             logger.error(f"Critical error in search_group_by_number: {e}")
-            return []
+            logger.error(f"Traceback: {e.__traceback__}")
+        return []
 
     async def search_groups_by_filters(self, filters: Dict) -> List[GroupInfo]:
         """Поиск групп по фильтрам."""

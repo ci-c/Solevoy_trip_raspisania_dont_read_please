@@ -9,6 +9,7 @@ from pathlib import Path
 
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy import inspect
 
 from app.database.models import Base
 
@@ -70,9 +71,19 @@ async def init_db() -> None:
     """
     try:
         async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.drop_all)  # Drop existing tables
-            await conn.run_sync(Base.metadata.create_all)  # Create fresh tables
-        logger.info("Database initialized with fresh tables")
+            # Проверяем, существуют ли таблицы
+            def check_tables(sync_conn):
+                inspector = inspect(sync_conn)
+                return inspector.get_table_names()
+            
+            existing_tables = await conn.run_sync(check_tables)
+            
+            if not existing_tables:
+                # Создаем таблицы только если их нет
+                await conn.run_sync(Base.metadata.create_all)
+                logger.info("Database initialized with fresh tables")
+            else:
+                logger.info("Database tables already exist, skipping creation")
     except Exception as e:
         msg = f"Failed to initialize database: {e}"
         logger.error(msg)

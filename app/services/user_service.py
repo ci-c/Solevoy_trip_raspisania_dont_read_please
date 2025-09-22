@@ -46,6 +46,8 @@ class UserService:
                 access_level=AccessLevel.GUEST,  # По умолчанию
                 is_active=True,
                 last_seen=now,
+                created_at=now,
+                updated_at=now
             )
             
             logger.info(f"Created new user {user.id} (telegram_id: {telegram_id})")
@@ -70,6 +72,8 @@ class UserService:
                 access_level=AccessLevel.GUEST,  # TODO: добавить поле в модель
                 is_active=True,
                 last_seen=datetime.now(tz=timezone.utc),
+                created_at=db_user.created_at,
+                updated_at=db_user.updated_at
             )
 
     async def update_user_activity(self, user_id: int) -> None:
@@ -104,7 +108,30 @@ class UserService:
         # TODO: реализовать через SQLAlchemy
         return subscription
 
-    async def get_all_users(self, limit: int = 100, offset: int = 0) -> List[User]:
+    async def update_user_group(self, telegram_id: int, group_id: int) -> bool:
+        """Обновить группу пользователя."""
+        try:
+            async for session in get_session():
+                result = await session.execute(
+                    select(UserModel).where(UserModel.telegram_id == telegram_id)
+                )
+                user = result.scalar_one_or_none()
+                
+                if user:
+                    user.group_id = group_id
+                    await session.commit()
+                    logger.info(f"Updated user {telegram_id} group to {group_id}")
+                    return True
+                else:
+                    logger.warning(f"User {telegram_id} not found for group update")
+                    return False
+                    
+        except Exception as e:
+            logger.error(f"Error updating user group: {e}")
+            logger.error(f"Traceback: {e.__traceback__}")
+        return False
+
+    async def get_all_users(self, limit: int = 100, offset: int = 0) -> List[User] | None:
         """Получить список всех пользователей."""
         async for session in get_session():
             result = await session.execute(
@@ -122,6 +149,8 @@ class UserService:
                     access_level=AccessLevel.GUEST,
                     is_active=True,
                     last_seen=datetime.now(tz=timezone.utc),
+                    created_at=db_user.created_at,
+                    updated_at=db_user.updated_at
                 ))
             
             return users

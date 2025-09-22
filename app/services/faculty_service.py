@@ -66,7 +66,8 @@ class FacultyService:
                 
         except Exception as e:
             logger.error(f"Error loading faculties from API: {e}")
-            return []
+            logger.error(f"Traceback: {e.__traceback__}")
+            return None
 
     def _extract_faculty_from_speciality(self, speciality: str) -> str:
         """Извлечь название факультета из специальности."""
@@ -153,7 +154,8 @@ class FacultyService:
                 return faculties
         except Exception as e:
             logger.error(f"Error getting faculties from database: {e}")
-            return []
+            logger.error(f"Traceback: {e.__traceback__}")
+            return None
 
     async def sync_faculties(self) -> bool:
         """Синхронизировать факультеты с API."""
@@ -173,7 +175,7 @@ class FacultyService:
             logger.error(f"Error syncing faculties: {e}")
             return False
 
-    async def get_faculty_names(self) -> List[str]:
+    async def get_faculty_names(self) -> List[str] | None:
         """Получить только названия факультетов."""
         try:
             from sqlalchemy import select
@@ -185,7 +187,8 @@ class FacultyService:
                 return [row[0] for row in result.fetchall()]
         except Exception as e:
             logger.error(f"Error getting faculty names: {e}")
-            return []
+            logger.error(f"Traceback: {e.__traceback__}")
+            return None
 
     async def get_faculty_by_name(self, name: str) -> Optional[Dict[str, Any]]:
         """Получить факультет по названию."""
@@ -209,4 +212,5 @@ class FacultyService:
                 return None
         except Exception as e:
             logger.error(f"Error getting faculty by name: {e}")
-            return None
+            logger.error(f"Traceback: {e.__traceback__}")
+        return None

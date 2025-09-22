@@ -2,7 +2,7 @@
 Простой и понятный обработчик настройки группы.
 """
 
-from typing import Dict
+from typing import Dict, Any
 from loguru import logger
 
 from aiogram import types
@@ -14,71 +14,167 @@ from app.services.group_service import GroupService
 from app.utils.validation import validate_user_input, ValidationError
 
 
-async def start_group_setup(message: types.Message, state: FSMContext) -> None:
-    """Начать настройку группы - показать простое меню."""
+async def handle_group_command(message: types.Message, state: FSMContext) -> None:
+    """Обработчик команды /group."""
+    await start_group_setup(message, state)
+
+async def handle_help_command(message: types.Message, state: FSMContext) -> None:
+    """Обработчик команды /help."""
     try:
         text = (
-            "🎓 **Настройка группы**\n\n"
-            "Выберите способ настройки:"
+            "🤖 Помощь по боту СЗГМУ\n\n"
+            "Доступные команды:\n"
+            "• /start - Главное меню\n"
+            "• /group - Настройка группы\n"
+            "• /clean - Очистить диалог\n"
+            "• /help - Эта справка\n\n"
+            "Функции бота:\n"
+            "• 📅 Просмотр расписания\n"
+            "• 📊 Отслеживание оценок\n"
+            "• 📝 Учет посещаемости\n"
+            "• 🔔 Уведомления\n\n"
+            "Для начала работы настройте группу командой /group"
         )
         
-        keyboard = get_simple_group_keyboard()
+        await message.answer(text)
         
-        await message.edit_text(text, reply_markup=keyboard)
-        await state.set_state(GroupSetupStates.choosing_method)
+    except Exception as e:
+        logger.error(f"Error in help handler: {e}")
+        await message.answer("❌ Ошибка при показе справки")
+
+async def start_group_setup(message: types.Message, state: FSMContext) -> None:
+    """Начать настройку группы - показать список факультетов."""
+    try:
+        await show_faculty_list(message, state)
         
     except Exception as e:
         logger.error(f"Error starting group setup: {e}")
-        await message.answer(
-            "❌ Ошибка при настройке группы.\n\n"
-            "Попробуйте позже или обратитесь к администратору."
-        )
+        logger.error(f"Traceback: {e.__traceback__}")
+        await message.answer("❌ Ошибка при настройке группы. Попробуйте позже.")
 
 
 async def handle_group_setup_callback(callback: types.CallbackQuery, state: FSMContext) -> None:
     """Обработка callback'ов настройки группы."""
     try:
-        action = callback.data.split(":")[1] if ":" in callback.data else callback.data
+        logger.info(f"Received callback: {callback.data}")
         
-        if action == "enter_manually":
-            await show_manual_input(callback.message, state)
-        elif action == "select_from_list":
+        # Проверяем что это наш callback
+        if not callback.data.startswith("group_setup:"):
+            logger.info(f"Ignoring callback: {callback.data}")
+            return
+            
+        action = callback.data.split(":", 1)[1] if ":" in callback.data else callback.data
+        logger.info(f"Action: {action}")
+        
+        if action == "select_from_list":
             await show_faculty_list(callback.message, state)
-        elif action == "confirm_group":
-            await confirm_group_selection(callback.message, state)
-        elif action == "cancel":
-            await cancel_group_setup(callback.message, state)
+        elif action.startswith("select_faculty:"):
+            faculty_id = action.split(":")[1]
+            logger.info(f"Processing faculty selection: {faculty_id}")
+            await show_faculty_groups(callback, state, faculty_id)
+        elif action.startswith("select_group:"):
+            group_id = action.split(":")[1]
+            await select_group(callback, state, group_id)
+        elif action.startswith("schedule:"):
+            await handle_schedule_callback(callback, action)
+        elif action.startswith("grades:"):
+            await handle_grades_callback(callback, action)
+        elif action.startswith("settings:"):
+            await handle_settings_callback(callback, action)
+        elif action == "back_to_start":
+            try:
+                await callback.message.edit_text(
+                    "🏛️ **Настройка группы**\n\n"
+                    "Выберите факультет для поиска вашей группы:",
+                    reply_markup=types.InlineKeyboardMarkup(inline_keyboard=[
+                        [types.InlineKeyboardButton(
+                            text="📚 Выбрать из списка",
+                            callback_data=GroupSearchCallback(action="select_from_list").pack()
+                        )]
+                    ])
+                )
+            except Exception as edit_error:
+                logger.warning(f"Failed to edit message, sending new one: {edit_error}")
+                await callback.message.answer(
+                    "🏛️ **Настройка группы**\n\n"
+                    "Выберите факультет для поиска вашей группы:",
+                    reply_markup=types.InlineKeyboardMarkup(inline_keyboard=[
+                        [types.InlineKeyboardButton(
+                            text="📚 Выбрать из списка",
+                            callback_data=GroupSearchCallback(action="select_from_list").pack()
+                        )]
+                    ])
+                )
+            await state.clear()
         else:
             await callback.answer("Неизвестное действие", show_alert=True)
             
     except Exception as e:
         logger.error(f"Error handling group setup callback: {e}")
+        logger.error(f"Traceback: {e.__traceback__}")
         await callback.answer("❌ Ошибка при обработке запроса", show_alert=True)
+        # Ошибка обрабатывается в middleware
 
 
-async def show_manual_input(message: types.Message, state: FSMContext) -> None:
-    """Показать форму ручного ввода группы."""
+async def select_group(callback: types.CallbackQuery, state: FSMContext, group_id: str) -> None:
+    """Выбрать группу и завершить настройку."""
     try:
+        from app.services.user_service import UserService
+        
+        group_service = GroupService()
+        group = await group_service.get_group_by_id(int(group_id))
+        
+        if not group:
+            await callback.answer("❌ Группа не найдена", show_alert=True)
+            return
+        
+        # Сохраняем группу пользователю
+        user_service = UserService()
+        user_id = callback.from_user.id
+        
+        # Обновляем группу пользователя
+        await user_service.update_user_group(user_id, int(group_id))
+        
+        # Показываем успех с кнопками
         text = (
-            "✍️ **Введите номер группы**\n\n"
-            "Примеры: `103а`, `204б`, `301в`\n\n"
-            "Бот автоматически определит:\n"
-            "• Факультет\n"
-            "• Курс\n"
-            "• Поток\n"
-            "• Специальность"
+            f"🎉 Группа настроена успешно!\n\n"
+            f"👥 Ваша группа: {group['name']}\n"
+            f"📚 Курс: {group['course']}\n\n"
+            f"Выберите действие:"
         )
         
-        try:
-            await message.edit_text(text, reply_markup=get_confirm_keyboard("cancel"))
-        except Exception:
-            await message.answer(text, reply_markup=get_confirm_keyboard("cancel"))
+        # Создаем кнопки для расписания
+        keyboard = types.InlineKeyboardMarkup(inline_keyboard=[
+            [types.InlineKeyboardButton(
+                text="📅 Расписание на сегодня",
+                callback_data="schedule:today"
+            )],
+            [types.InlineKeyboardButton(
+                text="📅 Расписание на неделю",
+                callback_data="schedule:week"
+            )],
+            [types.InlineKeyboardButton(
+                text="📊 Мои оценки",
+                callback_data="grades:view"
+            )],
+            [types.InlineKeyboardButton(
+                text="⚙️ Настройки",
+                callback_data="settings:main"
+            )]
+        ])
         
-        await state.set_state(GroupSetupStates.entering_group_number)
+        try:
+            await callback.message.edit_text(text, reply_markup=keyboard)
+        except Exception as edit_error:
+            logger.warning(f"Failed to edit message, sending new one: {edit_error}")
+            await callback.message.answer(text, reply_markup=keyboard)
+        await state.clear()
+        await callback.answer("✅ Группа настроена!")
         
     except Exception as e:
-        logger.error(f"Error showing manual input: {e}")
-        await message.answer("❌ Ошибка при отображении формы ввода")
+        logger.error(f"Error selecting group: {e}")
+        logger.error(f"Traceback: {e.__traceback__}")
+        await callback.answer("❌ Ошибка при выборе группы", show_alert=True)
 
 
 async def show_faculty_list(message: types.Message, state: FSMContext) -> None:
@@ -87,40 +183,36 @@ async def show_faculty_list(message: types.Message, state: FSMContext) -> None:
         from app.services.schedule_service import ScheduleService
         
         schedule_service = ScheduleService()
+        logger.info("Attempting to get faculties from database...")
         faculties = await schedule_service.get_available_faculties()
         
+        logger.info(f"Retrieved {len(faculties) if faculties else 0} faculties")
+        
         if not faculties:
-            try:
-                await message.edit_text(
-                    "❌ Факультеты не найдены.\n\n"
-                    "Попробуйте ручной ввод:",
-                    reply_markup=get_confirm_keyboard("enter_manually")
-                )
-            except Exception:
-                await message.answer(
-                    "❌ Факультеты не найдены.\n\n"
-                    "Попробуйте ручной ввод:",
-                    reply_markup=get_confirm_keyboard("enter_manually")
-                )
+            logger.warning("No faculties found in database")
+            await message.answer("❌ Факультеты не найдены. Попробуйте позже.")
             return
         
-        text = "🏛️ **Выберите факультет:**\n\n"
+        text = "🏛️ Выберите факультет:\n\n"
         
-        # Создаем простой список факультетов
+        # Создаем простой список факультетов (ограничиваем до 6)
         faculty_buttons = []
-        for i, faculty in enumerate(faculties[:10]):  # Показываем первые 10
+        for i, faculty in enumerate(faculties[:6]):  # Показываем первые 6
             faculty_buttons.append([
                 types.InlineKeyboardButton(
                     text=faculty["name"],
-                    callback_data=f"group_setup:select_faculty:{faculty['id']}"
+                    callback_data=GroupSearchCallback(
+                        action="select_faculty",
+                        value=str(faculty['id'])
+                    ).pack()
                 )
             ])
         
-        # Добавляем кнопку "Ручной ввод"
+        # Добавляем кнопку "Назад"
         faculty_buttons.append([
             types.InlineKeyboardButton(
-                text="✍️ Ввести вручную",
-                callback_data="group_setup:enter_manually"
+                text="⬅️ Назад",
+                callback_data=GroupSearchCallback(action="back_to_start").pack()
             )
         ])
         
@@ -135,279 +227,156 @@ async def show_faculty_list(message: types.Message, state: FSMContext) -> None:
         
     except Exception as e:
         logger.error(f"Error showing faculty list: {e}")
-        try:
-            await message.edit_text(
-                "❌ Ошибка при загрузке факультетов.\n\n"
-                "Попробуйте ручной ввод:",
-                reply_markup=get_confirm_keyboard("enter_manually")
-            )
-        except Exception:
-            await message.answer(
-                "❌ Ошибка при загрузке факультетов.\n\n"
-                "Попробуйте ручной ввод:",
-                reply_markup=get_confirm_keyboard("enter_manually")
-            )
+        await message.answer("❌ Ошибка при загрузке факультетов. Попробуйте позже.")
 
 
-async def handle_faculty_selection(callback: types.CallbackQuery, state: FSMContext) -> None:
-    """Обработка выбора факультета."""
+
+
+async def handle_schedule_callback(callback: types.CallbackQuery, action: str) -> None:
+    """Обработка callback'ов расписания."""
     try:
-        faculty_id = int(callback.data.split(":")[2])
-        
-        # Сохраняем выбранный факультет
-        await state.update_data(selected_faculty_id=faculty_id)
-        
-        # Показываем форму ввода группы для этого факультета
-        text = (
-            "✍️ **Введите номер группы**\n\n"
-            "Примеры: `103а`, `204б`, `301в`\n\n"
-            "Бот автоматически определит:\n"
-            "• Курс\n"
-            "• Поток\n"
-            "• Специальность"
-        )
-        
-        try:
-            await callback.message.edit_text(text, reply_markup=get_confirm_keyboard("cancel"))
-        except Exception:
-            await callback.message.answer(text, reply_markup=get_confirm_keyboard("cancel"))
-        
-        await state.set_state(GroupSetupStates.entering_group_number)
-        
-    except Exception as e:
-        logger.error(f"Error handling faculty selection: {e}")
-        await callback.answer("❌ Ошибка при выборе факультета", show_alert=True)
-
-
-async def process_group_input(message: types.Message, state: FSMContext) -> None:
-    """Обработка введенного номера группы."""
-    try:
-        group_number = message.text.strip()
-        
-        # Валидация
-        try:
-            validate_user_input(group_number, "group_number")
-        except ValidationError as e:
-            await message.answer(f"❌ {e}")
-            return
-        
-        # Определяем информацию о группе
-        detected_info = detect_group_info(group_number)
-        
-        # Создаем или находим группу
-        group_service = GroupService()
-        group_info = await group_service.find_or_create_group(group_number)
-        
-        if group_info and isinstance(group_info, dict):
-            # Обновляем информацию о группе
-            await group_service.update_group_info(group_info["id"], detected_info)
-            
-            # Показываем подтверждение
-            await show_group_confirmation(message, group_info, detected_info, state)
+        if action == "schedule:today":
+            text = "📅 **Расписание на сегодня**\n\nЗдесь будет расписание на сегодня"
+        elif action == "schedule:week":
+            text = "📅 **Расписание на неделю**\n\nЗдесь будет расписание на неделю"
         else:
-            await message.answer(
-                f"❌ Не удалось найти группу `{group_number}`.\n\n"
-                "Попробуйте другой номер:",
-                reply_markup=get_confirm_keyboard("cancel")
-            )
-            
-    except Exception as e:
-        logger.error(f"Error processing group input: {e}")
-        await message.answer(
-            f"❌ Ошибка при обработке группы `{group_number}`.\n\n"
-            "Попробуйте позже.",
-            reply_markup=get_confirm_keyboard("cancel")
-        )
-
-
-async def show_group_confirmation(
-    message: types.Message, 
-    group_info: Dict[str, str], 
-    detected_info: Dict[str, str], 
-    state: FSMContext
-) -> None:
-    """Показать подтверждение выбора группы."""
-    try:
-        group_number = group_info.get("name", group_info.get("number", "Неизвестно"))
-        faculty = detected_info.get("faculty", "Не определен")
-        course = detected_info.get("course", "Не определен")
-        stream = detected_info.get("stream", "Не определен")
-        speciality = detected_info.get("speciality", "Не определена")
-
-        text = (
-            f"✅ **Подтвердите выбор группы:**\n\n"
-            f"👥 **Группа:** {group_number}\n"
-            f"🏛️ **Факультет:** {faculty}\n"
-            f"📚 **Курс:** {course}\n"
-            f"👥 **Поток:** {stream}\n"
-            f"🎓 **Специальность:** {speciality}\n\n"
-            f"После подтверждения вы получите доступ к:\n"
-            f"• 📅 Персональному расписанию\n"
-            f"• 📊 Экспорту в Excel/iCal\n"
-            f"• 🔔 Уведомлениям об изменениях"
-        )
-
-        keyboard = get_confirm_keyboard("confirm_group", "cancel")
+            text = "📅 **Расписание**\n\nВыберите период:"
         
-        # Сохраняем данные для подтверждения
-        await state.update_data(
-            selected_group=group_info, 
-            detected_info=detected_info
-        )
-        await state.set_state(GroupSetupStates.confirming_selection)
-
-        await message.edit_text(text, reply_markup=keyboard)
-
-    except Exception as e:
-        logger.error(f"Error showing group confirmation: {e}")
-        await message.answer(
-            "❌ Ошибка при подготовке подтверждения.\n\n"
-            "Попробуйте заново:",
-            reply_markup=get_confirm_keyboard("enter_manually")
-        )
-
-
-async def confirm_group_selection(message: types.Message, state: FSMContext) -> None:
-    """Подтвердить выбор группы."""
-    try:
-        data = await state.get_data()
-        group_info = data.get("selected_group")
-        detected_info = data.get("detected_info")
-        
-        if not group_info:
-            await message.edit_text(
-                "❌ Данные группы не найдены.\n\n"
-                "Попробуйте заново:",
-                reply_markup=get_confirm_keyboard("enter_manually")
-            )
-            return
-        
-        # Здесь должна быть логика сохранения группы пользователю
-        # Пока просто показываем успех
-        
-        group_number = group_info.get("name", group_info.get("number", "Неизвестно"))
-        
-        text = (
-            f"🎉 **Группа настроена успешно!**\n\n"
-            f"👥 **Ваша группа:** {group_number}\n\n"
-            f"Теперь вы можете:\n"
-            f"• 📅 Просматривать расписание\n"
-            f"• 📊 Экспортировать данные\n"
-            f"• 🔔 Получать уведомления\n\n"
-            f"Используйте /menu для доступа к функциям"
-        )
-        
-        await message.edit_text(text)
-        await state.clear()
-        
-    except Exception as e:
-        logger.error(f"Error confirming group selection: {e}")
-        await message.answer(
-            "❌ Ошибка при подтверждении группы.\n\n"
-            "Попробуйте позже.",
-            reply_markup=get_confirm_keyboard("enter_manually")
-        )
-
-
-async def cancel_group_setup(message: types.Message, state: FSMContext) -> None:
-    """Отменить настройку группы."""
-    try:
-        await state.clear()
         try:
-            await message.edit_text(
-                "❌ Настройка группы отменена.\n\n"
-                "Вы можете настроить группу позже командой /group"
-            )
-        except Exception:
-            # Если не можем отредактировать, отправляем новое сообщение
-            await message.answer(
-                "❌ Настройка группы отменена.\n\n"
-                "Вы можете настроить группу позже командой /group"
-            )
+            await callback.message.edit_text(text)
+        except Exception as edit_error:
+            logger.warning(f"Failed to edit message, sending new one: {edit_error}")
+            await callback.message.answer(text)
+        await callback.answer()
         
     except Exception as e:
-        logger.error(f"Error canceling group setup: {e}")
-        await message.answer("❌ Ошибка при отмене настройки")
+        logger.error(f"Error handling schedule callback: {e}")
+        await callback.answer("❌ Ошибка при получении расписания", show_alert=True)
 
 
-def detect_group_info(group_number: str) -> Dict[str, str]:
-    """Автоматическое определение информации о группе по номеру."""
-    # Простая логика определения факультета по номеру
-    digits = "".join(filter(str.isdigit, group_number))
-    
-    if len(digits) < 3:
-        return {
-            "faculty": "Не определен",
-            "course": "Не определен", 
-            "stream": "Не определен",
-            "speciality": "Не определена",
-        }
-    
-    # Первая цифра - курс
-    course = int(digits[0])
-    
-    # Вторая и третья цифры - номер группы на курсе
-    group_num = int(digits[1:3]) if len(digits) >= 3 else 0
-    
-    # Буква потока
-    stream_letter = "".join(filter(str.isalpha, group_number.lower()))
-    
-    # Определяем факультет по номеру группы
-    faculty_map = {
-        (1, 100): "Медико-профилактический факультет",
-        (2, 200): "Лечебный факультет", 
-        (3, 300): "Стоматологический факультет",
-        (4, 400): "Медико-биологический факультет",
-        (5, 500): "Факультет постдипломного образования",
-    }
-    
-    faculty = "Не определен"
-    for (course_key, group_key), faculty_name in faculty_map.items():
-        if course == course_key or (group_num >= group_key and group_num < group_key + 100):
-            faculty = faculty_name
-            break
-    
-    # Определяем специальность по факультету
-    speciality_map = {
-        "Медико-профилактический факультет": "Медико-профилактическое дело",
-        "Лечебный факультет": "Лечебное дело",
-        "Стоматологический факультет": "Стоматология", 
-        "Медико-биологический факультет": "Медицинская биофизика",
-        "Факультет постдипломного образования": "Ординатура/Аспирантура",
-    }
-    
-    speciality = speciality_map.get(faculty, "Не определена")
-    
-    # Определяем поток по букве
-    stream_map = {"а": "А", "б": "Б", "в": "В", "г": "Г", "": "Основной"}
-    stream = stream_map.get(stream_letter, stream_letter.upper() if stream_letter else "Основной")
-    
-    return {
-        "faculty": faculty,
-        "course": course,
-        "stream": stream,
-        "speciality": speciality,
-    }
+async def handle_grades_callback(callback: types.CallbackQuery, action: str) -> None:
+    """Обработка callback'ов оценок."""
+    try:
+        if action == "grades:view":
+            text = "📊 **Мои оценки**\n\nЗдесь будут ваши оценки"
+        else:
+            text = "📊 **Оценки**\n\nВыберите действие:"
+        
+        try:
+            await callback.message.edit_text(text)
+        except Exception as edit_error:
+            logger.warning(f"Failed to edit message, sending new one: {edit_error}")
+            await callback.message.answer(text)
+        await callback.answer()
+        
+    except Exception as e:
+        logger.error(f"Error handling grades callback: {e}")
+        await callback.answer("❌ Ошибка при получении оценок", show_alert=True)
+
+
+async def handle_settings_callback(callback: types.CallbackQuery, action: str) -> None:
+    """Обработка callback'ов настроек."""
+    try:
+        if action == "settings:main":
+            text = "⚙️ **Настройки**\n\nЗдесь будут настройки"
+        else:
+            text = "⚙️ **Настройки**\n\nВыберите настройку:"
+        
+        try:
+            await callback.message.edit_text(text)
+        except Exception as edit_error:
+            logger.warning(f"Failed to edit message, sending new one: {edit_error}")
+            await callback.message.answer(text)
+        await callback.answer()
+        
+    except Exception as e:
+        logger.error(f"Error handling settings callback: {e}")
+        await callback.answer("❌ Ошибка при открытии настроек", show_alert=True)
 
 
 async def register_group_setup_handlers(dp):
     """Регистрация обработчиков настройки группы."""
-    from aiogram.filters import StateFilter
-    
     # Callback обработчики
-    dp.callback_query.register(
-        handle_group_setup_callback,
-        lambda c: c.data.startswith("group_setup:")
-    )
-    
-    # Обработчик выбора факультета
-    dp.callback_query.register(
-        handle_faculty_selection,
-        lambda c: c.data.startswith("group_setup:select_faculty:")
-    )
-    
-    # Обработчик ввода группы
-    dp.message.register(
-        process_group_input,
-        StateFilter(GroupSetupStates.entering_group_number)
-    )
+    dp.callback_query.register(handle_group_setup_callback)
+
+
+async def show_faculty_groups(callback: types.CallbackQuery, state: FSMContext, faculty_id: str) -> None:
+    """Показать группы выбранного факультета."""
+    try:
+        logger.info(f"Showing groups for faculty {faculty_id}")
+        from app.services.group_search_service import GroupSearchService
+        from app.services.schedule_service import ScheduleService
+        
+        # Получаем информацию о факультете
+        schedule_service = ScheduleService()
+        faculties = await schedule_service.get_available_faculties()
+        
+        faculty_name = "Неизвестный факультет"
+        for faculty in faculties:
+            if str(faculty["id"]) == faculty_id:
+                faculty_name = faculty["name"]
+                break
+        
+        # Получаем группы для факультета
+        from app.services.group_service import GroupService
+        group_service = GroupService()
+        groups = await group_service.get_groups_by_faculty(int(faculty_id))
+        
+        logger.info(f"Found {len(groups) if groups else 0} groups for faculty {faculty_id}")
+        
+        text = f"🏛️ **{faculty_name}**\n\n"
+        
+        if groups:
+            text += f"📚 **Доступные группы ({len(groups)}):**\n\n"
+            
+            # Создаем кнопки для групп
+            group_buttons = []
+            for group in groups:
+                group_buttons.append([
+                    types.InlineKeyboardButton(
+                        text=f"{group['name']} (курс {group['course']})",
+                        callback_data=GroupSearchCallback(
+                            action="select_group",
+                            group_id=int(group['id'])
+                        ).pack()
+                    )
+                ])
+            
+            # Добавляем кнопку "Назад"
+            group_buttons.append([
+                types.InlineKeyboardButton(
+                    text="⬅️ Назад к факультетам",
+                    callback_data=GroupSearchCallback(action="select_from_list").pack()
+                )
+            ])
+            
+            keyboard = types.InlineKeyboardMarkup(inline_keyboard=group_buttons)
+        else:
+            text += "❌ Группы не найдены.\n\n"
+            text += "Группы создаются автоматически из расписаний.\n"
+            text += "Сейчас идет синхронизация с API СЗГМУ..."
+            
+            keyboard = types.InlineKeyboardMarkup(inline_keyboard=[
+                [types.InlineKeyboardButton(
+                    text="🔄 Обновить",
+                    callback_data=GroupSearchCallback(
+                        action="select_faculty",
+                        value=faculty_id
+                    ).pack()
+                )],
+                [types.InlineKeyboardButton(
+                    text="⬅️ Назад к факультетам",
+                    callback_data=GroupSearchCallback(action="select_from_list").pack()
+                )]
+            ])
+        
+        try:
+            await callback.message.edit_text(text, reply_markup=keyboard)
+        except Exception as edit_error:
+            logger.warning(f"Failed to edit message, sending new one: {edit_error}")
+            await callback.message.answer(text, reply_markup=keyboard)
+            
+    except Exception as e:
+        logger.error(f"Error showing faculty groups: {e}")
+        logger.error(f"Traceback: {e.__traceback__}")
+        await callback.message.answer("❌ Ошибка при загрузке групп. Попробуйте позже.")

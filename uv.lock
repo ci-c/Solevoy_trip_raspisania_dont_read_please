@@ -1461,6 +1461,7 @@ version = "2.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiogram" },
+    { name = "aiohttp" },
     { name = "aiosqlite" },
     { name = "anyio" },
     { name = "click" },
@@ -1505,6 +1506,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "aiogram", specifier = ">=3.0.0" },
+    { name = "aiohttp", specifier = ">=3.12.15" },
     { name = "aiosqlite", specifier = ">=0.20.0" },
     { name = "anyio", specifier = ">=4.2.0" },
     { name = "black", marker = "extra == 'dev'", specifier = ">=23.0.0" },

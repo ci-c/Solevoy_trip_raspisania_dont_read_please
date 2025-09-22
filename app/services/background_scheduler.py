@@ -148,7 +148,8 @@ class BackgroundScheduler:
             return stats
         except Exception as e:
             logger.error(f"Error in immediate update: {e}")
-            raise
+            logger.error(f"Traceback: {e.__traceback__}")
+            return {"error": str(e), "updated": 0, "failed": 1}
 
     async def update_single_group(self, group_id: int) -> dict:
         """Обновить расписание одной группы."""
@@ -160,7 +161,8 @@ class BackgroundScheduler:
             return result
         except Exception as e:
             logger.error(f"Error updating group {group_id}: {e}")
-            raise
+            logger.error(f"Traceback: {e.__traceback__}")
+            return {"error": str(e), "group_id": group_id, "success": False}
 
 
 # Глобальный экземпляр планировщика

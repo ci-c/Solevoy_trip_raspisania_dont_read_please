@@ -1,0 +1,3 @@
+"""
+SZGMU Bot Application Package
+"""

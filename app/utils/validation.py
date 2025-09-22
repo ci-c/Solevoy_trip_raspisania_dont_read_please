@@ -3,7 +3,7 @@
 """
 
 import re
-from typing import Dict, Any
+from typing import Dict
 from loguru import logger
 
 
@@ -106,7 +106,7 @@ class InputValidator:
         return True
 
     @classmethod
-    def validate_filters(cls, filters: Dict[str, Any]) -> bool:
+    def validate_filters(cls, filters: Dict[str, str]) -> bool:
         """Валидация фильтров поиска."""
         if not isinstance(filters, dict):
             return False

@@ -5,7 +5,7 @@
 import secrets
 import string
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import List, Optional, Union
 from loguru import logger
 
 from app.models.invitation import Invitation
@@ -39,14 +39,17 @@ class InvitationService:
         code = self.generate_invite_code()
         
         return Invitation(
-            id=1,  # Заглушка
+            id=1,  # Заглушка для тестирования
             code=code,
             created_by=created_by,
             access_level=access_level,
             max_uses=max_uses,
+            current_uses=0,
             expires_at=datetime.now() + timedelta(days=expires_in_days or 30),
+            is_active=True,
             metadata=metadata,
-            created_at=datetime.now()
+            created_at=datetime.now(),
+            updated_at=datetime.now()
         )
 
     async def validate_invitation(self, code: str) -> Optional[Invitation]:
@@ -63,7 +66,7 @@ class InvitationService:
         # TODO: Реализовать через SQLAlchemy ORM
         return True
 
-    async def get_user_invitations(self, user_id: int) -> List[Invitation]:
+    async def get_user_invitations(self, user_id: int) -> Union[List[Invitation], None]:
         """Получить инвайты пользователя."""
         logger.info(f"Getting invitations for user {user_id}")
         

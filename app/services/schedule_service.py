@@ -21,7 +21,7 @@ class ScheduleService:
         user_id: int, 
         start_date: date | None = None,
         end_date: date | None = None
-    ) -> List[Dict[str, str]]:
+    ) -> List[Dict[str, str]] | None:
         """
         Получить расписание пользователя.
         
@@ -34,14 +34,17 @@ class ScheduleService:
             Список занятий пользователя
         """
         try:
-            # Получаем группу пользователя
-            from app.services.user_service import UserService
-            user_service = UserService()
-            user = await user_service.get_user_by_telegram_id(user_id)
-            
-            if not user or not user.group_id:
-                logger.warning(f"User {user_id} has no group assigned")
-                return []
+            # Получаем группу пользователя из БД
+            async for session in get_session():
+                from app.database.models import User as UserModel
+                result = await session.execute(
+                    select(UserModel).filter(UserModel.telegram_id == user_id)
+                )
+                user = result.scalar_one_or_none()
+                
+                if not user or not user.group_id:
+                    logger.warning(f"User {user_id} has no group assigned")
+                    return None
             
             # Получаем занятия группы
             async for session in get_session():
@@ -85,13 +88,14 @@ class ScheduleService:
                 
         except Exception as e:
             logger.error(f"Error getting user schedule: {e}")
-            return []
+            logger.error(f"Traceback: {e.__traceback__}")
+            return None
 
     async def get_group_schedule(
         self, 
         group_name: str,
-        week_number: Optional[int] = None
-    ) -> List[Dict[str, Any]]:
+        week_number: int | None = None
+    ) -> List[Dict[str, str]] | None:
         """
         Получить расписание группы.
         
@@ -155,14 +159,15 @@ class ScheduleService:
                 
         except Exception as e:
             logger.error(f"Error getting group schedule: {e}")
-            return []
+            logger.error(f"Traceback: {e.__traceback__}")
+            return None
 
     async def search_groups(
         self, 
-        faculty_name: Optional[str] = None,
-        speciality_name: Optional[str] = None,
-        course_number: Optional[int] = None
-    ) -> List[Dict[str, Any]]:
+        faculty_name: str | None = None,
+        speciality_name: str | None = None,
+        course_number: int | None = None
+    ) -> List[Dict[str, str]]:
         """
         Поиск групп по критериям.
         
@@ -225,9 +230,10 @@ class ScheduleService:
                 
         except Exception as e:
             logger.error(f"Error searching groups: {e}")
-            return []
+            logger.error(f"Traceback: {e.__traceback__}")
+            return None
 
-    async def get_available_faculties(self) -> List[Dict[str, Any]]:
+    async def get_available_faculties(self) -> List[Dict[str, str]]:
         """Получить список доступных факультетов."""
         try:
             async for session in get_session():
@@ -239,21 +245,29 @@ class ScheduleService:
                 
                 faculties = result.scalars().all()
                 
-                return [
-                    {
-                        "id": faculty.id,
-                        "name": faculty.name,
-                        "short_name": faculty.short_name,
-                        "description": faculty.description
+                if not faculties:
+                    logger.warning("No faculties found in database")
+                    return []
+                
+                faculty_list = []
+                for faculty in faculties:
+                    faculty_data = {
+                        "id": str(faculty.id),
+                        "name": faculty.name or "Unknown",
+                        "short_name": faculty.short_name or "",
+                        "description": faculty.description or ""
                     }
-                    for faculty in faculties
-                ]
+                    faculty_list.append(faculty_data)
+                
+                logger.info(f"Found {len(faculty_list)} faculties")
+                return faculty_list
                 
         except Exception as e:
             logger.error(f"Error getting faculties: {e}")
-            return []
+            logger.error(f"Traceback: {e.__traceback__}")
+            return None  # Пробрасываем ошибку дальше!
 
-    async def get_available_specialities(self, faculty_id: Optional[int] = None) -> List[Dict[str, Any]]:
+    async def get_available_specialities(self, faculty_id: int | None = None) -> List[Dict[str, str]]:
         """Получить список доступных специальностей."""
         try:
             async for session in get_session():
@@ -278,9 +292,10 @@ class ScheduleService:
                 
         except Exception as e:
             logger.error(f"Error getting specialities: {e}")
-            return []
+            logger.error(f"Traceback: {e.__traceback__}")
+            return None
 
-    async def get_current_academic_year(self) -> Optional[Dict[str, Any]]:
+    async def get_current_academic_year(self) -> Dict[str, str] | None:
         """Получить текущий учебный год."""
         try:
             async for session in get_session():
@@ -303,9 +318,10 @@ class ScheduleService:
                 
         except Exception as e:
             logger.error(f"Error getting current academic year: {e}")
+            logger.error(f"Traceback: {e.__traceback__}")
             return None
 
-    async def get_current_semester(self) -> Optional[Dict[str, Any]]:
+    async def get_current_semester(self) -> Dict[str, str] | None:
         """Получить текущий семестр."""
         try:
             async for session in get_session():
@@ -329,13 +345,14 @@ class ScheduleService:
                 
         except Exception as e:
             logger.error(f"Error getting current semester: {e}")
+            logger.error(f"Traceback: {e.__traceback__}")
             return None
 
     async def get_lessons_by_week(
         self, 
         group_name: str, 
         week_number: int
-    ) -> List[Dict[str, Any]]:
+    ) -> List[Dict[str, str]]:
         """
         Получить занятия группы за определенную неделю.
         
@@ -393,9 +410,10 @@ class ScheduleService:
                 
         except Exception as e:
             logger.error(f"Error getting lessons by week: {e}")
-            return {}
+            logger.error(f"Traceback: {e.__traceback__}")
+            return None
 
-    def _extract_course_number(self, group_name: str) -> Optional[int]:
+    def _extract_course_number(self, group_name: str) -> int | None:
         """Извлечь номер курса из названия группы."""
         try:
             # Ищем цифру в начале строки
@@ -403,11 +421,12 @@ class ScheduleService:
             match = re.match(r'^(\d+)', group_name)
             if match:
                 return int(match.group(1))
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error(f"Error extracting course number from '{group_name}': {e}")
+            logger.error(f"Traceback: {e.__traceback__}")
         return None
 
-    async def get_schedule_statistics(self) -> Dict[str, Any]:
+    async def get_schedule_statistics(self) -> Dict[str, str] | None:
         """Получить статистику по расписаниям."""
         try:
             async for session in get_session():
@@ -437,4 +456,5 @@ class ScheduleService:
                 
         except Exception as e:
             logger.error(f"Error getting schedule statistics: {e}")
-            return {}
+            logger.error(f"Traceback: {e.__traceback__}")
+            return None

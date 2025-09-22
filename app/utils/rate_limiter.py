@@ -136,7 +136,7 @@ class RateLimiter:
         """Получить количество оставшихся запросов."""
         config = self.CONFIGS.get(action_type)
         if not config:
-            return float('inf')
+            return 999999  # Большое число вместо float('inf')
         
         self._cleanup_old_requests(user_id, action_type)
         

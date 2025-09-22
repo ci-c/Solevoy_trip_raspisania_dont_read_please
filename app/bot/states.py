@@ -97,3 +97,12 @@ class GroupSetupStates(StatesGroup):
     entering_group_number = State()
     selecting_faculty = State()
     confirming_selection = State()
+
+
+class InvitationStates(StatesGroup):
+    """Состояния системы инвайтов."""
+
+    main_view = State()
+    entering_code = State()
+    creating_invitation = State()
+    viewing_invitations = State()

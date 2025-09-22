@@ -1,0 +1,394 @@
+// SZGMU Bot Database Schema
+// Исправленная структура для правильного создания групп по расписаниям
+
+Project szgmu_bot {
+  database_type: 'SQLite'
+  Note: '''
+    # SZGMU Schedule Bot Database
+    
+    ## Основная идея:
+    1. API СЗГМУ предоставляет расписания (Schedule) с занятиями (Lesson)
+    2. Из занятий извлекаются группы (study_group, subgroup)
+    3. Группы создаются автоматически на основе занятий
+    4. Пользователи привязываются к группам
+    
+    ## Проблемы старой структуры:
+    - Groups создавались вручную, а не из расписаний
+    - Дублирование данных (legacy поля)
+    - Неправильные связи между таблицами
+    - Отсутствие связи Group -> Schedule
+  '''
+}
+
+// ============================================================================
+// СПРАВОЧНЫЕ ТАБЛИЦЫ
+// ============================================================================
+
+Table faculties {
+  id integer [pk, increment]
+  name varchar(128) [unique, not null]
+  short_name varchar(32)
+  code varchar(16) [unique]
+  description text
+  is_active boolean [default: true]
+  created_at datetime [default: `now()`]
+  updated_at datetime [default: `now()`]
+  
+  Note: 'Факультеты университета'
+}
+
+Table specialities {
+  id integer [pk, increment]
+  code varchar(32) [unique, not null] // "31.05.01"
+  name varchar(256) [not null] // "Лечебное дело"
+  full_name varchar(512)
+  faculty_id integer [ref: > faculties.id]
+  degree_type varchar(32) [default: 'speciality'] // bachelor, speciality, master
+  study_years integer [default: 6]
+  is_active boolean [default: true]
+  created_at datetime [default: `now()`]
+  updated_at datetime [default: `now()`]
+  
+  Note: 'Специальности по факультетам'
+}
+
+Table academic_years {
+  id integer [pk, increment]
+  name varchar(16) [unique, not null] // "2024/2025"
+  is_current boolean [default: false]
+  start_date date
+  end_date date
+  created_at datetime [default: `now()`]
+  updated_at datetime [default: `now()`]
+  
+  Note: 'Учебные годы'
+}
+
+Table semesters {
+  id integer [pk, increment]
+  name varchar(32) [not null] // "осенний", "весенний"
+  academic_year_id integer [ref: > academic_years.id]
+  start_date date
+  end_date date
+  is_current boolean [default: false]
+  created_at datetime [default: `now()`]
+  updated_at datetime [default: `now()`]
+  
+  Note: 'Семестры в рамках учебного года'
+}
+
+Table lesson_types {
+  id integer [pk, increment]
+  name varchar(64) [unique, not null] // "лекционного типа", "семинарского типа"
+  short_name varchar(16)
+  created_at datetime [default: `now()`]
+  
+  Note: 'Типы занятий'
+}
+
+Table departments {
+  id integer [pk, increment]
+  name varchar(128) [unique, not null]
+  short_name varchar(32)
+  faculty_id integer [ref: > faculties.id]
+  created_at datetime [default: `now()`]
+  updated_at datetime [default: `now()`]
+  
+  Note: 'Кафедры по факультетам'
+}
+
+Table lecturers {
+  id integer [pk, increment]
+  name varchar(128) [not null]
+  short_name varchar(64)
+  department_id integer [ref: > departments.id]
+  position varchar(64) // "доцент", "профессор"
+  email varchar(128)
+  phone varchar(32)
+  created_at datetime [default: `now()`]
+  updated_at datetime [default: `now()`]
+  
+  Note: 'Преподаватели'
+}
+
+Table classrooms {
+  id integer [pk, increment]
+  number varchar(32) [not null] // "101", "А-201"
+  building varchar(64) // "Главный корпус"
+  floor integer
+  capacity integer
+  room_type varchar(32) // "лекционная", "лаборатория", "практическая"
+  equipment text // JSON массив оборудования
+  address varchar(256)
+  created_at datetime [default: `now()`]
+  updated_at datetime [default: `now()`]
+  
+  Note: 'Аудитории'
+}
+
+Table subjects {
+  id integer [pk, increment]
+  name varchar(256) [not null]
+  short_name varchar(64)
+  code varchar(32) // "АНАТ.01"
+  speciality_id integer [ref: > specialities.id]
+  course integer // для какого курса предмет
+  semester varchar(16) // "осенний", "весенний"
+  credits integer
+  hours_total integer
+  hours_lectures integer
+  hours_seminars integer
+  hours_practice integer
+  is_active boolean [default: true]
+  created_at datetime [default: `now()`]
+  updated_at datetime [default: `now()`]
+  
+  Note: 'Предметы по специальностям'
+}
+
+// ============================================================================
+// ОСНОВНЫЕ ТАБЛИЦЫ
+// ============================================================================
+
+Table schedules {
+  id integer [pk, increment]
+  external_id integer [unique, not null] // ID из API СЗГМУ
+  file_name varchar(256) [not null]
+  form_type integer [not null] // 1=лекции, 2=практики, 3=смешанные
+  status varchar(32) [not null] // "APPROVED", "DRAFT"
+  is_uploaded_from_excel boolean [default: false]
+  update_time datetime
+  last_sync datetime [default: `now()`]
+  
+  // Связи с справочниками
+  academic_year_id integer [ref: > academic_years.id]
+  semester_id integer [ref: > semesters.id]
+  speciality_id integer [ref: > specialities.id]
+  
+  created_at datetime [default: `now()`]
+  updated_at datetime [default: `now()`]
+  
+  Note: 'Расписания из API СЗГМУ'
+}
+
+Table groups {
+  id integer [pk, increment]
+  name varchar(32) [unique, not null] // "105а", "241б"
+  course integer [not null] // 1, 2, 3, 4, 5, 6
+  stream varchar(8) // "А", "Б", "В" - поток
+  subgroup varchar(8) // "а", "б", "в" - подгруппа
+  
+  // Связи с справочниками
+  faculty_id integer [ref: > faculties.id]
+  speciality_id integer [ref: > specialities.id]
+  
+  // Связь с расписанием (откуда создана группа)
+  source_schedule_id integer [ref: > schedules.id]
+  
+  // Метаданные
+  is_active boolean [default: true]
+  last_sync datetime [default: `now()`]
+  created_at datetime [default: `now()`]
+  updated_at datetime [default: `now()`]
+  
+  indexes {
+    name [unique]
+    faculty_id
+    speciality_id
+    course
+    is_active
+  }
+  
+  Note: 'Группы студентов, созданные из расписаний'
+}
+
+Table lessons {
+  id integer [pk, increment]
+  external_id integer [unique, not null] // ID из API
+  
+  // Временные данные
+  day_name varchar(8) [not null] // "пн", "вт", "ср"
+  week_number integer [not null] // 1, 2, 3...
+  pair_time varchar(16) [not null] // "9:00-10:30"
+  start_time time
+  end_time time
+  
+  // Связи с основными таблицами
+  schedule_id integer [ref: > schedules.id]
+  group_id integer [ref: > groups.id] // Группа, для которой занятие
+  
+  // Связи со справочниками
+  subject_id integer [ref: > subjects.id]
+  lesson_type_id integer [ref: > lesson_types.id]
+  lecturer_id integer [ref: > lecturers.id]
+  classroom_id integer [ref: > classrooms.id]
+  department_id integer [ref: > departments.id]
+  
+  // Дополнительная информация из API
+  subgroup varchar(32) // "241б" - подгруппа из API
+  study_group varchar(32) // "МПФ" - группа из API
+  
+  // Метаданные
+  is_cancelled boolean [default: false]
+  notes text
+  created_at datetime [default: `now()`]
+  updated_at datetime [default: `now()`]
+  
+  indexes {
+    external_id [unique]
+    schedule_id
+    group_id
+    day_name
+    week_number
+    (day_name, week_number)
+  }
+  
+  Note: 'Занятия из расписаний'
+}
+
+// ============================================================================
+// ПОЛЬЗОВАТЕЛИ И ПРОФИЛИ
+// ============================================================================
+
+Table users {
+  id integer [pk, increment]
+  telegram_id integer [unique, not null]
+  username varchar(32)
+  first_name varchar(64) [not null]
+  last_name varchar(64)
+  access_level varchar(16) [default: 'guest'] // guest, basic, tester, admin
+  is_active boolean [default: true]
+  last_seen datetime
+  created_at datetime [default: `now()`]
+  updated_at datetime [default: `now()`]
+  
+  indexes {
+    telegram_id [unique]
+    access_level
+    is_active
+  }
+  
+  Note: 'Пользователи Telegram бота'
+}
+
+Table student_profiles {
+  id integer [pk, increment]
+  user_id integer [ref: > users.id, unique]
+  group_id integer [ref: > groups.id]
+  student_id varchar(32) // Номер студенческого билета
+  preferred_format varchar(16) [default: 'xlsx'] // xlsx, ics, pdf
+  notifications_enabled boolean [default: true]
+  created_at datetime [default: `now()`]
+  updated_at datetime [default: `now()`]
+  
+  Note: 'Профили студентов'
+}
+
+// ============================================================================
+// ОЦЕНКИ И ПОСЕЩАЕМОСТЬ
+// ============================================================================
+
+Table grades {
+  id integer [pk, increment]
+  student_id integer [ref: > student_profiles.id]
+  subject_id integer [ref: > subjects.id]
+  lesson_id integer [ref: > lessons.id] // Связь с конкретным занятием
+  
+  grade_type varchar(16) [not null] // TSB, OSB, KNL, KNS, exam, offset
+  grade_value varchar(8) [not null] // "5", "4", "3", "2", "зачет"
+  max_grade varchar(8) // "5", "100"
+  
+  date_recorded datetime [not null]
+  semester varchar(16) // "осенний", "весенний"
+  teacher_id integer [ref: > lecturers.id]
+  notes text
+  created_at datetime [default: `now()`]
+  updated_at datetime [default: `now()`]
+  
+  indexes {
+    student_id
+    subject_id
+    lesson_id
+    grade_type
+    date_recorded
+  }
+  
+  Note: 'Оценки студентов'
+}
+
+Table attendance {
+  id integer [pk, increment]
+  student_id integer [ref: > student_profiles.id]
+  lesson_id integer [ref: > lessons.id]
+  
+  status varchar(16) [not null] // present, absent, late, excused
+  is_excused boolean [default: false]
+  reason text // Причина отсутствия
+  notes text
+  
+  recorded_by integer [ref: > users.id] // Кто отметил
+  created_at datetime [default: `now()`]
+  updated_at datetime [default: `now()`]
+  
+  indexes {
+    student_id
+    lesson_id
+    status
+    created_at
+  }
+  
+  Note: 'Посещаемость занятий'
+}
+
+// ============================================================================
+// СИСТЕМНЫЕ ТАБЛИЦЫ
+// ============================================================================
+
+Table settings {
+  id integer [pk, increment]
+  key varchar(64) [unique, not null]
+  value text
+  description text
+  updated_at datetime [default: `now()`]
+  
+  Note: 'Настройки системы'
+}
+
+Table api_sync_logs {
+  id integer [pk, increment]
+  sync_type varchar(32) [not null] // "schedules", "faculties", "full"
+  status varchar(16) [not null] // "success", "error", "partial"
+  records_processed integer [default: 0]
+  records_created integer [default: 0]
+  records_updated integer [default: 0]
+  error_message text
+  duration_seconds float
+  created_at datetime [default: `now()`]
+  
+  Note: 'Логи синхронизации с API'
+}
+
+Table activity_log {
+  id integer [pk, increment]
+  user_id integer [ref: > users.id]
+  action varchar(64) [not null]
+  details text // JSON с деталями
+  ip_address varchar(45)
+  user_agent text
+  created_at datetime [default: `now()`]
+  
+  Note: 'Лог активности пользователей'
+}
+
+// ============================================================================
+// ИНДЕКСЫ ДЛЯ ПРОИЗВОДИТЕЛЬНОСТИ
+// ============================================================================
+
+// Индексы определены внутри соответствующих таблиц выше
+
+// ============================================================================
+// СВЯЗИ МЕЖДУ ТАБЛИЦАМИ
+// ============================================================================
+
+// Все связи уже определены внутри таблиц через [ref: > table.id]
+// Дублирование ссылок здесь не требуется

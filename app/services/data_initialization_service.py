@@ -124,7 +124,7 @@ class DataInitializationService:
             logger.error(f"Error during data initialization: {e}")
             return False
 
-    async def check_data_availability(self) -> Dict[str, bool]:
+    async def check_data_availability(self) -> Dict[str, bool] | None:
         """Проверить доступность данных в системе."""
         try:
             faculties = await self.faculty_service.get_faculty_names()

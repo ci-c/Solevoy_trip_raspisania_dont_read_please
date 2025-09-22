@@ -8,8 +8,9 @@ from datetime import datetime
 try:
     import sqlalchemy
     from sqlalchemy.orm import declarative_base
+    from typing import Any
 
-    Base = declarative_base()
+    Base = declarative_base()  # type: Any
 
     # SQLAlchemy columns
     Column = sqlalchemy.Column

@@ -2,7 +2,7 @@
 Сервис для инициализации системы при запуске.
 """
 
-from typing import Dict, Any
+from typing import Optional
 from loguru import logger
 
 from app.services.api_sync_service import APISyncService
@@ -18,7 +18,7 @@ class StartupService:
         self.schedule_service = ScheduleService()
         self.faculty_service = FacultyService()
 
-    async def initialize_system(self) -> Dict[str, Any]:
+    async def initialize_system(self) -> dict[str, object] | None:
         """
         Инициализация системы при запуске.
         
@@ -38,16 +38,13 @@ class StartupService:
             # 1. Проверяем наличие факультетов
             faculties = await self.schedule_service.get_available_faculties()
             if not faculties:
-                logger.info("No faculties found, starting full sync...")
+                logger.info("No faculties found, starting background sync...")
                 
-                # Запускаем полную синхронизацию
-                sync_success = await self.api_sync_service.full_sync()
-                if sync_success:
-                    results["schedules_synced"] = True
-                    logger.info("Full sync completed successfully")
-                else:
-                    results["errors"].append("Failed to sync data from API")
-                    logger.error("Full sync failed")
+                # Запускаем синхронизацию в фоне
+                import asyncio
+                asyncio.create_task(self._background_sync())
+                results["schedules_synced"] = False  # В процессе
+                logger.info("Background sync started")
             else:
                 results["faculties_loaded"] = True
                 logger.info(f"Found {len(faculties)} faculties in database")
@@ -60,6 +57,17 @@ class StartupService:
             else:
                 results["errors"].append("Database not ready")
                 logger.error("Database not ready")
+            
+            # 2.1. Проверяем наличие групп и создаем если нужно
+            from app.services.group_service import GroupService
+            group_service = GroupService()
+            groups_count = await group_service.get_groups_count()
+            if groups_count == 0:
+                logger.info("No groups found, creating from lessons...")
+                await self.api_sync_service._create_groups_from_lessons()
+                logger.info("Groups created from lessons")
+            else:
+                logger.info(f"Found {groups_count} groups in database")
             
             # 3. Проверяем текущий семестр
             current_semester = await self.schedule_service.get_current_semester()
@@ -87,7 +95,20 @@ class StartupService:
             results["errors"].append(str(e))
             return results
 
-    async def check_system_health(self) -> Dict[str, Any]:
+    async def _background_sync(self) -> None:
+        """Фоновая синхронизация данных."""
+        try:
+            logger.info("Starting background sync...")
+            sync_success = await self.api_sync_service.full_sync()
+            if sync_success:
+                logger.info("Background sync completed successfully")
+            else:
+                logger.error("Background sync failed")
+        except Exception as e:
+            logger.error(f"Background sync error: {e}")
+            logger.error(f"Traceback: {e.__traceback__}")
+
+    async def check_system_health(self) -> dict[str, object] | None:
         """
         Проверка состояния системы.
         

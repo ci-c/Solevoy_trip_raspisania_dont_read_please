@@ -19,6 +19,7 @@ credentials*
 *.key
 *.pem
 *.token
+.secrets.json
 
 # Python
 __pycache__/

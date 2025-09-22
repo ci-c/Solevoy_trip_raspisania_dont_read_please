@@ -32,8 +32,10 @@ class DisclaimerManager:
         try:
             with open(self.agreements_file, "w", encoding="utf-8") as f:
                 json.dump(self.agreements, f, ensure_ascii=False, indent=2)
-        except Exception:
-            pass
+        except Exception as e:
+            from loguru import logger
+            logger.error(f"Unexpected error: {e}")
+            logger.error(f"Traceback: {e.__traceback__}")
 
     def has_user_agreed(self, user_id: str, version: str = "1.0") -> bool:
         """Проверить, согласился ли пользователь с дисклеймером."""

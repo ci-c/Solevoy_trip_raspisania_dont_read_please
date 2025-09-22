@@ -96,6 +96,13 @@ class GroupConfirmationCallback(CallbackData, prefix="group_confirm"):
     group_id: int = 0
 
 
+class InvitationCallback(CallbackData, prefix="invitation"):
+    """Callback для системы инвайтов."""
+
+    action: str
+    invitation_id: str = ""
+
+
 # Copyright (c) 2024 SZGMU Bot Project
 # See LICENSE for details.
 

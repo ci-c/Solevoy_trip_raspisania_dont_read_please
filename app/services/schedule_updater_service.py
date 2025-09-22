@@ -23,7 +23,7 @@ class ScheduleUpdaterService:
         self.group_search_service = GroupSearchService()
         self.semester_detector = SemesterDetector()
 
-    async def update_all_schedules(self, force: bool = False) -> Dict[str, Any]:
+    async def update_all_schedules(self, force: bool = False) -> Dict[str, Any] | None:
         """
         Обновить расписания всех активных групп.
         
@@ -96,7 +96,7 @@ class ScheduleUpdaterService:
             logger.error(f"Error cleaning up schedules: {e}")
             return 0
 
-    async def get_update_statistics(self) -> Dict[str, Any]:
+    async def get_update_statistics(self) -> Dict[str, Any] | None:
         """Получить статистику обновлений."""
         try:
             # TODO: Реализовать через SQLAlchemy ORM

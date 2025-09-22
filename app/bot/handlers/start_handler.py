@@ -7,11 +7,12 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from loguru import logger
 
-from app.bot.keyboards import get_main_menu_keyboard
+from app.bot.keyboards import get_main_menu_keyboard, get_main_menu_reply_keyboard
 from app.bot.states import MainMenu, GroupSetupStates
 from app.services.user_service import UserService
 from app.utils.validation import validate_user_input, ValidationError
 from app.utils.error_handling import ErrorHandler, DatabaseError
+from app.bot.handlers.group_setup_handler import handle_group_command, handle_help_command
 
 
 async def cmd_start(message: types.Message, state: FSMContext) -> None:
@@ -70,26 +71,23 @@ async def cmd_start(message: types.Message, state: FSMContext) -> None:
 
         await state.set_state(MainMenu.home)
 
+        # Всегда показываем главное меню
         if user_profile:
             # Пользователь с профилем
-            await message.answer(
+            text = (
                 f"👋 Добро пожаловать, {user.full_name}!\n\n"
                 f"🎓 Ваш профиль: Группа {user_profile.group_id}\n\n"
-                f"Что вас интересует?",
-                reply_markup=get_main_menu_keyboard(user),
+                f"Я помогу вам с расписанием, оценками и посещаемостью. Выберите действие:"
             )
         else:
-            # Новый пользователь - настройка группы
+            # Новый пользователь
             text = (
-                "🎓 **Настройка группы**\n\n"
-                "Выберите способ настройки:"
+                "👋 Добро пожаловать в бот СЗГМУ!\n\n"
+                "Я помогу вам с расписанием, оценками и посещаемостью.\n\n"
+                "Для начала настройте группу или выберите действие:"
             )
-            
-            from app.bot.keyboards import get_simple_group_keyboard
-            keyboard = get_simple_group_keyboard()
-            
-            await message.answer(text, reply_markup=keyboard)
-            await state.set_state(GroupSetupStates.choosing_method)
+        
+        await message.answer(text, reply_markup=get_main_menu_reply_keyboard())
 
     except ValidationError as e:
         await ErrorHandler.handle_validation_error(e, message)
@@ -111,7 +109,31 @@ async def cmd_cancel(message: types.Message, state: FSMContext) -> None:
     await message.answer("✅ Действие отменено. Чтобы начать заново, введите /start")
 
 
+async def cmd_clean(message: types.Message, state: FSMContext) -> None:
+    """Обработчик команды /clean - очистка диалога."""
+    try:
+        logger.info(f"User {message.from_user.id} requested dialog cleanup")
+        
+        # Очищаем состояние
+        await state.clear()
+        
+        # Отправляем сообщение об очистке
+        await message.answer(
+            "🧹 Диалог очищен!\n\n"
+            "Все предыдущие сообщения скрыты. Выберите действие:",
+            reply_markup=get_main_menu_reply_keyboard()
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in cmd_clean: {e}")
+        logger.error(f"Traceback: {e.__traceback__}")
+        await message.answer("❌ Ошибка при очистке диалога")
+
+
 async def register_start_handlers(dp: Dispatcher):
     """Регистрация обработчиков старта."""
-    dp.message.register(cmd_start, Command("start", "help"))
+    dp.message.register(cmd_start, Command("start"))
+    dp.message.register(handle_help_command, Command("help"))
+    dp.message.register(handle_group_command, Command("group"))
     dp.message.register(cmd_cancel, Command("cancel"))
+    dp.message.register(cmd_clean, Command("clean"))

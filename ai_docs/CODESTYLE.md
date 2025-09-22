@@ -40,22 +40,86 @@ from ..models.user import User
 
 ### 3. Типизация (строго обязательно)
 ```python
-# ✅ Правильно - полная типизация
-from typing import List, Dict, Optional, Union
+# ✅ Правильно - используем встроенные типы Python 3.9+
 from datetime import date
+from typing import Optional
+from sqlalchemy.orm import Mapped, mapped_column
 
 async def get_user_schedule(
     user_id: int, 
     start_date: date, 
     end_date: date
-) -> List[Schedule]:
+) -> list[Schedule]:
+
+# ✅ Правильно - современный SQLAlchemy синтаксис
+class User(Base):
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(100))
+    email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     """Получить расписание пользователя."""
     pass
+
+# ✅ Правильно - встроенные типы
+def process_data(items: list[str]) -> dict[str, int]:
+    return {item: len(item) for item in items}
+
+# ❌ НЕ ИСПОЛЬЗОВАТЬ typing когда можно обойтись без него
+# from typing import Dict, List, Optional, Union  # ТОЛЬКО если ОБЯЗАТЕЛЬНО нужно
+
+# ❌ НЕ ИСПОЛЬЗОВАТЬ Any - ЗАПРЕЩЕНО!
+# from typing import Any  # НИКОГДА!
 
 # ❌ Неправильно - без типов
 async def get_user_schedule(user_id, start_date, end_date):
     pass
+
+# ✅ Правильно - валидация данных
+from app.utils.validators import GroupDataValidator, ValidationLevel
+
+validator = GroupDataValidator(level=ValidationLevel.STRICT)
+result = validator.validate(group_data)
+if not result.is_valid:
+    logger.error(f"Validation failed: {result.errors}")
+    return None
+
+# ✅ Правильно - безопасное выполнение
+from app.utils.error_monitor import async_error_handler
+
+@async_error_handler(default_return=None, error_message="Failed to get data")
+async def get_user_data(user_id: int) -> dict[str, Any] | None:
+    # Реализация функции
+    pass
 ```
+
+**ПРАВИЛА ТИПИЗАЦИИ:**
+- Используйте встроенные типы: `list[str]`, `dict[str, str]`, `set[int]`
+- `typing` модуль ТОЛЬКО для сложных случаев: `Union`, `Callable`
+- НИКОГДА `Any` - используйте `object` или конкретную модель
+- НИКОГДА `Optional` - используйте `| None` вместо `Optional[str]`
+- `None` вместо `Optional[str]` где возможно
+
+**БЕЗОПАСНОСТЬ:**
+- НИКОГДА не показывать токены, пароли, API ключи в логах или выводе
+- НИКОГДА не передавать секреты в LLM (локальному или облачному)
+- Все секреты только в .env файле
+- В логах заменять секреты на `***` или `[REDACTED]`
+- При дебаге использовать маскированные значения
+
+**ОБРАБОТКА ОШИБОК:**
+- Services возвращают `None` при ошибках (не падают, но сигнализируют об ошибке)
+- Handlers проверяют `None` и обрабатывают ошибки через middleware
+- Используйте `async_error_handler` декоратор для безопасного выполнения
+- Используйте `safe_execute_async` для безопасного выполнения функций
+- Всегда логируйте ошибки с traceback
+- Используйте try-catch для внешних вызовов
+- Middleware - единственное место где глотаются ошибки
+
+**ВАЛИДАЦИЯ ДАННЫХ:**
+- Используйте систему валидации из `app/utils/validators.py`
+- Выбирайте подходящий уровень валидации (STRICT/NORMAL/LENIENT)
+- Обрабатывайте ValidationResult с ошибками и предупреждениями
+- Валидируйте все пользовательские данные
+- Используйте специализированные валидаторы (GroupDataValidator, UserDataValidator)
 
 ### 4. Документация
 - **Docstrings**: Для всех классов, методов и функций

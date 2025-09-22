@@ -1,0 +1,18 @@
+agent:
+  id: BE_002_v1
+  role: BE
+  name: Backend Developer Agent
+  created: '2025-09-20'
+  status: active
+workflow:
+  daily_standup_time: 09:00
+  sprint_planning_day: monday
+  review_day: friday
+notifications:
+  email: ''
+  slack_channel: '#be'
+  telegram_chat: ''
+preferences:
+  language: ru
+  timezone: Europe/Moscow
+  working_hours: 09:00-18:00

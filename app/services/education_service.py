@@ -2,7 +2,7 @@
 Сервис для работы с образовательными данными.
 """
 
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Union
 from loguru import logger
 
 
@@ -10,10 +10,10 @@ from loguru import logger
 class EducationService:
     """Сервис для управления образовательными данными."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
-    async def get_user_education_data(self, user_id: int) -> Dict[str, Any]:
+    async def get_user_education_data(self, user_id: int) -> Union[Dict[str, Any], None]:
         """Получить образовательные данные пользователя."""
         logger.info(f"Getting education data for user {user_id} (stub)")
         return {}

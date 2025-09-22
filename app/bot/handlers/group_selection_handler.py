@@ -3,7 +3,7 @@
 Группа выбирается один раз, расписание берется из БД.
 """
 
-from typing import Dict, Any
+from typing import Dict
 from aiogram import Dispatcher, types
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
@@ -21,7 +21,7 @@ from app.services.user_service import UserService
 from app.services.group_service import GroupService
 
 
-def detect_group_info(group_number: str) -> Dict[str, Any]:
+def detect_group_info(group_number: str) -> Dict[str, str]:
     """Автоматическое определение информации о группе по номеру."""
     # Простая логика определения факультета по номеру
     if group_number.startswith(('1', '2')):
@@ -224,8 +224,8 @@ async def show_faculty_groups(
 
 async def show_group_confirmation(
     message: types.Message,
-    group_info: Dict[str, Any],
-    detected_info: Dict[str, Any],
+    group_info: Dict[str, str],
+    detected_info: Dict[str, str],
     state: FSMContext,
 ) -> None:
     """Показать подтверждение выбора группы."""

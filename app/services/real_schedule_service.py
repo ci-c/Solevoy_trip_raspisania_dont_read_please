@@ -53,7 +53,8 @@ class RealScheduleService:
                     return []
         except Exception as e:
             logger.error(f"Error searching groups: {e}")
-            return []
+            logger.error(f"Traceback: {e.__traceback__}")
+        return None
 
     async def get_group_schedule(self, group_id: str, week: int = None) -> List[Dict[str, Any]]:
         """Получить расписание группы."""
@@ -75,7 +76,8 @@ class RealScheduleService:
                     return []
         except Exception as e:
             logger.error(f"Error getting group schedule: {e}")
-            return []
+            logger.error(f"Traceback: {e.__traceback__}")
+        return None
 
     async def get_teacher_schedule(self, teacher_id: str, week: int = None) -> List[Dict[str, Any]]:
         """Получить расписание преподавателя."""
@@ -97,7 +99,8 @@ class RealScheduleService:
                     return []
         except Exception as e:
             logger.error(f"Error getting teacher schedule: {e}")
-            return []
+            logger.error(f"Traceback: {e.__traceback__}")
+        return None
 
     async def get_room_schedule(self, room_id: str, week: int = None) -> List[Dict[str, Any]]:
         """Получить расписание аудитории."""
@@ -119,7 +122,8 @@ class RealScheduleService:
                     return []
         except Exception as e:
             logger.error(f"Error getting room schedule: {e}")
-            return []
+            logger.error(f"Traceback: {e.__traceback__}")
+        return None
 
     async def save_schedule_to_db(self, group_id: str, schedule_data: List[Dict[str, Any]]) -> bool:
         """Сохранить расписание в базу данных."""
@@ -188,7 +192,8 @@ class RealScheduleService:
                 return results
         except Exception as e:
             logger.error(f"Error getting schedule from DB: {e}")
-            return []
+            logger.error(f"Traceback: {e.__traceback__}")
+        return None
 
     async def sync_schedule(self, group_id: str) -> bool:
         """Синхронизировать расписание с API."""

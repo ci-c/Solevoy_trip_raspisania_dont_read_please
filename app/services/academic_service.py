@@ -2,7 +2,7 @@
 Сервис для работы с академическими данными.
 """
 
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Union
 from loguru import logger
 
 
@@ -10,7 +10,7 @@ from loguru import logger
 class AcademicService:
     """Сервис для управления академическими данными."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
     async def get_user_grades(self, user_id: int) -> List[Dict[str, Any]]:
@@ -38,7 +38,7 @@ class AcademicService:
         logger.info(f"Calculating GPA for user {user_id} (stub)")
         return 0.0
 
-    async def get_academic_statistics(self, user_id: int) -> Dict[str, Any]:
+    async def get_academic_statistics(self, user_id: int) -> Union[Dict[str, Any], None]:
         """Получить академическую статистику."""
         logger.info(f"Getting academic statistics for user {user_id} (stub)")
         return {}

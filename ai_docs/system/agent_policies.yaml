@@ -1,0 +1,178 @@
+version: 1
+metadata:
+  updated_at: 2025-09-20T02:30:00
+  description: >-
+    Конфигурация ролей и правил взаимодействия агентов. Используется Python-CLI
+    инструментом для управления агентами и задачами.
+roles:
+  PO:
+    name: Product Owner
+    description: Управление backlog, приоритизация и связь с пользователем.
+    allowed_actions:
+      - tasks.view
+      - tasks.create
+      - tasks.assign
+      - planning.prioritize
+    communication_channels:
+      - general
+      - planning
+    workspace_access:
+      read_only:
+        - app/
+        - docs/
+    workflow:
+      standup_time: "09:00"
+      timezone: Europe/Moscow
+  BE:
+    name: Backend Engineer
+    description: Серверная логика, база данных, API.
+    allowed_actions:
+      - tasks.view
+      - tasks.create
+      - tasks.complete
+      - code.review
+    communication_channels:
+      - general
+      - backend
+    workspace_access:
+      read_write:
+        - app/services/
+        - app/database/
+      read_only:
+        - app/bot/
+    workflow:
+      standup_time: "09:30"
+      timezone: Europe/Moscow
+  FE:
+    name: Frontend Engineer
+    description: UX бота, handlers и клавиатуры.
+    allowed_actions:
+      - tasks.view
+      - tasks.create
+      - tasks.complete
+    communication_channels:
+      - general
+      - frontend
+    workspace_access:
+      read_write:
+        - app/bot/
+      read_only:
+        - app/services/
+    workflow:
+      standup_time: "09:30"
+      timezone: Europe/Moscow
+  QA:
+    name: QA Engineer
+    description: Тесты, документация и контроль качества.
+    allowed_actions:
+      - tasks.view
+      - tasks.create
+      - tasks.verify
+      - tasks.complete
+    communication_channels:
+      - general
+      - qa
+    workspace_access:
+      read_write:
+        - tests/
+        - docs/
+      read_only:
+        - app/
+    workflow:
+      standup_time: "09:15"
+      timezone: Europe/Moscow
+  DO:
+    name: DevOps Engineer
+    description: Инфраструктура, CI/CD и наблюдаемость.
+    allowed_actions:
+      - tasks.view
+      - tasks.create
+      - infra.deploy
+    communication_channels:
+      - general
+      - devops
+    workspace_access:
+      read_write:
+        - scripts/
+        - infra/
+      read_only:
+        - app/
+    workflow:
+      standup_time: "09:00"
+      timezone: Europe/Moscow
+  SM:
+    name: Scrum Master
+    description: Координация процессов и устранение блокеров.
+    allowed_actions:
+      - tasks.view
+      - tasks.assign
+      - agents.touch
+      - coordination.resolve
+    communication_channels:
+      - general
+      - planning
+      - coordination
+    workspace_access:
+      read_only:
+        - app/
+        - docs/
+    workflow:
+      standup_time: "08:45"
+      timezone: Europe/Moscow
+  ARCH:
+    name: Architect
+    description: Ответственность за архитектуру проекта и стратегические решения.
+    allowed_actions:
+      - tasks.view
+      - tasks.create
+      - tasks.assign
+      - agents.register
+      - agents.status
+      - coordination.override
+    communication_channels:
+      - general
+      - planning
+      - backend
+      - frontend
+      - qa
+      - devops
+    workspace_access:
+      read_write:
+        - app/
+        - docs/
+        - ai_docs/
+    workflow:
+      standup_time: "08:30"
+      timezone: Europe/Moscow
+status_definitions:
+  active:
+    description: Агент в строю и может брать задачи.
+  paused:
+    description: Агент временно приостановлен, задачи удерживаются.
+  retired:
+    description: Агент больше не участвует, задачи перераспределены.
+communication_channels:
+  general:
+    purpose: Общее информационное поле.
+  backend:
+    purpose: Координация backend-задач.
+  frontend:
+    purpose: Работа над UX и интерфейсом бота.
+  qa:
+    purpose: Тестирование и контроль качества.
+  devops:
+    purpose: Инфраструктура и развёртывание.
+  planning:
+    purpose: Планирование, спринты, приоритеты.
+  coordination:
+    purpose: Разрешение конфликтов и блокировок.
+workflow_defaults:
+  workday: "09:00-18:00"
+  timezone: Europe/Moscow
+  standup_time: "09:00"
+task_policy:
+  default_priority_order: ["A", "B", "C", "D"]
+  status_values: ["active", "in_progress", "blocked", "completed"]
+  agent_tag_prefix: "+agent_id:"
+  task_id_prefix: "+task_id:"
+  story_points_prefix: "+sp"

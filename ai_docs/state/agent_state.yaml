@@ -1,0 +1,35 @@
+agents:
+- id: BE_001_v1
+  role: BE
+  name: Backend Developer
+  created_at: '2025-09-20'
+  status: active
+  last_activity: 2025-09-20 01:41
+- id: BE_002_v1
+  role: BE
+  name: Backend Developer Agent
+  created_at: '2025-09-20'
+  status: active
+  last_activity: 2025-09-20 01:44
+- id: FE_001_v1
+  role: FE
+  name: Backend Developer Agent
+  created_at: '2025-09-20'
+  status: active
+  last_activity: 2025-09-20 02:03
+- id: FE_002_v1
+  role: FE
+  name: Backend Developer
+  created_at: '2025-09-20'
+  status: active
+  last_activity: 2025-09-20 02:10
+role_assignments:
+- agent_name: Backend Developer Agent
+  role: FE
+  status: assigned
+  timestamp: '2025-09-20 02:03:03'
+- agent_name: Backend Developer
+  role: FE
+  status: assigned
+  timestamp: '2025-09-20 02:10:31'
+queue: []

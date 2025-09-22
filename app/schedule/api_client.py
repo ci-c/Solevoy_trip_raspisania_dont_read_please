@@ -22,9 +22,9 @@ class APIClient:
 
     def _find_schedule_ids_sync(
         self,
-        group_stream: Optional[List[str]] = None,
-        speciality: Optional[List[str]] = None,
-        course_number: Optional[List[str]] = None,
+        group_stream: List[str] | None = None,
+        speciality: List[str] | None = None,
+        course_number: List[str] | None = None,
         academic_year: Optional[List[str]] = None,
         lesson_type: Optional[List[str]] = None,
         semester: Optional[List[str]] = None,
@@ -130,9 +130,9 @@ class APIClient:
 
     async def find_schedule_ids(
         self,
-        group_stream: Optional[List[str]] = None,
-        speciality: Optional[List[str]] = None,
-        course_number: Optional[List[str]] = None,
+        group_stream: List[str] | None = None,
+        speciality: List[str] | None = None,
+        course_number: List[str] | None = None,
         academic_year: Optional[List[str]] = None,
         lesson_type: Optional[List[str]] = None,
         semester: Optional[List[str]] = None,
@@ -241,6 +241,10 @@ class APIClient:
                 if not schedule_data:
                     continue
 
+                # Type assertion для mypy
+                if not isinstance(schedule_data, dict):
+                    continue
+
                 # Фильтрация по группе
                 if group:
                     group_found = self._check_group_in_schedule(schedule_data, group)
@@ -268,7 +272,8 @@ class APIClient:
 
         except Exception as e:
             logger.error(f"Critical error in search_schedules: {e}")
-            return []
+            logger.error(f"Traceback: {e.__traceback__}")
+        return []
 
     def _check_group_in_schedule(self, schedule_data: Dict, groups: List[str]) -> bool:
         """Проверить содержит ли расписание указанную группу."""
@@ -309,5 +314,6 @@ class APIClient:
         """Деструктор для очистки ресурсов."""
         try:
             self.close()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}")
+            logger.error(f"Traceback: {e.__traceback__}")

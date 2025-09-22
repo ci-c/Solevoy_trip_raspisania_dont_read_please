@@ -3,7 +3,7 @@
 """
 
 import asyncio
-from typing import Dict, Any
+from typing import Dict
 from unittest.mock import AsyncMock
 
 import pytest
@@ -72,7 +72,7 @@ def test_schedule_service() -> ScheduleService:
 
 
 @pytest.fixture
-def sample_user_data() -> Dict[str, Any]:
+def sample_user_data() -> Dict[str, str]:
     """Тестовые данные пользователя."""
     return {
         "telegram_id": 123456789,
@@ -83,7 +83,7 @@ def sample_user_data() -> Dict[str, Any]:
 
 
 @pytest.fixture 
-def sample_group_data() -> Dict[str, Any]:
+def sample_group_data() -> Dict[str, str]:
     """Тестовые данные группы."""
     return {
         "number": "101а",
@@ -96,7 +96,7 @@ def sample_group_data() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def sample_lesson_data() -> Dict[str, Any]:
+def sample_lesson_data() -> Dict[str, str]:
     """Тестовые данные занятия."""
     return {
         "subject_name": "Анатомия человека",

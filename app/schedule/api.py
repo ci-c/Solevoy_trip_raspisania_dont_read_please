@@ -151,7 +151,7 @@ def process_lessons(schedule_data: Dict) -> list[Lesson]:
 async def get_available_filters() -> Dict[str, List[str]]:
     """Get available filters for the bot interface."""
     # Return static options to avoid API timeout issues
-    # TODO: Implement dynamic loading with timeout protection
+    # TODO Implement dynamic loading with timeout protection
     logger.info("Loading static filters for bot interface")
     
     try:
@@ -302,4 +302,5 @@ async def search_schedules(selected_filters: Dict[str, List[str]]) -> List[Dict]
         
     except Exception as e:
         logger.error(f"Critical error in search_schedules: {e}")
+        logger.error(f"Traceback: {e.__traceback__}")
         return []
