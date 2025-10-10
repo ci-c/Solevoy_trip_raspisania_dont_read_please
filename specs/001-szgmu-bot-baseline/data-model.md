@@ -19,7 +19,7 @@
 - **Rules**:
   - `preferred_export_format` ∈ {`excel`, `ics`}; default `excel`.
   - `notifications_enabled` bool; default `False`.
-  - `quiet_hours_start`, `quiet_hours_end` nullable. Если оба null — тихие часы выключены.
+  - `quiet_hours_start`, `quiet_hours_end` nullable. Если оба null — тихие часы выключены. Храним только текущее значение без истории; обновления фиксируются через `updated_at`.
   - `timezone` default `Europe/Moscow`, но хранится строкой для будущей персонализации.
 
 ### AcademicGroup
@@ -27,11 +27,20 @@
 - **Notes**: Код должен совпадать с идентификаторами из официальных таблиц; требуется уникальный индекс.
 
 ### ScheduleLesson
-- **Fields**: `id`, `group_id`, `date`, `start_time`, `end_time`, `subject`, `lesson_type`, `lecturer`, `room`, `source`, `imported_at`
+- **Fields**: `id`, `group_id`, `date`, `start_time`, `end_time`, `subject`, `lesson_type`, `lecturer_id`, `room_id`, `source`, `imported_at`
 - **Rules**:
   - `source` ∈ {`official_pdf`, `legacy_csv`, `external_api`}; хранить для аудита.
-  - Уникальный индекс по (`group_id`, `date`, `start_time`, `subject`, `room`) для предотвращения дублей.
+  - Внешние ключи на `Lecturer.id` и `Room.id` с касCADE update/RESTRICT delete.
+  - Уникальный индекс по (`group_id`, `date`, `start_time`, `subject`, `room_id`) для предотвращения дублей.
   - `imported_at` хранит timestamp последнего обновления записи.
+
+### Lecturer
+- **Fields**: `id`, `full_name`, `department`, `email`, `phone`
+- **Rules**: `full_name` обязательное; допускаем дополнительные контакты; уникальный индекс по (`full_name`, `department`).
+
+### Room
+- **Fields**: `id`, `campus`, `building`, `room_number`, `capacity`
+- **Rules**: Уникальный индекс по (`campus`, `building`, `room_number`); `capacity` nullable.
 
 ### ScheduleImportJob
 - **Fields**: `id`, `source`, `status`, `started_at`, `finished_at`, `error_message`
@@ -54,6 +63,8 @@ User 1 — * ExportRequest
 User 1 — * NotificationJob
 AcademicGroup 1 — * UserProfile
 AcademicGroup 1 — * ScheduleLesson
+Lecturer 1 — * ScheduleLesson
+Room 1 — * ScheduleLesson
 ScheduleLesson 1 — * NotificationJob
 ScheduleImportJob (no direct FK)
 ```
@@ -63,7 +74,8 @@ ScheduleImportJob (no direct FK)
 - `User.telegram_id` UNIQUE
 - `AcademicGroup.code` UNIQUE
 - Composite index on `ScheduleLesson (group_id, date, start_time)`
-- Index on `ScheduleLesson (lecturer)`, `ScheduleLesson (room)` для будущих поисков
+- Foreign-key indexes on `ScheduleLesson (lecturer_id)` и `ScheduleLesson (room_id)`
+- Индексы на `Lecturer (full_name, department)` и `Room (campus, building, room_number)`
 - Index on `NotificationJob (scheduled_for, status)` для фоновых воркеров
 
 ## Data Flow Overview
@@ -71,26 +83,27 @@ ScheduleImportJob (no direct FK)
 1. **Ingestion**
    - Планировщик запускает `ScheduleImportJob` для официальных PDF. Парсер сохраняет данные в `ScheduleLesson` с `source=official_pdf`.
    - При недоступности официальных данных запускается импорт из неофициального API (`source=external_api`). После успешной загрузки ретеншн: помечаем источник и записываем `imported_at`.
+   - На этапе импорта создаются/обновляются записи `Lecturer` и `Room`; сопоставление выполняется по нормализованным ключам.
 
 2. **Schedule Query**
    - aiogram-хэндлеры вызывают сервис `ScheduleService`, который читает из `ScheduleLesson` (по `group_id`, `date`).
    - Сервис гарантирует возвращение данных только из БД и учитывает `UserProfile` настройки.
 
 3. **Exports**
-   - `ExportService` формирует временные файлы на основе запросов `ExportRequest`. Метаданные сохраняются для трассировки.
-   - По завершении экспорт удаляется или архивируется в зависимости от политики хранения (обсудить отдельно).
+   - `ExportService` формирует временные файлы на основе запросов `ExportRequest`. Метаданные сохраняются до завершения операции.
+   - После успешной отправки файл и запись `ExportRequest` удаляются; контроль ведётся через логи и метрики.
 
 4. **Notifications**
    - Фоновый воркер планирует `NotificationJob` для будущих занятий. При постановке учитываются `quiet_hours_start/end` и `timezone`. Если уведомление попадает в тихие часы, оно переносится.
+   - После успешной отправки запись `NotificationJob` удаляется; для диагностики достаточно логов.
 
 ## Open Questions
 
-- Нужно ли хранить историю тихих часов или достаточно текущих значений?
-- Как долго хранить записи `ExportRequest` и `NotificationJob`? Нужна политика очистки.
-- Требуются ли отдельные сущности для преподавателей/аудиторий (связи 1:N) или достаточно строки?
+- TBD: требуется ли внешняя система аудита для отправленных уведомлений (например, в Kibana/Prometheus).
 
 ## Next Steps
 
 - Провести ревью модели с командой, согласовать индексы и возможные миграции.
-- Подготовить миграции (создание/обновление таблиц) и сидеры для AcademicGroup и ScheduleLesson.
+- Подготовить миграции (создание/обновление таблиц) и сидеры для AcademicGroup, ScheduleLesson, Lecturer, Room.
 - Определить схемы сериализации для экспорта (Pydantic-модели) и уведомлений.
+- Спроектировать фоновый процесс очистки завершённых NotificationJob/ExportRequest (удаление + лог).

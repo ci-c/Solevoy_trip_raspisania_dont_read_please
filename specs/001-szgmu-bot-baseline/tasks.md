@@ -15,10 +15,12 @@
 
 ## Phase 1: Shared Infrastructure
 
-- [ ] T010 Обновить модели SQLAlchemy (`app/database/models.py`) согласно `data-model.md` (UserProfile, ScheduleLesson, NotificationJob, ExportRequest)
-- [ ] T011 Написать миграции/сидеры в `data/` для AcademicGroup и расписаний
+- [ ] T010 Обновить модели SQLAlchemy (`app/database/models.py`) согласно `data-model.md` (UserProfile, ScheduleLesson с FK на Lecturer/Room, Lecturer, Room, NotificationJob, ExportRequest)
+- [ ] T011 Написать миграции/сидеры в `data/` для AcademicGroup, ScheduleLesson, Lecturer, Room
 - [ ] T012 Настроить `app/utils/logging.py` для correlation IDs, таймаутов httpx, ретраев
 - [ ] T013 Проверить совместимость зависимостей с Python 3.14, обновить `uv.lock`
+- [ ] T014 Обновить пайплайн импорта в `app/schedule/ingest/` для создания/обновления сущностей Lecturer/Room и маркировки источников
+- [ ] T015 Реализовать очистку завершённых `ExportRequest`/`NotificationJob` (удаление записей + логирование результата)
 
 ---
 
@@ -49,6 +51,7 @@
 - [ ] T033 Добавить команды/клавиатуры для экспорта в `app/bot/handlers/export.py`
 - [ ] T034 Обновить `app/schedule/exporters` (Excel/ICS) под новые данные
 - [ ] T035 Добавить логирование экспортов с correlation ID (Принцип V)
+- [ ] T036 Убедиться, что по завершении экспорта запись удаляется и событие логируется (соответствие FR-012)
 
 **Checkpoint**: Тесты T030–T031 зелёные, файлы `.xlsx`/`.ics` корректны.
 
@@ -65,6 +68,7 @@
 - [ ] T043 Добавить диалоги/клавиатуры в `app/bot/handlers/profile.py`
 - [ ] T044 Настроить планировщик уведомлений (например, APScheduler) в `app/schedule/notifications.py`
 - [ ] T045 Обновить фоновые воркеры для уважения тихих часов и таймзон
+- [ ] T046 Удалять записи `NotificationJob` после успешной отправки, избегая повторов
 
 **Checkpoint**: Тесты T040–T041 зелёные, уведомления работают с настройками профиля.
 
