@@ -63,9 +63,9 @@ AGENT_ID: [ROLE]_[NUMBER]_[VERSION]
 
 ### Примеры задач
 ```
-(A) 2025-01-24 Исправить ошибку в GroupService +critical +bugfix +agent_id:BE_001_v1 @backend
-(B) 2025-01-24 Написать тесты для GroupService +testing +pytest +agent_id:QA_001_v1 @qa
-(C) 2025-01-24 Обновить документацию API +docs +agent_id:QA_001_v1 @qa
+(A) 2025-01-24 Исправить ошибку в GroupService @backend +issue_id:ISS-0123 +status:in_progress +assignee:BE_001_v1 +critical +bugfix
+(B) 2025-01-24 Написать тесты для GroupService @qa +issue_id:ISS-0456 +status:ready +assignee:QA_001_v1 +testing +pytest
+(C) 2025-01-24 Обновить документацию API @po +issue_id:ISS-0789 +status:in_refinement +assignee:PO_001_v1 +docs
 ```
 
 ## Регистрация агентов

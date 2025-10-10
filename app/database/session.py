@@ -19,13 +19,14 @@ class DatabaseError(Exception):
 
     def __init__(self, message: str) -> None:
         """Initialize error.
-        
+
         Args:
             message: Error description.
-        
+
         """
         self.message = message
         super().__init__(message)
+
 
 # Database path relative to project root
 DATABASE_PATH = Path(__file__).parent.parent.parent / "data" / "szgmu_bot.db"
@@ -62,12 +63,12 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
 
 async def init_db() -> None:
     """Initialize database by creating all tables.
-    
+
     This will create fresh tables, dropping any existing ones.
-    
+
     Raises:
         DatabaseError: If database initialization fails.
-    
+
     """
     try:
         async with engine.begin() as conn:
@@ -75,9 +76,9 @@ async def init_db() -> None:
             def check_tables(sync_conn):
                 inspector = inspect(sync_conn)
                 return inspector.get_table_names()
-            
+
             existing_tables = await conn.run_sync(check_tables)
-            
+
             if not existing_tables:
                 # Создаем таблицы только если их нет
                 await conn.run_sync(Base.metadata.create_all)

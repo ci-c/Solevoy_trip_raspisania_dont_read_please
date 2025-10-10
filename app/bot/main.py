@@ -26,10 +26,10 @@ class BotError(Exception):
 
     def __init__(self, message: str) -> None:
         """Initialize error.
-        
+
         Args:
             message: Error description.
-        
+
         """
         self.message = message
         super().__init__(message)
@@ -40,10 +40,10 @@ class ConfigError(BotError):
 
     def __init__(self, parameter: str) -> None:
         """Initialize error.
-        
+
         Args:
             parameter: Missing configuration parameter name.
-        
+
         """
         message = f"Missing required config parameter: {parameter}"
         super().__init__(message)
@@ -54,10 +54,10 @@ class SetupError(BotError):
 
     def __init__(self, cause: str | None = None) -> None:
         """Initialize error.
-        
+
         Args:
             cause: Optional description of what caused the failure.
-        
+
         """
         message = "Bot setup failed. See logs for details."
         if cause:
@@ -88,13 +88,13 @@ class BotApplication:
 
     async def _check_token(self) -> str:
         """Validate and retrieve bot token.
-        
+
         Returns:
             Valid bot token from environment.
-        
+
         Raises:
             ConfigError: If BOT_TOKEN is not set.
-        
+
         """
         token = os.environ.get("BOT_TOKEN")
         if not token:
@@ -104,10 +104,10 @@ class BotApplication:
 
     async def _init_database(self) -> None:
         """Initialize database connection.
-        
+
         Raises:
             SetupError: If database initialization fails.
-        
+
         """
         try:
             await init_db()
@@ -117,10 +117,10 @@ class BotApplication:
 
     async def _init_scheduler(self) -> None:
         """Initialize background task scheduler.
-        
+
         Sets _background_started flag if successful.
         Logs but does not raise on failure.
-        
+
         """
         try:
             await start_background_scheduler()
@@ -202,6 +202,7 @@ class BotApplication:
                 await self.bot.session.close()
         except Exception as e:
             logger.error(f"Error during bot shutdown: {e}")
+
 
 async def create_bot_app() -> BotApplication:
     """Create and set up a new bot application.

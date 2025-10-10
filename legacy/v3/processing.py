@@ -15,7 +15,9 @@ logger.addHandler(console_handler)
 
 
 def process_lessons_for_export(
-    raw_lessons: list[Lesson], subgroup_name: str, first_day: datetime.date,
+    raw_lessons: list[Lesson],
+    subgroup_name: str,
+    first_day: datetime.date,
 ) -> list[PostLesson]:
     """
     Обрабатывает, фильтрует, объединяет и преобразует сырые данные занятий
@@ -30,7 +32,6 @@ def process_lessons_for_export(
         Отфильтрованный, отсортированный и обработанный список объектов PostLesson.
     """
 
-
     # 1. Фильтрация по подгруппе
     def f_filter(lesson: Lesson) -> bool:
         r: bool = lesson.subgroup == subgroup_name.upper()
@@ -44,7 +45,6 @@ def process_lessons_for_export(
     debug_stat = {}
 
     for lesson in filtered_lessons:
-
         week_num = int(lesson.weekNumber)
         day_index = WEEK_DAYS.get(lesson.dayName, 8)
 
@@ -54,9 +54,8 @@ def process_lessons_for_export(
         elif lesson.lessonType.lower() == "семинарского":
             lesson_type_key = "с"
         else:
-            lesson_type_key = 'N/A'
+            lesson_type_key = "N/A"
             logger.error(f"Found not defended lesson type: {lesson.lessonType}")
-
 
         # --- НОВАЯ НАДЕЖНАЯ ЛОГИКА ОБРАБОТКИ ВРЕМЕНИ ---
         lesson.pairTime = lesson.pairTime.replace(".", ":")
@@ -78,7 +77,9 @@ def process_lessons_for_export(
 
         first_monday = first_day - datetime.timedelta(days=first_day.weekday())
         date = first_monday + datetime.timedelta(weeks=week_num - 1, days=day_index)
-        lesson_counter[lesson.subjectName, lesson_type_key] = lesson_counter.get((lesson.subjectName, lesson_type_key), 0) + 1
+        lesson_counter[lesson.subjectName, lesson_type_key] = (
+            lesson_counter.get((lesson.subjectName, lesson_type_key), 0) + 1
+        )
         # Создаём чистый объект PostLesson
         post_lesson_meta = {
             "location": lesson.locationAddress,
@@ -100,11 +101,12 @@ def process_lessons_for_export(
         if key in processed_lessons.keys():
             logger.warning("WARN! Overwriting lesson")
         processed_lessons[key] = post_lesson
-        
 
     # 3. Сортировка по дате и номеру занятия
     processed_lessons_list: list[PostLesson] = list(processed_lessons.values())
     processed_lessons_list.sort(key=attrgetter("date", "lesson_number"))
-    logger.info(f"raw_lessons={len(raw_lessons)};filtered_lessons={len(filtered_lessons)};processed_lessons={len(processed_lessons_list)}")
+    logger.info(
+        f"raw_lessons={len(raw_lessons)};filtered_lessons={len(filtered_lessons)};processed_lessons={len(processed_lessons_list)}"
+    )
     logger.info(debug_stat)
     return processed_lessons_list

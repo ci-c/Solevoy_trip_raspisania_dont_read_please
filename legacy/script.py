@@ -19,29 +19,63 @@ EXPECTED_FILENAME_PARTS: tuple[int] = (4, 5)
 SCHEDULE_COLUMN_INDEX = 3
 RINGS = {
     "s": {
-        "9:00": [datetime.time(9, 0), datetime.time(10, 30), datetime.time(10, 45), datetime.time(12, 15), '1,2'],
-        "13:10": [datetime.time(13, 10), datetime.time(14, 40), datetime.time(14, 55), datetime.time(16, 25),'3,4'],
+        "9:00": [
+            datetime.time(9, 0),
+            datetime.time(10, 30),
+            datetime.time(10, 45),
+            datetime.time(12, 15),
+            "1,2",
+        ],
+        "13:10": [
+            datetime.time(13, 10),
+            datetime.time(14, 40),
+            datetime.time(14, 55),
+            datetime.time(16, 25),
+            "3,4",
+        ],
     },
     "l": {
-        "9:00": [datetime.time(9, 0), datetime.time(9, 45), datetime.time(9, 50), datetime.time(10, 35),'1'],
-        "10:55": [datetime.time(10, 55), datetime.time(11, 40), datetime.time(11, 45), datetime.time(12, 30),'2'],
-        "13:10": [datetime.time(13, 10), datetime.time(13, 55), datetime.time(14, 0), datetime.time(14, 45),'3'],
-        "15:00": [datetime.time(15, 0), datetime.time(15, 45), datetime.time(15, 50), datetime.time(16, 35),'4'],
-        "16:45": [datetime.time(16, 45), datetime.time(17, 30), datetime.time(17, 35), datetime.time(18, 20),'5'],
+        "9:00": [
+            datetime.time(9, 0),
+            datetime.time(9, 45),
+            datetime.time(9, 50),
+            datetime.time(10, 35),
+            "1",
+        ],
+        "10:55": [
+            datetime.time(10, 55),
+            datetime.time(11, 40),
+            datetime.time(11, 45),
+            datetime.time(12, 30),
+            "2",
+        ],
+        "13:10": [
+            datetime.time(13, 10),
+            datetime.time(13, 55),
+            datetime.time(14, 0),
+            datetime.time(14, 45),
+            "3",
+        ],
+        "15:00": [
+            datetime.time(15, 0),
+            datetime.time(15, 45),
+            datetime.time(15, 50),
+            datetime.time(16, 35),
+            "4",
+        ],
+        "16:45": [
+            datetime.time(16, 45),
+            datetime.time(17, 30),
+            datetime.time(17, 35),
+            datetime.time(18, 20),
+            "5",
+        ],
     },
 }
 WIDTH_COLUMNS = [8, 12, 4, 4, 16, 4, 20]
 
-WEEK_DAYS = {'пн': 0, 'вт': 1, 'ср': 2, 'чт': 3, 'пт': 4, 'сб': 5, 'вс': 6}
-WEEK_DAYS_INVERTED = {
-    0: 'Пн',
-    1: 'Вт',
-    2: 'Ср',
-    3: 'Чт',
-    4: 'Пт',
-    5: 'Сб',
-    6: 'Вс'
-}
+WEEK_DAYS = {"пн": 0, "вт": 1, "ср": 2, "чт": 3, "пт": 4, "сб": 5, "вс": 6}
+WEEK_DAYS_INVERTED = {0: "Пн", 1: "Вт", 2: "Ср", 3: "Чт", 4: "Пт", 5: "Сб", 6: "Вс"}
 
 
 def main() -> None:
@@ -211,7 +245,9 @@ def process_xlsx_file(file_path: Path) -> list:
     return schedule_data
 
 
-def gen_schedule(sch: list[list[str | int | list[int]]], type_: str) -> list[list[str | int]]:
+def gen_schedule(
+    sch: list[list[str | int | list[int]]], type_: str
+) -> list[list[str | int]]:
     """Generate a schedule with expanded time slots and dates.
 
     Args:
@@ -233,14 +269,16 @@ def gen_schedule(sch: list[list[str | int | list[int]]], type_: str) -> list[lis
         for row in sch:
             if week in row[SCHEDULE_COLUMN_INDEX] and current_day.weekday() == row[0]:
                 time_slot = RINGS[type_][row[1]]
-                processed_schedule.append([
-                    week,
-                    current_day,
-                    time_slot,
-                    RINGS[type_][row[1]][4],
-                    type_,
-                    row[2],
-                ])
+                processed_schedule.append(
+                    [
+                        week,
+                        current_day,
+                        time_slot,
+                        RINGS[type_][row[1]][4],
+                        type_,
+                        row[2],
+                    ]
+                )
 
         current_day += datetime.timedelta(days=1)
         if current_day.weekday() == MAX_WEEKDAY:
@@ -250,7 +288,9 @@ def gen_schedule(sch: list[list[str | int | list[int]]], type_: str) -> list[lis
     return processed_schedule
 
 
-def prepocess_schedule_for_excel(schedule_data: list[list[str | int | list[int]]]) -> list[list[str | int | list[int]]]:
+def prepocess_schedule_for_excel(
+    schedule_data: list[list[str | int | list[int]]],
+) -> list[list[str | int | list[int]]]:
     """Prepare schedule data for Excel export."""
     schedule_data = schedule_data.copy()
     for i in range(len(schedule_data)):
@@ -259,9 +299,14 @@ def prepocess_schedule_for_excel(schedule_data: list[list[str | int | list[int]]
             schedule_data[i][1].isoformat(),
             WEEK_DAYS_INVERTED[schedule_data[i][1].weekday()],
             schedule_data[i][3],
-            " - ".join([schedule_data[i][2][0].isoformat(timespec='minutes'), schedule_data[i][2][3].isoformat(timespec='minutes')]),
-            'Л' if schedule_data[i][4] == 'l' else 'С',
-            schedule_data[i][5]
+            " - ".join(
+                [
+                    schedule_data[i][2][0].isoformat(timespec="minutes"),
+                    schedule_data[i][2][3].isoformat(timespec="minutes"),
+                ]
+            ),
+            "Л" if schedule_data[i][4] == "l" else "С",
+            schedule_data[i][5],
         ]
         schedule_data[i] = row
     schedule_data.sort()
@@ -286,13 +331,15 @@ def gen_excel_file(schedule_data: list[list[str | int | list[int]]], id_: list) 
     worksheet.append(header)
     for cell in worksheet[2]:
         cell.font = openpyxl.styles.Font(size=14, name="Roboto")
-        cell.fill = openpyxl.styles.PatternFill(start_color="D9EAD3", end_color="D9EAD3", fill_type="solid")
+        cell.fill = openpyxl.styles.PatternFill(
+            start_color="D9EAD3", end_color="D9EAD3", fill_type="solid"
+        )
         cell.alignment = openpyxl.styles.Alignment(horizontal="center")
         cell.border = openpyxl.styles.Border(
             top=openpyxl.styles.Side(style="thin"),
             left=openpyxl.styles.Side(style="thin"),
             right=openpyxl.styles.Side(style="thin"),
-            bottom=openpyxl.styles.Side(style="thick")
+            bottom=openpyxl.styles.Side(style="thick"),
         )
 
     schedule_data = prepocess_schedule_for_excel(schedule_data)
@@ -311,12 +358,12 @@ def gen_excel_file(schedule_data: list[list[str | int | list[int]]], id_: list) 
         start_color="FFE6E6",
         end_color="FFE6E6",
         fill_type="solid",
-        )
+    )
     seminar_fill = openpyxl.styles.PatternFill(
         start_color="E6FFE6",
         end_color="E6FFE6",
         fill_type="solid",
-        )
+    )
 
     # Main loop
     for row in schedule_data:
@@ -326,20 +373,20 @@ def gen_excel_file(schedule_data: list[list[str | int | list[int]]], id_: list) 
         for i in range(len(current_cells)):
             # Font
             if i == 0:
-
-                current_cells[i].font = openpyxl.styles.Font(bold=True, size=30, name="Roboto")
+                current_cells[i].font = openpyxl.styles.Font(
+                    bold=True, size=30, name="Roboto"
+                )
             elif i == 2:
-
                 current_cells[i].font = openpyxl.styles.Font(bold=True, name="Roboto")
             else:
-
                 current_cells[i].font = openpyxl.styles.Font(name="Roboto")
             # Alignment
             if i == 6:
                 pass
             else:
-
-                current_cells[i].alignment = openpyxl.styles.Alignment(horizontal="center", vertical="center")
+                current_cells[i].alignment = openpyxl.styles.Alignment(
+                    horizontal="center", vertical="center"
+                )
 
         # Apply colors based on type
         if row[5] == "Л":
@@ -360,12 +407,11 @@ def gen_excel_file(schedule_data: list[list[str | int | list[int]]], id_: list) 
             merge_start_date = current_row
             # Apply thick border between days
             for col in range(1, 8):
-                cell = worksheet.cell(row=current_row-1, column=col)
+                cell = worksheet.cell(row=current_row - 1, column=col)
                 cell.border = thin_border
         # Week
         if prev_week and prev_week != row[0]:
             if merge_start_week < current_row - 1:
-
                 worksheet.merge_cells(f"A{merge_start_week}:A{current_row - 1}")
                 # Apply thick border between weeks
                 for col in range(1, 8):
@@ -403,13 +449,13 @@ def chek_sw(date: datetime.date, time: str, group: str) -> str:
     if o:
         o = o.get(week)
     if o:
-        for i in o: # iter g-list
+        for i in o:  # iter g-list
             if i[:3] == group:
                 out.append(i)
     if out:
         return f"Басейн: {', '.join(out)}"
     return ""
-        
+
 
 def gen_ical(schedule_data: list[list[str | int | list[int]]], id_: str) -> None:
     """Generate an iCal file from the schedule data.
@@ -438,11 +484,19 @@ def gen_ical(schedule_data: list[list[str | int | list[int]]], id_: str) -> None
         for i in [0, 2]:
             event: ics.Event = ics.Event()
             if ADD_BREAKS:
-                event.begin = datetime.datetime.combine(date, time[0 + i]).replace(tzinfo=ZoneInfo('Europe/Moscow'))
-                event.end = datetime.datetime.combine(date, time[1 + i]).replace(tzinfo=ZoneInfo('Europe/Moscow'))
+                event.begin = datetime.datetime.combine(date, time[0 + i]).replace(
+                    tzinfo=ZoneInfo("Europe/Moscow")
+                )
+                event.end = datetime.datetime.combine(date, time[1 + i]).replace(
+                    tzinfo=ZoneInfo("Europe/Moscow")
+                )
             elif i == 0:
-                event.begin = datetime.datetime.combine(date, time[0]).replace(tzinfo=ZoneInfo('Europe/Moscow'))
-                event.end = datetime.datetime.combine(date, time[3]).replace(tzinfo=ZoneInfo('Europe/Moscow'))
+                event.begin = datetime.datetime.combine(date, time[0]).replace(
+                    tzinfo=ZoneInfo("Europe/Moscow")
+                )
+                event.end = datetime.datetime.combine(date, time[3]).replace(
+                    tzinfo=ZoneInfo("Europe/Moscow")
+                )
             else:
                 continue
             event.name = f"{type_} {name}"
@@ -451,13 +505,13 @@ def gen_ical(schedule_data: list[list[str | int | list[int]]], id_: str) -> None
             else:
                 event.description = f"{data}"
             event.location = "Piskarovskiy Ave, 47, Sankt-Peterburg, Russia, 195067"
-            event.created = datetime.datetime.now(tz=ZoneInfo('Europe/Moscow'))
+            event.created = datetime.datetime.now(tz=ZoneInfo("Europe/Moscow"))
             event.categories = [{"Л": "Лекция", "С": "Семинар"}[type_], "СЗГМУ"]
             calendar.events.add(event)
     filename: Path = Path(f"output/{id_}.ics")
     rich.print(f"Saving file: {filename} ({len(calendar.events)} events)")
     with filename.open("wb") as ical_file:
-        ical_file.write(str(calendar.serialize()).encode('utf-8'))
+        ical_file.write(str(calendar.serialize()).encode("utf-8"))
 
 
 if __name__ == "__main__":

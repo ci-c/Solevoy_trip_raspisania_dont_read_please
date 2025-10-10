@@ -74,7 +74,9 @@ def load_yaml(path: Path, template: Dict) -> Dict:
 
 def save_yaml(path: Path, data: Dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
+    path.write_text(
+        yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8"
+    )
 
 
 class State:
@@ -102,10 +104,24 @@ class State:
         return self.comm_data.setdefault("messages", [])
 
     def persist(self) -> None:
-        save_yaml(AGENTS_FILE, {"agents": sorted(self.agents, key=lambda a: a.get("id", ""))})
-        save_yaml(ISSUES_FILE, {"issues": sorted(self.issues, key=lambda i: i.get("id", ""))})
-        save_yaml(EVENTS_FILE, {"events": sorted(self.events, key=lambda e: e.get("timestamp", ""))})
-        save_yaml(COMM_FILE, {"messages": sorted(self.communications, key=lambda m: m.get("timestamp", ""))})
+        save_yaml(
+            AGENTS_FILE, {"agents": sorted(self.agents, key=lambda a: a.get("id", ""))}
+        )
+        save_yaml(
+            ISSUES_FILE, {"issues": sorted(self.issues, key=lambda i: i.get("id", ""))}
+        )
+        save_yaml(
+            EVENTS_FILE,
+            {"events": sorted(self.events, key=lambda e: e.get("timestamp", ""))},
+        )
+        save_yaml(
+            COMM_FILE,
+            {
+                "messages": sorted(
+                    self.communications, key=lambda m: m.get("timestamp", "")
+                )
+            },
+        )
         update_todo_export(self.issues)
 
 
@@ -156,7 +172,9 @@ def infer_role(agent: Dict, policies: Dict) -> Optional[str]:
     text = (agent.get("entry_message") or "").lower()
     competencies = [c.lower() for c in agent.get("competencies", [])]
     for role, keywords in ROLE_KEYWORDS.items():
-        if any(word in text for word in keywords) or any(word in competencies for word in keywords):
+        if any(word in text for word in keywords) or any(
+            word in competencies for word in keywords
+        ):
             return role
     return None
 
@@ -247,13 +265,17 @@ def select_role_for_agent(
         if counts.get(role, 0) < capacity:
             return role
     if priorities:
+
         def load_key(role: str) -> Tuple[int, int]:
             return (counts.get(role, 0), priorities.index(role))
+
         return min(priorities, key=load_key)
     return None
 
 
-def log_event(state: State, actor: str, message: str, entity: Optional[str] = None) -> None:
+def log_event(
+    state: State, actor: str, message: str, entity: Optional[str] = None
+) -> None:
     state.events.append(
         {
             "timestamp": iso_now(),
@@ -330,15 +352,19 @@ def create_issue(
         "origin": reporter,
     }
     state.issues.append(issue)
-    log_event(state, reporter, f"Создано Issue {issue_id}: {title}", f"issue:{issue_id}")
+    log_event(
+        state, reporter, f"Создано Issue {issue_id}: {title}", f"issue:{issue_id}"
+    )
     return issue
 
 
 def create_clarification_issue(state: State, agent: Dict) -> None:
     title = f"Уточнить требования агента {agent['name']}"
     existing = [
-        issue for issue in state.issues
-        if issue.get("type") == "clarification" and issue.get("metadata", {}).get("agent_id") == agent.get("id")
+        issue
+        for issue in state.issues
+        if issue.get("type") == "clarification"
+        and issue.get("metadata", {}).get("agent_id") == agent.get("id")
     ]
     if existing:
         return
@@ -351,7 +377,7 @@ def create_clarification_issue(state: State, agent: Dict) -> None:
         role="PO",
         assignee=None,
         priority="A",
-        labels=["clarification", f"agent:{agent['id']}"] ,
+        labels=["clarification", f"agent:{agent['id']}"],
         story_points=1,
         status="New",
         reporter="scheduler",
@@ -406,11 +432,18 @@ def assign_role_to_agent(
             metadata = message.get("metadata", {})
             if metadata.get("agent_id") == old_id:
                 metadata["agent_id"] = new_id
-    log_event(state, "scheduler", f"Агент {old_id} получил роль {role} и новый ID {new_id}", f"agent:{new_id}")
+    log_event(
+        state,
+        "scheduler",
+        f"Агент {old_id} получил роль {role} и новый ID {new_id}",
+        f"agent:{new_id}",
+    )
     build_agent_assets(agent, role_policy, state, initial_tasks)
 
 
-def build_agent_assets(agent: Dict, role_policy: Dict, state: State, initial_tasks: Dict) -> None:
+def build_agent_assets(
+    agent: Dict, role_policy: Dict, state: State, initial_tasks: Dict
+) -> None:
     agent_dir = STATE_DIR / "agents" / agent["id"]
     agent_dir.mkdir(parents=True, exist_ok=True)
     (agent_dir / "logs").mkdir(exist_ok=True)
@@ -430,8 +463,12 @@ def build_agent_assets(agent: Dict, role_policy: Dict, state: State, initial_tas
     }
     save_yaml(agent_dir / "profile.yaml", profile)
     prompt_path = Path(role_policy.get("prompt_path", ""))
-    prompt_text = prompt_path.read_text(encoding="utf-8") if prompt_path.exists() else ""
-    related_issue = next((issue for issue in state.issues if issue.get("assignee") == agent["id"]), None)
+    prompt_text = (
+        prompt_path.read_text(encoding="utf-8") if prompt_path.exists() else ""
+    )
+    related_issue = next(
+        (issue for issue in state.issues if issue.get("assignee") == agent["id"]), None
+    )
     welcome_lines = [
         f"# Добро пожаловать, {agent['name']} ({agent['id']})",
         "",
@@ -483,17 +520,20 @@ def ensure_initial_issue(state: State, agent: Dict, template: Dict) -> None:
     existing = [
         issue
         for issue in state.issues
-        if issue.get("assignee") == agent["id"] and issue.get("status") not in {"Done", "Archived"}
+        if issue.get("assignee") == agent["id"]
+        and issue.get("status") not in {"Done", "Archived"}
     ]
     if existing:
         return
-    labels = [label.lstrip('+') for label in template.get("tags", [])]
+    labels = [label.lstrip("+") for label in template.get("tags", [])]
     issue = create_issue(
         state,
         title=template.get("title", "Онбординг"),
         description=template.get("description", ""),
         issue_type="task",
-        role=template.get("role") or agent_roles(agent)[0] if agent_roles(agent) else None,
+        role=template.get("role") or agent_roles(agent)[0]
+        if agent_roles(agent)
+        else None,
         assignee=agent["id"],
         priority=template.get("priority", "B"),
         labels=labels,
@@ -555,7 +595,9 @@ def scheduler_run(state: State, policies: Dict, initial_tasks: Dict) -> List[str
             messages.append(f"Агент {agent['name']} получил роль {role}")
         else:
             create_clarification_issue(state, agent)
-            messages.append(f"Агент {agent['name']} ожидает уточнения (роль не определена)")
+            messages.append(
+                f"Агент {agent['name']} ожидает уточнения (роль не определена)"
+            )
     return messages
 
 
@@ -597,7 +639,7 @@ def list_agents(state: State, args: argparse.Namespace) -> None:
     for agent in agents:
         roles_display = "/".join(agent_roles(agent)) or "-"
         print(
-            f"{agent['id']:>12} | {roles_display:<32} | {agent.get('status','-'):<9} | {agent['name']}"
+            f"{agent['id']:>12} | {roles_display:<32} | {agent.get('status', '-'):<9} | {agent['name']}"
         )
 
 
@@ -638,14 +680,21 @@ def ingest_agent(state: State, policies: Dict, args: argparse.Namespace) -> None
         message=args.message,
         metadata={"agent_id": pending_id},
     )
-    log_event(state, args.sender, f"Получен запрос на онбординг {pending_id}", f"agent:{pending_id}")
+    log_event(
+        state,
+        args.sender,
+        f"Получен запрос на онбординг {pending_id}",
+        f"agent:{pending_id}",
+    )
     initial_tasks = load_initial_tasks()
     messages = scheduler_run(state, policies, initial_tasks)
     for message in messages:
         print(message)
 
 
-def create_manual_agent(state: State, policies: Dict, initial_tasks: Dict, args: argparse.Namespace) -> None:
+def create_manual_agent(
+    state: State, policies: Dict, initial_tasks: Dict, args: argparse.Namespace
+) -> None:
     role = resolve_role(args.role, policies)
     agent_entry = {
         "id": generate_agent_id(role, state.agents),
@@ -673,14 +722,24 @@ def set_agent_status(state: State, args: argparse.Namespace) -> None:
     agent["updated_at"] = iso_now()
     if args.status == "active":
         agent["last_activity"] = iso_now()
-    log_event(state, args.actor, f"Статус агента {args.agent_id} изменён на {args.status}", f"agent:{args.agent_id}")
+    log_event(
+        state,
+        args.actor,
+        f"Статус агента {args.agent_id} изменён на {args.status}",
+        f"agent:{args.agent_id}",
+    )
 
 
 def touch_agent(state: State, args: argparse.Namespace) -> None:
     agent = ensure_agent_exists(state.agents, args.agent_id)
     agent["last_activity"] = iso_now()
     agent["updated_at"] = iso_now()
-    log_event(state, args.actor, f"Обновлена активность {args.agent_id}", f"agent:{args.agent_id}")
+    log_event(
+        state,
+        args.actor,
+        f"Обновлена активность {args.agent_id}",
+        f"agent:{args.agent_id}",
+    )
 
 
 def remove_agent(state: State, args: argparse.Namespace) -> None:
@@ -696,7 +755,9 @@ def remove_agent(state: State, args: argparse.Namespace) -> None:
                 if child.is_dir():
                     child.rmdir()
             agent_dir.rmdir()
-    log_event(state, args.actor, f"Агент {args.agent_id} удалён", f"agent:{args.agent_id}")
+    log_event(
+        state, args.actor, f"Агент {args.agent_id} удалён", f"agent:{args.agent_id}"
+    )
 
 
 def list_issues(state: State, args: argparse.Namespace) -> None:
@@ -714,7 +775,7 @@ def list_issues(state: State, args: argparse.Namespace) -> None:
         return
     for issue in issues:
         print(
-            f"{issue['id']:>8} | {issue.get('status','-'):<13} | {issue.get('priority','B')} | {issue.get('role','-'):<4} | {issue.get('assignee','-'):<12} | {issue['title']}"
+            f"{issue['id']:>8} | {issue.get('status', '-'):<13} | {issue.get('priority', 'B')} | {issue.get('role', '-'):<4} | {issue.get('assignee', '-'):<12} | {issue['title']}"
         )
 
 
@@ -729,7 +790,9 @@ def move_issue(state: State, args: argparse.Namespace) -> None:
     ensure_status_transition(issue.get("status", "New"), target)
     issue["status"] = target
     issue["updated_at"] = iso_now()
-    log_event(state, args.actor, f"Issue {issue['id']} → {target}", f"issue:{issue['id']}")
+    log_event(
+        state, args.actor, f"Issue {issue['id']} → {target}", f"issue:{issue['id']}"
+    )
 
 
 def assign_issue(state: State, args: argparse.Namespace) -> None:
@@ -743,7 +806,12 @@ def assign_issue(state: State, args: argparse.Namespace) -> None:
     if not current_role and roles:
         issue["role"] = roles[0]
     issue["updated_at"] = iso_now()
-    log_event(state, args.actor, f"Issue {issue['id']} назначено {agent['id']}", f"issue:{issue['id']}")
+    log_event(
+        state,
+        args.actor,
+        f"Issue {issue['id']} назначено {agent['id']}",
+        f"issue:{issue['id']}",
+    )
 
 
 def create_issue_cli(state: State, args: argparse.Namespace) -> None:
@@ -757,7 +825,7 @@ def create_issue_cli(state: State, args: argparse.Namespace) -> None:
         role=role,
         assignee=args.assignee,
         priority=args.priority,
-        labels=[label.lstrip('+') for label in (args.label or [])],
+        labels=[label.lstrip("+") for label in (args.label or [])],
         story_points=args.story_points,
         status=args.status,
         reporter=args.actor,
@@ -769,7 +837,9 @@ def create_issue_cli(state: State, args: argparse.Namespace) -> None:
 
 def communications_send_cli(state: State, args: argparse.Namespace) -> None:
     metadata = {"agent_id": args.agent_id} if args.agent_id else {}
-    record_communication(state, args.channel, args.sender, args.recipient, args.message, metadata)
+    record_communication(
+        state, args.channel, args.sender, args.recipient, args.message, metadata
+    )
     log_event(state, args.sender, f"Сообщение в канал {args.channel}: {args.message}")
     if args.create_issue:
         policies = load_policies()
@@ -803,7 +873,9 @@ def build_parser() -> argparse.ArgumentParser:
     info_cmd = agents_sub.add_parser("info")
     info_cmd.add_argument("agent_id")
 
-    ingest_cmd = agents_sub.add_parser("ingest", help="Зарегистрировать входящего агента")
+    ingest_cmd = agents_sub.add_parser(
+        "ingest", help="Зарегистрировать входящего агента"
+    )
     ingest_cmd.add_argument("name")
     ingest_cmd.add_argument("message")
     ingest_cmd.add_argument("--competency", action="append", default=None)
@@ -823,7 +895,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     status_cmd = agents_sub.add_parser("update-status")
     status_cmd.add_argument("agent_id")
-    status_cmd.add_argument("status", choices=["active", "paused", "retired", "pending"])
+    status_cmd.add_argument(
+        "status", choices=["active", "paused", "retired", "pending"]
+    )
     status_cmd.add_argument("--actor", default="operator")
 
     touch_cmd = agents_sub.add_parser("touch")
@@ -864,7 +938,9 @@ def build_parser() -> argparse.ArgumentParser:
     issues_create.add_argument("--assignee", default=None)
     issues_create.add_argument("--priority", default="B")
     issues_create.add_argument("--label", action="append", default=None)
-    issues_create.add_argument("--story-points", dest="story_points", type=int, default=None)
+    issues_create.add_argument(
+        "--story-points", dest="story_points", type=int, default=None
+    )
     issues_create.add_argument("--status", default="New")
     issues_create.add_argument("--actor", default="operator")
 

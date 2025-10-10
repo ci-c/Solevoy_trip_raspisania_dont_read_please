@@ -13,14 +13,16 @@ class FacultyAPIClient:
         """Initialize the API client."""
         self.base_url = "https://frsview.szgmu.ru/api"
         self.session = requests.Session()
-        self.session.headers.update({
-            "Content-Type": "application/json",
-            "User-Agent": "SZGMU-Schedule-Bot/1.0",
-        })
+        self.session.headers.update(
+            {
+                "Content-Type": "application/json",
+                "User-Agent": "SZGMU-Schedule-Bot/1.0",
+            }
+        )
 
     def get_faculties(self) -> list[dict]:
         """Get list of all faculties.
-        
+
         Returns:
             List of faculty dictionaries with id and name.
         """
@@ -34,7 +36,7 @@ class FacultyAPIClient:
             if isinstance(data, list):
                 logger.info(f"Retrieved {len(data)} faculties")
                 return data
-            
+
             logger.warning("API response is not a list")
             return []
 
@@ -50,10 +52,10 @@ class FacultyAPIClient:
 
     def get_specialities(self, faculty_id: int | None = None) -> list[dict]:
         """Get list of specialities, optionally filtered by faculty.
-        
+
         Args:
             faculty_id: Optional ID of faculty to filter by.
-            
+
         Returns:
             List of speciality dictionaries with code, name and faculty info.
         """
@@ -69,7 +71,7 @@ class FacultyAPIClient:
             if isinstance(data, list):
                 logger.info(f"Retrieved {len(data)} specialities")
                 return data
-            
+
             logger.warning("API response is not a list")
             return []
 

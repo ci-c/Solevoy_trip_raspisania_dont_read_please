@@ -6,7 +6,6 @@ from typing import List, Dict, Any, Union
 from loguru import logger
 
 
-
 class AcademicService:
     """Сервис для управления академическими данными."""
 
@@ -28,7 +27,9 @@ class AcademicService:
         logger.info(f"Getting attendance for user {user_id} (stub)")
         return []
 
-    async def mark_attendance(self, user_id: int, attendance_data: Dict[str, Any]) -> bool:
+    async def mark_attendance(
+        self, user_id: int, attendance_data: Dict[str, Any]
+    ) -> bool:
         """Отметить посещаемость."""
         logger.info(f"Marking attendance for user {user_id} (stub)")
         return True
@@ -38,7 +39,9 @@ class AcademicService:
         logger.info(f"Calculating GPA for user {user_id} (stub)")
         return 0.0
 
-    async def get_academic_statistics(self, user_id: int) -> Union[Dict[str, Any], None]:
+    async def get_academic_statistics(
+        self, user_id: int
+    ) -> Union[Dict[str, Any], None]:
         """Получить академическую статистику."""
         logger.info(f"Getting academic statistics for user {user_id} (stub)")
         return {}

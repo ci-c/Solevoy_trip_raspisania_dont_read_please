@@ -7,6 +7,7 @@ from config import WIDTH_COLUMNS, RINGS, WEEK_DAYS_INVERTED
 from post_lesson import PostLesson
 from datetime import date
 
+
 def gen_excel_file(schedule_data: List[PostLesson], subgroup_name: str) -> None:
     """
     Генерирует файл Excel из списка объектов PostLesson.
@@ -35,7 +36,9 @@ def gen_excel_file(schedule_data: List[PostLesson], subgroup_name: str) -> None:
     header = ["Нед.", "Дата", "День", "№", "Время", "Тип", "Предмет"]
     worksheet.append(header)
     header_font = Font(size=14, name="Roboto")
-    header_fill = PatternFill(start_color="D9EAD3", end_color="D9EAD3", fill_type="solid")
+    header_fill = PatternFill(
+        start_color="D9EAD3", end_color="D9EAD3", fill_type="solid"
+    )
     header_align = Alignment(horizontal="center")
     header_border = Border(
         top=Side(style="thin"),
@@ -52,10 +55,14 @@ def gen_excel_file(schedule_data: List[PostLesson], subgroup_name: str) -> None:
     # --- Стили ---
     thin_border_bottom = Border(bottom=Side(style="thin"))
     thick_border_bottom = Border(bottom=Side(style="thick"))
-    lecture_fill = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")
-    seminar_fill = PatternFill(start_color="D9EAD3", end_color="D9EAD3", fill_type="solid")
+    lecture_fill = PatternFill(
+        start_color="FFF2CC", end_color="FFF2CC", fill_type="solid"
+    )
+    seminar_fill = PatternFill(
+        start_color="D9EAD3", end_color="D9EAD3", fill_type="solid"
+    )
     center_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
-    
+
     # --- Заполнение данными ---
     first_date_in_schedule = schedule_data[0].date
     prev_date: date | None = None
@@ -72,11 +79,10 @@ def gen_excel_file(schedule_data: List[PostLesson], subgroup_name: str) -> None:
         lesson_number_display = lesson.lesson_number + 1
         lesson.lesson_type = lesson.lesson_type.upper()
         lesson_type_key = lesson.lesson_type.lower()
-        if lesson_type_key == 'с':
-            lesson_number_display = '1-2' if lesson_number_display == 1 else '3-4'
+        if lesson_type_key == "с":
+            lesson_number_display = "1-2" if lesson_number_display == 1 else "3-4"
         else:
             lesson_number_display = str(lesson_number_display)
-
 
         try:
             time_info = RINGS[lesson_type_key][lesson.lesson_number]
@@ -86,40 +92,51 @@ def gen_excel_file(schedule_data: List[PostLesson], subgroup_name: str) -> None:
         except (KeyError, IndexError):
             time_string = "N/A"
 
-
-
         row_data = [
             week_number,
-            lesson_date.strftime('%d.%m.%Y'),
+            lesson_date.strftime("%d.%m.%Y"),
             day_name,
             lesson_number_display,
             time_string,
             lesson.lesson_type,
-            lesson.subject_name
+            lesson.subject_name,
         ]
         worksheet.append(row_data)
 
         # 2. Объединение ячеек и применение границ
         if prev_week_num is not None and prev_week_num != week_number:
             if merge_start_row_week < current_row_index - 1:
-                worksheet.merge_cells(f"A{merge_start_row_week}:A{current_row_index - 1}")
+                worksheet.merge_cells(
+                    f"A{merge_start_row_week}:A{current_row_index - 1}"
+                )
             for col in range(1, 8):
-                worksheet.cell(row=current_row_index - 1, column=col).border = thick_border_bottom
+                worksheet.cell(
+                    row=current_row_index - 1, column=col
+                ).border = thick_border_bottom
             merge_start_row_week = current_row_index
 
         if prev_date is not None and prev_date != lesson_date:
             if merge_start_row_date < current_row_index - 1:
-                worksheet.merge_cells(f"B{merge_start_row_date}:B{current_row_index - 1}")
-                worksheet.merge_cells(f"C{merge_start_row_date}:C{current_row_index - 1}")
-            if worksheet.cell(row=current_row_index - 1, column=1).border != thick_border_bottom:
+                worksheet.merge_cells(
+                    f"B{merge_start_row_date}:B{current_row_index - 1}"
+                )
+                worksheet.merge_cells(
+                    f"C{merge_start_row_date}:C{current_row_index - 1}"
+                )
+            if (
+                worksheet.cell(row=current_row_index - 1, column=1).border
+                != thick_border_bottom
+            ):
                 for col in range(1, 8):
-                    worksheet.cell(row=current_row_index - 1, column=col).border = thin_border_bottom
+                    worksheet.cell(
+                        row=current_row_index - 1, column=col
+                    ).border = thin_border_bottom
             merge_start_row_date = current_row_index
 
         # 3. Применение стилей к текущей строке (ИСПРАВЛЕННЫЙ БЛОК)
         current_cells = worksheet[current_row_index]
         fill_color = lecture_fill if lesson.lesson_type == "Л" else seminar_fill
-        
+
         for i, cell in enumerate(current_cells):
             # Установка шрифта
             if i == 0:
@@ -128,14 +145,14 @@ def gen_excel_file(schedule_data: List[PostLesson], subgroup_name: str) -> None:
                 cell.font = Font(bold=True, size=12, name="Roboto")
             else:
                 cell.font = Font(name="Roboto", size=12)
-            
+
             # Установка выравнивания
             if i != 6:
                 cell.alignment = center_align
 
             # Установка заливки
-            if i in [3, 4, 5, 6]: # №, Время, Тип, Предмет
-                 cell.fill = fill_color
+            if i in [3, 4, 5, 6]:  # №, Время, Тип, Предмет
+                cell.fill = fill_color
 
         prev_date = lesson_date
         prev_week_num = week_number

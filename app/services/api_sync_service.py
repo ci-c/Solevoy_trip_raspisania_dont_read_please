@@ -5,14 +5,25 @@
 import asyncio
 import time
 from datetime import datetime, time as dt_time
-from typing import Set
+from typing import Optional, Set
 from loguru import logger
 
 from app.database.session import get_session
+from sqlalchemy import select, update
 from app.database.models import (
-    Faculty, Speciality, AcademicYear, Semester, LessonType, 
-    Department, Lecturer, Classroom, Subject, Schedule, Lesson,
-    APISyncLog
+    Faculty,
+    Speciality,
+    AcademicYear,
+    Semester,
+    LessonType,
+    Department,
+    Lecturer,
+    Room,
+    Subject,
+    Schedule,
+    ScheduleLesson,
+    Group,
+    APISyncLog,
 )
 from app.schedule.api_client import APIClient
 
@@ -30,7 +41,7 @@ class APISyncService:
             "lesson_types_created": 0,
             "departments_created": 0,
             "lecturers_created": 0,
-            "classrooms_created": 0,
+            "rooms_created": 0,
             "subjects_created": 0,
             "schedules_created": 0,
             "schedules_updated": 0,
@@ -42,35 +53,37 @@ class APISyncService:
         """Полная синхронизация всех данных."""
         start_time = time.time()
         logger.info("Starting full API synchronization...")
-        
+
         try:
             # Получаем все данные один раз
             schedules_data = await self._get_all_schedules()
-            
+
             # 1. Синхронизируем справочники
             await self._sync_reference_data(schedules_data)
-            
+
             # 2. Синхронизируем расписания
             await self._sync_schedules(schedules_data)
-            
+
             # 3. Логируем результат
             duration = time.time() - start_time
             await self._log_sync_result("full", "success", duration)
-            
+
             logger.info(f"Full synchronization completed in {duration:.2f}s")
             logger.info(f"Sync stats: {self.sync_stats}")
             return True
-            
+
         except Exception as e:
             duration = time.time() - start_time
             await self._log_sync_result("full", "error", duration, str(e))
             logger.error(f"Full synchronization failed: {e}")
             return False
 
-    async def _sync_reference_data(self, schedules_data: list[dict[str, object]]) -> None:
+    async def _sync_reference_data(
+        self, schedules_data: list[dict[str, object]]
+    ) -> None:
         """Синхронизация справочных данных."""
         logger.info("Syncing reference data...")
-        
+
         # Извлекаем уникальные данные
         faculties_data = self._extract_faculties(schedules_data)
         specialities_data = self._extract_specialities(schedules_data)
@@ -79,9 +92,9 @@ class APISyncService:
         lesson_types_data = self._extract_lesson_types(schedules_data)
         departments_data = self._extract_departments(schedules_data)
         lecturers_data = self._extract_lecturers(schedules_data)
-        classrooms_data = self._extract_classrooms(schedules_data)
+        rooms_data = self._extract_rooms(schedules_data)
         subjects_data = self._extract_subjects(schedules_data)
-        
+
         # Сохраняем в БД
         await self._save_faculties(faculties_data)
         await self._save_specialities(specialities_data)
@@ -90,24 +103,24 @@ class APISyncService:
         await self._save_lesson_types(lesson_types_data)
         await self._save_departments(departments_data)
         await self._save_lecturers(lecturers_data)
-        await self._save_classrooms(classrooms_data)
+        await self._save_rooms(rooms_data)
         await self._save_subjects(subjects_data)
 
     async def _sync_schedules(self, schedules_data: list[dict[str, object]]) -> None:
         """Синхронизация расписаний и занятий."""
         logger.info("Syncing schedules and lessons...")
-        
+
         for schedule_data in schedules_data:
             # Сохраняем расписание
             schedule_id = await self._save_schedule(schedule_data)
-            
+
             if schedule_id:
                 # Получаем детали расписания
                 schedule_details = await self._get_schedule_details(schedule_data["id"])
                 if schedule_details:
                     # Сохраняем занятия
                     await self._save_lessons(schedule_id, schedule_details)
-        
+
         # Создаем группы из занятий после синхронизации
         await self._create_groups_from_lessons()
 
@@ -118,7 +131,7 @@ class APISyncService:
             schedules = await loop.run_in_executor(
                 None, self.api_client._find_schedule_ids_sync
             )
-            
+
             all_schedules = []
             for schedule_id in schedules:
                 schedule_data = await loop.run_in_executor(
@@ -126,10 +139,10 @@ class APISyncService:
                 )
                 if schedule_data:
                     all_schedules.append(schedule_data)
-            
+
             logger.info(f"Retrieved {len(all_schedules)} schedules from API")
             return all_schedules
-            
+
         except Exception as e:
             logger.error(f"Error getting schedules from API: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
@@ -147,10 +160,12 @@ class APISyncService:
             logger.error(f"Traceback: {e.__traceback__}")
         return None
 
-    def _extract_faculties(self, schedules_data: list[dict[str, str]]) -> Set[dict[str, str]]:
+    def _extract_faculties(
+        self, schedules_data: list[dict[str, str]]
+    ) -> Set[dict[str, str]]:
         """Извлечь уникальные факультеты."""
         faculties = set()
-        
+
         for schedule in schedules_data:
             if "xlsxHeaderDto" in schedule:
                 for header in schedule["xlsxHeaderDto"]:
@@ -158,14 +173,20 @@ class APISyncService:
                         speciality = header["speciality"]
                         faculty_name = self._extract_faculty_from_speciality(speciality)
                         if faculty_name:
-                            faculties.add((faculty_name, self._generate_short_name(faculty_name)))
-        
-        return [{"name": name, "short_name": short_name} for name, short_name in faculties]
+                            faculties.add(
+                                (faculty_name, self._generate_short_name(faculty_name))
+                            )
 
-    def _extract_specialities(self, schedules_data: list[dict[str, str]]) -> Set[dict[str, str]]:
+        return [
+            {"name": name, "short_name": short_name} for name, short_name in faculties
+        ]
+
+    def _extract_specialities(
+        self, schedules_data: list[dict[str, str]]
+    ) -> Set[dict[str, str]]:
         """Извлечь уникальные специальности."""
         specialities = set()
-        
+
         for schedule in schedules_data:
             if "xlsxHeaderDto" in schedule:
                 for header in schedule["xlsxHeaderDto"]:
@@ -175,94 +196,113 @@ class APISyncService:
                         name = self._extract_speciality_name(speciality)
                         faculty_name = self._extract_faculty_from_speciality(speciality)
                         specialities.add((code, name, faculty_name))
-        
-        return [{"code": code, "name": name, "faculty_name": faculty_name} 
-                for code, name, faculty_name in specialities]
+
+        return [
+            {"code": code, "name": name, "faculty_name": faculty_name}
+            for code, name, faculty_name in specialities
+        ]
 
     def _extract_academic_years(self, schedules_data: list[dict[str, str]]) -> Set[str]:
         """Извлечь уникальные учебные годы."""
         years = set()
-        
+
         for schedule in schedules_data:
             if "xlsxHeaderDto" in schedule:
                 for header in schedule["xlsxHeaderDto"]:
                     if "academicYear" in header:
                         years.add(header["academicYear"])
-        
+
         return list(years)
 
-    def _extract_semesters(self, schedules_data: list[dict[str, str]]) -> Set[dict[str, str]]:
+    def _extract_semesters(
+        self, schedules_data: list[dict[str, str]]
+    ) -> Set[dict[str, str]]:
         """Извлечь уникальные семестры."""
         semesters = set()
-        
+
         for schedule in schedules_data:
             if "xlsxHeaderDto" in schedule:
                 for header in schedule["xlsxHeaderDto"]:
                     if "semesterType" in header and "academicYear" in header:
                         semesters.add((header["semesterType"], header["academicYear"]))
-        
+
         return [{"name": name, "academic_year": year} for name, year in semesters]
 
     def _extract_lesson_types(self, schedules_data: list[dict[str, str]]) -> Set[str]:
         """Извлечь уникальные типы занятий."""
         types = set()
-        
+
         for schedule in schedules_data:
             if "xlsxHeaderDto" in schedule:
                 for header in schedule["xlsxHeaderDto"]:
                     if "lessonTypeName" in header:
                         types.add(header["lessonTypeName"])
-        
+
         return list(types)
 
     def _extract_departments(self, schedules_data: list[dict[str, str]]) -> Set[str]:
         """Извлечь уникальные кафедры."""
         departments = set()
-        
+
         for schedule in schedules_data:
             if "scheduleLessonDtoList" in schedule:
                 for lesson in schedule["scheduleLessonDtoList"]:
                     if "departmentName" in lesson and lesson["departmentName"]:
                         departments.add(lesson["departmentName"])
-        
+
         return list(departments)
 
-    def _extract_lecturers(self, schedules_data: list[dict[str, object]]) -> Set[dict[str, str]]:
+    def _extract_lecturers(
+        self, schedules_data: list[dict[str, object]]
+    ) -> Set[dict[str, str]]:
         """Извлечь уникальных преподавателей."""
         lecturers = set()
-        
+
         for schedule in schedules_data:
             if "scheduleLessonDtoList" in schedule:
                 for lesson in schedule["scheduleLessonDtoList"]:
                     if "lectorName" in lesson and lesson["lectorName"]:
                         department = lesson.get("departmentName", "")
                         lecturers.add((lesson["lectorName"], department))
-        
-        return [{"name": name, "department_name": dept} for name, dept in lecturers]
 
-    def _extract_classrooms(self, schedules_data: list[dict[str, object]]) -> Set[dict[str, str]]:
+        return [
+            {"full_name": name, "department_name": dept} for name, dept in lecturers
+        ]
+
+    def _extract_rooms(
+        self, schedules_data: list[dict[str, object]]
+    ) -> Set[dict[str, str]]:
         """Извлечь уникальные аудитории."""
-        classrooms = set()
-        
+        rooms = set()
+
         for schedule in schedules_data:
             if "scheduleLessonDtoList" in schedule:
                 for lesson in schedule["scheduleLessonDtoList"]:
-                    if "auditoryNumber" in lesson and lesson["auditoryNumber"]:
+                    room_number = lesson.get("auditoryNumber")
+                    if room_number:
                         building = lesson.get("locationAddress", "")
-                        classrooms.add((lesson["auditoryNumber"], building))
-        
-        return [{"number": number, "building": building} for number, building in classrooms]
+                        campus = lesson.get("auditoryHousing", "")
+                        rooms.add((room_number, building, campus))
+
+        return [
+            {
+                "room_number": number,
+                "building": building,
+                "campus": campus,
+            }
+            for number, building, campus in rooms
+        ]
 
     def _extract_subjects(self, schedules_data: list[dict[str, object]]) -> Set[str]:
         """Извлечь уникальные предметы."""
         subjects = set()
-        
+
         for schedule in schedules_data:
             if "scheduleLessonDtoList" in schedule:
                 for lesson in schedule["scheduleLessonDtoList"]:
                     if "subjectName" in lesson and lesson["subjectName"]:
                         subjects.add(lesson["subjectName"])
-        
+
         return list(subjects)
 
     # Методы сохранения в БД
@@ -273,11 +313,11 @@ class APISyncService:
                 faculty = Faculty(
                     name=faculty_data["name"],
                     short_name=faculty_data["short_name"],
-                    description=f"Факультет {faculty_data['name']}"
+                    description=f"Факультет {faculty_data['name']}",
                 )
                 session.add(faculty)
                 self.sync_stats["faculties_created"] += 1
-            
+
             await session.commit()
 
     async def _save_specialities(self, specialities_data: list[dict[str, str]]) -> None:
@@ -286,23 +326,24 @@ class APISyncService:
             for spec_data in specialities_data:
                 # Находим факультет
                 from sqlalchemy import select
+
                 faculty_result = await session.execute(
                     select(Faculty).filter(Faculty.name == spec_data["faculty_name"])
                 )
                 faculty = faculty_result.scalar_one_or_none()
-                
+
                 if faculty:
                     # Проверяем, существует ли уже такая специальность
                     existing_spec = await session.execute(
                         select(Speciality).filter(Speciality.code == spec_data["code"])
                     )
                     existing_spec = existing_spec.scalar_one_or_none()
-                    
+
                     if not existing_spec:
                         speciality = Speciality(
                             code=spec_data["code"],
                             name=spec_data["name"],
-                            faculty_id=faculty.id
+                            faculty_id=faculty.id,
                         )
                         session.add(speciality)
                     else:
@@ -310,7 +351,7 @@ class APISyncService:
                         existing_spec.name = spec_data["name"]
                         existing_spec.faculty_id = faculty.id
                     self.sync_stats["specialities_created"] += 1
-            
+
             await session.commit()
 
     async def _save_academic_years(self, years_data: list[str]) -> None:
@@ -319,11 +360,11 @@ class APISyncService:
             for year_name in years_data:
                 year = AcademicYear(
                     name=year_name,
-                    is_current=year_name == "2025/2026"  # Текущий год
+                    is_current=year_name == "2025/2026",  # Текущий год
                 )
                 session.add(year)
                 self.sync_stats["academic_years_created"] += 1
-            
+
             await session.commit()
 
     async def _save_semesters(self, semesters_data: list[dict[str, str]]) -> None:
@@ -332,20 +373,23 @@ class APISyncService:
             for sem_data in semesters_data:
                 # Находим учебный год
                 from sqlalchemy import select
+
                 year_result = await session.execute(
-                    select(AcademicYear).filter(AcademicYear.name == sem_data["academic_year"])
+                    select(AcademicYear).filter(
+                        AcademicYear.name == sem_data["academic_year"]
+                    )
                 )
                 year = year_result.scalar_one_or_none()
-                
+
                 if year:
                     semester = Semester(
                         name=sem_data["name"],
                         academic_year_id=year.id,
-                        is_current=sem_data["name"] == "осенний" and year.is_current
+                        is_current=sem_data["name"] == "осенний" and year.is_current,
                     )
                     session.add(semester)
                     self.sync_stats["semesters_created"] += 1
-            
+
             await session.commit()
 
     async def _save_lesson_types(self, types_data: list[str]) -> None:
@@ -355,7 +399,7 @@ class APISyncService:
                 lesson_type = LessonType(name=type_name)
                 session.add(lesson_type)
                 self.sync_stats["lesson_types_created"] += 1
-            
+
             await session.commit()
 
     async def _save_departments(self, departments_data: list[str]) -> None:
@@ -365,7 +409,7 @@ class APISyncService:
                 department = Department(name=dept_name)
                 session.add(department)
                 self.sync_stats["departments_created"] += 1
-            
+
             await session.commit()
 
     async def _save_lecturers(self, lecturers_data: list[dict[str, str]]) -> None:
@@ -374,32 +418,38 @@ class APISyncService:
             for lect_data in lecturers_data:
                 # Находим кафедру
                 from sqlalchemy import select
+
                 dept_result = await session.execute(
-                    select(Department).filter(Department.name == lect_data["department_name"])
+                    select(Department).filter(
+                        Department.name == lect_data["department_name"]
+                    )
                 )
                 department = dept_result.scalar_one_or_none()
-                
+
                 lecturer = Lecturer(
-                    name=lect_data["name"],
-                    department_id=department.id if department else None
+                    full_name=lect_data["full_name"],
+                    department_id=department.id if department else None,
                 )
                 session.add(lecturer)
                 self.sync_stats["lecturers_created"] += 1
-            
+
             await session.commit()
 
-    async def _save_classrooms(self, classrooms_data: list[dict[str, str]]) -> None:
+    async def _save_rooms(self, rooms_data: list[dict[str, str]]) -> None:
         """Сохранить аудитории."""
+        logger.info("Saving rooms...")
         async for session in get_session():
-            for room_data in classrooms_data:
-                classroom = Classroom(
-                    number=room_data["number"],
-                    building=room_data["building"] or None
+            for room_data in rooms_data:
+                room = Room(
+                    room_number=room_data["room_number"],
+                    building=room_data.get("building") or None,
+                    campus=room_data.get("campus") or None,
                 )
-                session.add(classroom)
-                self.sync_stats["classrooms_created"] += 1
-            
+                session.add(room)
+                self.sync_stats["rooms_created"] += 1
+
             await session.commit()
+        logger.info("Rooms saved successfully")
 
     async def _save_subjects(self, subjects_data: list[str]) -> None:
         """Сохранить предметы."""
@@ -408,7 +458,7 @@ class APISyncService:
                 subject = Subject(name=subject_name)
                 session.add(subject)
                 self.sync_stats["subjects_created"] += 1
-            
+
             await session.commit()
 
     async def _save_schedule(self, schedule_data: dict[str, object]) -> int | None:
@@ -419,7 +469,7 @@ class APISyncService:
                 speciality_name = ""
                 academic_year = ""
                 semester_name = ""
-                
+
                 if "xlsxHeaderDto" in schedule_data and schedule_data["xlsxHeaderDto"]:
                     header = schedule_data["xlsxHeaderDto"][0]  # Берем первый заголовок
                     speciality_full = header.get("speciality", "")
@@ -437,19 +487,20 @@ class APISyncService:
                             speciality_name = speciality_name.split(",")[0].strip()
                     academic_year = header.get("academicYear", "")
                     semester_name = header.get("semesterType", "")
-                
+
                 # Находим связанные записи
                 from sqlalchemy import select
+
                 speciality_result = await session.execute(
-                    select(Speciality).filter(
-                        Speciality.name == speciality_name
-                    )
+                    select(Speciality).filter(Speciality.name == speciality_name)
                 )
                 speciality = speciality_result.scalar_one_or_none()
-                
+
                 # Если точного совпадения нет, ищем по частичному совпадению
                 if not speciality:
-                    logger.warning(f"Exact speciality match not found: '{speciality_name}'")
+                    logger.warning(
+                        f"Exact speciality match not found: '{speciality_name}'"
+                    )
                     # Ищем специальности, которые содержат наше название
                     partial_result = await session.execute(
                         select(Speciality).filter(
@@ -457,35 +508,35 @@ class APISyncService:
                         )
                     )
                     speciality = partial_result.scalar_one_or_none()
-                    
+
                     if speciality:
-                        logger.info(f"Found partial match: '{speciality.name}' for '{speciality_name}'")
+                        logger.info(
+                            f"Found partial match: '{speciality.name}' for '{speciality_name}'"
+                        )
                     else:
                         # Логируем все доступные специальности для отладки
                         all_specialities = await session.execute(select(Speciality))
                         available = [s.name for s in all_specialities.scalars().all()]
                         logger.warning(f"Available specialities: {available}")
                         return None
-                
+
                 # Находим учебный год и семестр
                 year_result = await session.execute(
-                    select(AcademicYear).filter(
-                        AcademicYear.name == academic_year
-                    )
+                    select(AcademicYear).filter(AcademicYear.name == academic_year)
                 )
                 year = year_result.scalar_one_or_none()
-                
+
                 semester_result = await session.execute(
-                    select(Semester).filter(
-                        Semester.name == semester_name
-                    )
+                    select(Semester).filter(Semester.name == semester_name)
                 )
                 semester = semester_result.scalar_one_or_none()
-                
+
                 if not year or not semester:
-                    logger.warning(f"Academic year or semester not found for schedule {schedule_data.get('id')}")
+                    logger.warning(
+                        f"Academic year or semester not found for schedule {schedule_data.get('id')}"
+                    )
                     return None
-                
+
                 # Создаем или обновляем расписание
                 existing_result = await session.execute(
                     select(Schedule).filter(
@@ -493,13 +544,15 @@ class APISyncService:
                     )
                 )
                 existing = existing_result.scalar_one_or_none()
-                
+
                 if existing:
                     # Обновляем существующее
                     existing.file_name = schedule_data.get("fileName", "")
                     existing.form_type = schedule_data.get("formType", 1)
                     existing.status = schedule_data.get("statusId", "DRAFT")
-                    existing.is_uploaded_from_excel = schedule_data.get("isUploadedFromExcel", False)
+                    existing.is_uploaded_from_excel = schedule_data.get(
+                        "isUploadedFromExcel", False
+                    )
                     existing.update_time = datetime.now()
                     self.sync_stats["schedules_updated"] += 1
                     schedule_id = existing.id
@@ -510,83 +563,90 @@ class APISyncService:
                         file_name=schedule_data.get("fileName", ""),
                         form_type=schedule_data.get("formType", 1),
                         status=schedule_data.get("statusId", "DRAFT"),
-                        is_uploaded_from_excel=schedule_data.get("isUploadedFromExcel", False),
+                        is_uploaded_from_excel=schedule_data.get(
+                            "isUploadedFromExcel", False
+                        ),
                         update_time=datetime.now(),
                         academic_year_id=year.id,
                         semester_id=semester.id,
-                        speciality_id=speciality.id
+                        speciality_id=speciality.id,
                     )
                     session.add(schedule)
                     self.sync_stats["schedules_created"] += 1
                     await session.flush()
                     schedule_id = schedule.id
-                
+
                 await session.commit()
                 return schedule_id
-                
+
         except Exception as e:
             logger.error(f"Error saving schedule: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
         return None
 
-    async def _save_lessons(self, schedule_id: int, schedule_details: dict[str, object]) -> None:
+    async def _save_lessons(
+        self, schedule_id: int, schedule_details: dict[str, object]
+    ) -> None:
         """Сохранить занятия."""
         if "scheduleLessonDtoList" not in schedule_details:
             return
-        
+
         async for session in get_session():
             for lesson_data in schedule_details["scheduleLessonDtoList"]:
                 # Находим связанные записи
                 from sqlalchemy import select
+
                 subject_result = await session.execute(
                     select(Subject).filter(
                         Subject.name == lesson_data.get("subjectName", "")
                     )
                 )
                 subject = subject_result.scalar_one_or_none()
-                
+
                 lesson_type_result = await session.execute(
                     select(LessonType).filter(
                         LessonType.name == lesson_data.get("lessonType", "")
                     )
                 )
                 lesson_type = lesson_type_result.scalar_one_or_none()
-                
+
                 lecturer_result = await session.execute(
                     select(Lecturer).filter(
-                        Lecturer.name == lesson_data.get("lectorName", "")
+                        Lecturer.full_name == lesson_data.get("lectorName", "")
                     )
                 )
                 lecturer = lecturer_result.scalar_one_or_none()
-                
-                classroom_result = await session.execute(
-                    select(Classroom).filter(
-                        Classroom.number == lesson_data.get("auditoryNumber", "")
+
+                room_result = await session.execute(
+                    select(Room).filter(
+                        Room.room_number == lesson_data.get("auditoryNumber", "")
                     )
                 )
-                classroom = classroom_result.scalar_one_or_none()
-                
+                room = room_result.scalar_one_or_none()
+
                 department_result = await session.execute(
                     select(Department).filter(
                         Department.name == lesson_data.get("departmentName", "")
                     )
                 )
                 department = department_result.scalar_one_or_none()
-                
+
                 if not subject or not lesson_type:
                     continue
-                
+
                 # Парсим время
                 start_time, end_time = self._parse_time(lesson_data.get("pairTime", ""))
-                
+
                 # Создаем или обновляем занятие
                 existing_result = await session.execute(
-                    select(Lesson).filter(
-                        Lesson.external_id == lesson_data.get("id")
+                    select(ScheduleLesson).filter(
+                        ScheduleLesson.external_id == lesson_data.get("id")
                     )
                 )
                 existing = existing_result.scalar_one_or_none()
-                
+
+                resolved_group_id = await self._resolve_group_id(session, lesson_data)
+
                 if existing:
                     # Обновляем существующее
                     existing.day_name = lesson_data.get("dayName", "")
@@ -594,33 +654,37 @@ class APISyncService:
                     existing.pair_time = lesson_data.get("pairTime", "")
                     existing.start_time = start_time
                     existing.end_time = end_time
+                    existing.date = lesson_data.get("lessonDate") or existing.date
+                    existing.group_id = resolved_group_id
                     existing.lecturer_id = lecturer.id if lecturer else None
-                    existing.classroom_id = classroom.id if classroom else None
+                    existing.room_id = room.id if room else None
                     existing.department_id = department.id if department else None
                     existing.subgroup = lesson_data.get("subgroup", "")
                     existing.study_group = lesson_data.get("studyGroup", "")
                     self.sync_stats["lessons_updated"] += 1
                 else:
                     # Создаем новое
-                    lesson = Lesson(
+                    lesson = ScheduleLesson(
                         external_id=lesson_data.get("id"),
                         day_name=lesson_data.get("dayName", ""),
                         week_number=lesson_data.get("weekNumber", 1),
                         pair_time=lesson_data.get("pairTime", ""),
                         start_time=start_time,
                         end_time=end_time,
+                        date=lesson_data.get("lessonDate"),
+                        group_id=resolved_group_id,
                         schedule_id=schedule_id,
                         subject_id=subject.id,
                         lesson_type_id=lesson_type.id,
                         lecturer_id=lecturer.id if lecturer else None,
-                        classroom_id=classroom.id if classroom else None,
+                        room_id=room.id if room else None,
                         department_id=department.id if department else None,
                         subgroup=lesson_data.get("subgroup", ""),
-                        study_group=lesson_data.get("studyGroup", "")
+                        study_group=lesson_data.get("studyGroup", ""),
                     )
                     session.add(lesson)
                     self.sync_stats["lessons_created"] += 1
-            
+
             await session.commit()
 
     def _parse_time(self, time_str: str) -> tuple[dt_time | None, dt_time | None]:
@@ -634,70 +698,111 @@ class APISyncService:
         except Exception as e:
             logger.error(f"Unexpected error: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
-        return []
         return None, None
+
+    async def _resolve_group_id(
+        self, session, lesson_data: dict[str, object]
+    ) -> Optional[int]:
+        """Определить ID группы на основе данных занятия."""
+        study_group = lesson_data.get("studyGroup")
+        if not study_group:
+            return None
+
+        result = await session.execute(select(Group).filter(Group.name == study_group))
+        group = result.scalar_one_or_none()
+        return group.id if group else None
 
     async def _create_groups_from_lessons(self) -> None:
         """Создать группы из занятий."""
         try:
             from app.services.group_service import GroupService
-            
+
             logger.info("Creating groups from lessons...")
             group_service = GroupService()
-            
+
             async for session in get_session():
-                # Получаем уникальные группы из занятий с информацией о расписании
-                from sqlalchemy import select, distinct
+                from sqlalchemy import distinct
+
                 result = await session.execute(
                     select(
-                        distinct(Lesson.study_group), 
-                        Lesson.subgroup, 
-                        Lesson.schedule_id,
-                        Schedule.speciality_id
+                        distinct(ScheduleLesson.study_group),
+                        ScheduleLesson.subgroup,
+                        ScheduleLesson.schedule_id,
+                        ScheduleLesson.group_id,
+                        Schedule.speciality_id,
                     )
-                    .join(Schedule, Lesson.schedule_id == Schedule.id)
-                    .where(Lesson.study_group.isnot(None))
-                    .where(Lesson.study_group != "")
+                    .join(Schedule, ScheduleLesson.schedule_id == Schedule.id)
+                    .where(ScheduleLesson.study_group.isnot(None))
+                    .where(ScheduleLesson.study_group != "")
                 )
-                
+
                 groups_data = result.all()
                 logger.info(f"Found {len(groups_data)} unique groups in lessons")
-                
+
                 created_count = 0
-                for study_group, subgroup, schedule_id, speciality_id in groups_data:
-                    if study_group:
-                        # Создаем название группы
-                        group_name = subgroup if subgroup else study_group
-                        
-                        # Определяем курс по номеру группы
-                        course = 1
-                        if study_group.isdigit():
-                            first_digit = int(study_group[0])
-                            if first_digit >= 1 and first_digit <= 6:
-                                course = first_digit
-                        
-                        # Получаем специальность и факультет
-                        speciality_result = await session.execute(
-                            select(Speciality).where(Speciality.id == speciality_id)
+                for (
+                    study_group,
+                    subgroup,
+                    schedule_id,
+                    existing_group_id,
+                    speciality_id,
+                ) in groups_data:
+                    if not study_group:
+                        continue
+
+                    group_name = subgroup if subgroup else study_group
+
+                    course = 1
+                    if study_group[0].isdigit():
+                        first_digit = int(study_group[0])
+                        if 1 <= first_digit <= 6:
+                            course = first_digit
+
+                    speciality_result = await session.execute(
+                        select(Speciality).where(Speciality.id == speciality_id)
+                    )
+                    speciality = speciality_result.scalar_one_or_none()
+
+                    if not speciality:
+                        logger.warning(
+                            "Speciality %s not found for group %s",
+                            speciality_id,
+                            group_name,
                         )
-                        speciality = speciality_result.scalar_one_or_none()
-                        
-                        if speciality:
-                            # Создаем группу с правильной привязкой к факультету и специальности
-                            group = await group_service.find_or_create_group_with_faculty(
-                                group_name, 
-                                course, 
-                                speciality.faculty_id, 
-                                speciality_id
+                        continue
+
+                    group = await group_service.find_or_create_group_with_faculty(
+                        group_name,
+                        course,
+                        speciality.faculty_id,
+                        speciality_id,
+                    )
+
+                    if not group:
+                        continue
+
+                    created_count += 1
+                    logger.info(
+                        "Created group {group} for faculty {faculty}, speciality {spec}",
+                        group=group_name,
+                        faculty=speciality.faculty_id,
+                        spec=speciality_id,
+                    )
+
+                    if existing_group_id is None:
+                        await session.execute(
+                            update(ScheduleLesson)
+                            .where(
+                                ScheduleLesson.study_group == study_group,
+                                ScheduleLesson.subgroup == subgroup,
+                                ScheduleLesson.schedule_id == schedule_id,
                             )
-                            if group:
-                                created_count += 1
-                                logger.info(f"Created group {group_name} for faculty {speciality.faculty_id}, speciality {speciality_id}")
-                        else:
-                            logger.warning(f"Speciality {speciality_id} not found for group {group_name}")
-                
+                            .values(group_id=group.id)
+                        )
+
+                await session.commit()
                 logger.info(f"Created {created_count} groups from lessons")
-                
+
         except Exception as e:
             logger.error(f"Error creating groups from lessons: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
@@ -727,16 +832,18 @@ class APISyncService:
         """Извлечь код специальности."""
         # Ищем паттерн типа "31.05.01"
         import re
-        match = re.search(r'\d{2}\.\d{2}\.\d{2}', speciality)
+
+        match = re.search(r"\d{2}\.\d{2}\.\d{2}", speciality)
         return match.group(0) if match else ""
 
     def _extract_speciality_name(self, speciality: str) -> str:
         """Извлечь название специальности."""
         # Убираем код и лишние слова
         import re
-        name = re.sub(r'\d{2}\.\d{2}\.\d{2}', '', speciality)
-        name = re.sub(r'форма обучения: очная', '', name)
-        name = re.sub(r'уровень магистратуры', '', name)
+
+        name = re.sub(r"\d{2}\.\d{2}\.\d{2}", "", speciality)
+        name = re.sub(r"форма обучения: очная", "", name)
+        name = re.sub(r"уровень магистратуры", "", name)
         return name.strip()
 
     def _generate_short_name(self, full_name: str) -> str:
@@ -761,17 +868,23 @@ class APISyncService:
             words = full_name.split()
             return "".join([word[0].upper() for word in words[:2]])
 
-    async def _log_sync_result(self, sync_type: str, status: str, duration: float, error: str = None) -> None:
+    async def _log_sync_result(
+        self, sync_type: str, status: str, duration: float, error: str = None
+    ) -> None:
         """Логировать результат синхронизации."""
         async for session in get_session():
             log = APISyncLog(
                 sync_type=sync_type,
                 status=status,
                 records_processed=sum(self.sync_stats.values()),
-                records_created=sum(v for k, v in self.sync_stats.items() if "created" in k),
-                records_updated=sum(v for k, v in self.sync_stats.items() if "updated" in k),
+                records_created=sum(
+                    v for k, v in self.sync_stats.items() if "created" in k
+                ),
+                records_updated=sum(
+                    v for k, v in self.sync_stats.items() if "updated" in k
+                ),
                 error_message=error,
-                duration_seconds=duration
+                duration_seconds=duration,
             )
             session.add(log)
             await session.commit()

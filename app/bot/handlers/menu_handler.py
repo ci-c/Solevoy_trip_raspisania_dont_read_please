@@ -105,6 +105,7 @@ async def handle_menu(
             # Перенаправляем на обработчик оценок
             from app.bot.callbacks import GradeCallback
             from app.bot.handlers.grade_handler import handle_grades_main
+
             grade_callback = GradeCallback(action="main")
             await handle_grades_main(callback, grade_callback, state)
 

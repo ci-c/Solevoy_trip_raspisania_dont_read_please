@@ -34,10 +34,10 @@ class InvitationService:
     ) -> Invitation:
         """Создать новый инвайт."""
         logger.info(f"Creating invitation for user {created_by}")
-        
+
         # TODO: Реализовать через SQLAlchemy ORM
         code = self.generate_invite_code()
-        
+
         return Invitation(
             id=1,  # Заглушка для тестирования
             code=code,
@@ -49,40 +49,40 @@ class InvitationService:
             is_active=True,
             metadata=metadata,
             created_at=datetime.now(),
-            updated_at=datetime.now()
+            updated_at=datetime.now(),
         )
 
     async def validate_invitation(self, code: str) -> Optional[Invitation]:
         """Проверить валидность инвайта."""
         logger.info(f"Validating invitation code: {code}")
-        
+
         # TODO: Реализовать через SQLAlchemy ORM
         return None
 
     async def use_invitation(self, code: str, user_id: int) -> bool:
         """Использовать инвайт."""
         logger.info(f"Using invitation {code} by user {user_id}")
-        
+
         # TODO: Реализовать через SQLAlchemy ORM
         return True
 
     async def get_user_invitations(self, user_id: int) -> Union[List[Invitation], None]:
         """Получить инвайты пользователя."""
         logger.info(f"Getting invitations for user {user_id}")
-        
+
         # TODO: Реализовать через SQLAlchemy ORM
         return []
 
     async def revoke_invitation(self, invitation_id: int) -> bool:
         """Отозвать инвайт."""
         logger.info(f"Revoking invitation {invitation_id}")
-        
+
         # TODO: Реализовать через SQLAlchemy ORM
         return True
 
     async def cleanup_expired_invitations(self) -> int:
         """Очистить истекшие инвайты."""
         logger.info("Cleaning up expired invitations")
-        
+
         # TODO: Реализовать через SQLAlchemy ORM
         return 0

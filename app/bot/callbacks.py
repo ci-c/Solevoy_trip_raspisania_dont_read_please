@@ -105,4 +105,3 @@ class InvitationCallback(CallbackData, prefix="invitation"):
 
 # Copyright (c) 2024 SZGMU Bot Project
 # See LICENSE for details.
-

@@ -15,24 +15,30 @@
 from aiogram.types import InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
 
-from app.bot.callbacks import GradeCallback, GroupSearchCallback, InvitationCallback, MenuCallback, ProfileCallback
+from app.bot.callbacks import (
+    GradeCallback,
+    GroupSearchCallback,
+    InvitationCallback,
+    MenuCallback,
+    ProfileCallback,
+)
 from app.models.user import User
 
 
 def get_main_menu_reply_keyboard() -> ReplyKeyboardMarkup:
     """Создать главное меню с ReplyKeyboardMarkup.
-    
+
     Returns:
         ReplyKeyboardMarkup: Клавиатура главного меню.
     """
     builder = ReplyKeyboardBuilder()
-    
+
     # Основные функции (группируем по смыслу)
     builder.button(text="📅 Расписание")
     builder.button(text="📊 Оценки")
     builder.button(text="📚 Группа")
     builder.button(text="❓ Помощь")
-    
+
     builder.adjust(2, 2)
     return builder.as_markup(resize_keyboard=True, one_time_keyboard=False)
 
@@ -95,7 +101,9 @@ def get_main_menu_keyboard(user_profile: User | None = None) -> InlineKeyboardMa
     return builder.as_markup()
 
 
-def get_group_selection_keyboard(faculties: list[str] | None = None) -> InlineKeyboardMarkup:
+def get_group_selection_keyboard(
+    faculties: list[str] | None = None,
+) -> InlineKeyboardMarkup:
     """Клавиатура выбора группы с автоопределением.
 
     Args:
@@ -257,7 +265,7 @@ def get_grades_keyboard(subjects: list[str]) -> InlineKeyboardMarkup:
 
     """
     builder = InlineKeyboardBuilder()
-    
+
     if subjects:
         for subject in subjects[:10]:  # Ограничиваем количество предметов
             builder.button(
@@ -270,13 +278,13 @@ def get_grades_keyboard(subjects: list[str]) -> InlineKeyboardMarkup:
             text="➕ Добавить предмет",
             callback_data=GradeCallback(action="add_subject"),
         )
-    
+
     builder.button(
         text="🏠 В меню",
         callback_data=MenuCallback(action="home"),
     )
     builder.adjust(1)
-    
+
     return builder.as_markup()
 
 
@@ -291,7 +299,7 @@ def get_subject_grades_keyboard(subject: str) -> InlineKeyboardMarkup:
 
     """
     builder = InlineKeyboardBuilder()
-    
+
     builder.button(
         text="➕ Добавить оценку",
         callback_data=GradeCallback(action="add_grade", subject=subject),
@@ -313,7 +321,7 @@ def get_subject_grades_keyboard(subject: str) -> InlineKeyboardMarkup:
         callback_data=MenuCallback(action="home"),
     )
     builder.adjust(2, 1, 1, 1)
-    
+
     return builder.as_markup()
 
 
@@ -325,7 +333,7 @@ def get_invitation_keyboard() -> InlineKeyboardMarkup:
 
     """
     builder = InlineKeyboardBuilder()
-    
+
     builder.button(
         text="🎫 Использовать инвайт",
         callback_data=InvitationCallback(action="use"),
@@ -335,7 +343,7 @@ def get_invitation_keyboard() -> InlineKeyboardMarkup:
         callback_data=MenuCallback(action="home"),
     )
     builder.adjust(1)
-    
+
     return builder.as_markup()
 
 
@@ -347,7 +355,7 @@ def get_admin_invitation_keyboard() -> InlineKeyboardMarkup:
 
     """
     builder = InlineKeyboardBuilder()
-    
+
     builder.button(
         text="➕ Создать инвайт",
         callback_data=InvitationCallback(action="create"),
@@ -361,5 +369,5 @@ def get_admin_invitation_keyboard() -> InlineKeyboardMarkup:
         callback_data=MenuCallback(action="home"),
     )
     builder.adjust(1)
-    
+
     return builder.as_markup()

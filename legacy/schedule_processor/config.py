@@ -26,15 +26,15 @@ RINGS: dict[str, list[tuple[tuple[time, time], tuple[time, time]]]] = {
 # Legacy format for v1 compatibility
 RINGS_V1 = {
     "s": {
-        "9:00": [time(9, 0), time(10, 30), time(10, 45), time(12, 15), '1,2'],
-        "13:10": [time(13, 10), time(14, 40), time(14, 55), time(16, 25),'3,4'],
+        "9:00": [time(9, 0), time(10, 30), time(10, 45), time(12, 15), "1,2"],
+        "13:10": [time(13, 10), time(14, 40), time(14, 55), time(16, 25), "3,4"],
     },
     "l": {
-        "9:00": [time(9, 0), time(9, 45), time(9, 50), time(10, 35),'1'],
-        "10:55": [time(10, 55), time(11, 40), time(11, 45), time(12, 30),'2'],
-        "13:10": [time(13, 10), time(13, 55), time(14, 0), time(14, 45),'3'],
-        "15:00": [time(15, 0), time(15, 45), time(15, 50), time(16, 35),'4'],
-        "16:45": [time(16, 45), time(17, 30), time(17, 35), time(18, 20),'5'],
+        "9:00": [time(9, 0), time(9, 45), time(9, 50), time(10, 35), "1"],
+        "10:55": [time(10, 55), time(11, 40), time(11, 45), time(12, 30), "2"],
+        "13:10": [time(13, 10), time(13, 55), time(14, 0), time(14, 45), "3"],
+        "15:00": [time(15, 0), time(15, 45), time(15, 50), time(16, 35), "4"],
+        "16:45": [time(16, 45), time(17, 30), time(17, 35), time(18, 20), "5"],
     },
 }
 

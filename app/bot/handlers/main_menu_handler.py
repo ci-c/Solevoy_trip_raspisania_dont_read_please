@@ -22,7 +22,7 @@ async def handle_schedule_command(message: types.Message) -> None:
     try:
         # Показываем что запрос получен
         await message.answer("⏳ Загружаю расписание...")
-        
+
         text = (
             "📅 Расписание\n\n"
             "Выберите период:\n"
@@ -32,9 +32,9 @@ async def handle_schedule_command(message: types.Message) -> None:
             "• Следующая неделя\n\n"
             "Или введите дату в формате ДД.ММ"
         )
-        
+
         await message.answer(text, reply_markup=get_main_menu_reply_keyboard())
-        
+
     except Exception as e:
         logger.error(f"Error handling schedule command: {e}")
         logger.error(f"Traceback: {e.__traceback__}")
@@ -52,9 +52,9 @@ async def handle_grades_command(message: types.Message) -> None:
             "• КНЛ/КНС баллы\n\n"
             "Выберите действие:"
         )
-        
+
         await message.answer(text, reply_markup=get_main_menu_reply_keyboard())
-        
+
     except Exception as e:
         logger.error(f"Error handling grades command: {e}")
         logger.error(f"Traceback: {e.__traceback__}")
@@ -71,9 +71,9 @@ async def handle_attendance_command(message: types.Message) -> None:
             "• Заявления на пропуски\n\n"
             "Выберите действие:"
         )
-        
+
         await message.answer(text, reply_markup=get_main_menu_reply_keyboard())
-        
+
     except Exception as e:
         logger.error(f"Error handling attendance command: {e}")
         logger.error(f"Traceback: {e.__traceback__}")
@@ -91,9 +91,9 @@ async def handle_settings_command(message: types.Message) -> None:
             "• Экспорт данных\n\n"
             "Выберите настройку:"
         )
-        
+
         await message.answer(text, reply_markup=get_main_menu_reply_keyboard())
-        
+
     except Exception as e:
         logger.error(f"Error handling settings command: {e}")
         logger.error(f"Traceback: {e.__traceback__}")
@@ -104,14 +104,11 @@ async def handle_group_command_menu(message: types.Message) -> None:
     """Обработка команды 'Группа' из главного меню."""
     try:
         from app.bot.keyboards import get_simple_group_keyboard
-        
-        text = (
-            "📚 Настройка группы\n\n"
-            "Выберите способ настройки:"
-        )
-        
+
+        text = "📚 Настройка группы\n\nВыберите способ настройки:"
+
         await message.answer(text, reply_markup=get_simple_group_keyboard())
-        
+
     except Exception as e:
         logger.error(f"Error handling group command: {e}")
         logger.error(f"Traceback: {e.__traceback__}")
@@ -128,9 +125,9 @@ async def handle_notifications_command(message: types.Message) -> None:
             "• Уведомления об оценках\n\n"
             "Выберите тип уведомлений:"
         )
-        
+
         await message.answer(text, reply_markup=get_main_menu_reply_keyboard())
-        
+
     except Exception as e:
         logger.error(f"Error handling notifications command: {e}")
         logger.error(f"Traceback: {e.__traceback__}")
@@ -155,9 +152,9 @@ async def handle_help_command_menu(message: types.Message) -> None:
             "Поддержка:\n"
             "Если возникли проблемы, обратитесь к администратору."
         )
-        
+
         await message.answer(text, reply_markup=get_main_menu_reply_keyboard())
-        
+
     except Exception as e:
         logger.error(f"Error handling help command: {e}")
         logger.error(f"Traceback: {e.__traceback__}")
@@ -168,7 +165,7 @@ async def handle_unknown_message(message: types.Message) -> None:
     """Обработчик по умолчанию для неизвестных сообщений."""
     try:
         logger.info(f"Unknown message from user {message.from_user.id}: {message.text}")
-        
+
         text = (
             "🤔 Не понимаю эту команду.\n\n"
             "Используйте кнопки меню ниже или команды:\n"
@@ -176,9 +173,9 @@ async def handle_unknown_message(message: types.Message) -> None:
             "• /help - Справка\n\n"
             "Если проблема повторяется, обратитесь в поддержку."
         )
-        
+
         await message.answer(text, reply_markup=get_main_menu_reply_keyboard())
-        
+
     except Exception as e:
         logger.error(f"Error handling unknown message: {e}")
         logger.error(f"Traceback: {e.__traceback__}")
@@ -190,11 +187,15 @@ async def register_main_menu_handlers(dp) -> None:
     # Обработчики текстовых команд из ReplyKeyboard
     dp.message.register(handle_schedule_command, lambda m: m.text == "📅 Расписание")
     dp.message.register(handle_grades_command, lambda m: m.text == "📊 Оценки")
-    dp.message.register(handle_attendance_command, lambda m: m.text == "📝 Посещаемость")
+    dp.message.register(
+        handle_attendance_command, lambda m: m.text == "📝 Посещаемость"
+    )
     dp.message.register(handle_settings_command, lambda m: m.text == "⚙️ Настройки")
     dp.message.register(handle_group_command_menu, lambda m: m.text == "📚 Группа")
-    dp.message.register(handle_notifications_command, lambda m: m.text == "🔔 Уведомления")
+    dp.message.register(
+        handle_notifications_command, lambda m: m.text == "🔔 Уведомления"
+    )
     dp.message.register(handle_help_command_menu, lambda m: m.text == "❓ Помощь")
-    
+
     # Обработчик по умолчанию для неизвестных сообщений
     dp.message.register(handle_unknown_message)

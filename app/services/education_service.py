@@ -6,19 +6,22 @@ from typing import List, Dict, Any, Union
 from loguru import logger
 
 
-
 class EducationService:
     """Сервис для управления образовательными данными."""
 
     def __init__(self) -> None:
         pass
 
-    async def get_user_education_data(self, user_id: int) -> Union[Dict[str, Any], None]:
+    async def get_user_education_data(
+        self, user_id: int
+    ) -> Union[Dict[str, Any], None]:
         """Получить образовательные данные пользователя."""
         logger.info(f"Getting education data for user {user_id} (stub)")
         return {}
 
-    async def update_user_education_data(self, user_id: int, data: Dict[str, Any]) -> bool:
+    async def update_user_education_data(
+        self, user_id: int, data: Dict[str, Any]
+    ) -> bool:
         """Обновить образовательные данные пользователя."""
         logger.info(f"Updating education data for user {user_id} (stub)")
         return True

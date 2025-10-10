@@ -34,6 +34,7 @@ class DisclaimerManager:
                 json.dump(self.agreements, f, ensure_ascii=False, indent=2)
         except Exception as e:
             from loguru import logger
+
             logger.error(f"Unexpected error: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
 

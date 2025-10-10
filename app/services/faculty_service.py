@@ -21,20 +21,22 @@ class FacultyService:
         try:
             import requests
             import json
-            
+
             # Получаем все расписания для извлечения факультетов
             url = "https://frsview.szgmu.ru/api/xlsxSchedule/findAll/0"
             payload = {}
             headers = {"Content-Type": "application/json"}
-            
-            response = requests.post(url, headers=headers, data=json.dumps(payload), timeout=15)
+
+            response = requests.post(
+                url, headers=headers, data=json.dumps(payload), timeout=15
+            )
             response.raise_for_status()
             data = response.json()
-            
+
             if "content" not in data:
                 logger.warning("API response missing 'content' key")
                 return []
-            
+
             # Извлекаем уникальные факультеты из специальностей
             faculties = set()
             for schedule in data["content"]:
@@ -46,24 +48,26 @@ class FacultyService:
                             faculty = self._extract_faculty_from_speciality(speciality)
                             if faculty:
                                 faculties.add(faculty)
-            
+
             # Преобразуем в список словарей
             faculties_data = []
             for i, faculty_name in enumerate(sorted(faculties), 1):
-                faculties_data.append({
-                    "id": i,
-                    "name": faculty_name,
-                    "short_name": self._generate_short_name(faculty_name),
-                    "description": f"Факультет {faculty_name}"
-                })
-            
+                faculties_data.append(
+                    {
+                        "id": i,
+                        "name": faculty_name,
+                        "short_name": self._generate_short_name(faculty_name),
+                        "description": f"Факультет {faculty_name}",
+                    }
+                )
+
             if faculties_data:
                 logger.info(f"Extracted {len(faculties_data)} faculties from SZGMU API")
                 return faculties_data
             else:
                 logger.warning("No faculties extracted from API")
                 return []
-                
+
         except Exception as e:
             logger.error(f"Error loading faculties from API: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
@@ -100,13 +104,15 @@ class FacultyService:
                     # API возвращает данные в формате: {"id": 1, "name": "Лечебный факультет"}
                     faculty = Faculty(
                         name=faculty_data.get("name", ""),
-                        short_name=self._generate_short_name(faculty_data.get("name", "")),
-                        description=f"Факультет {faculty_data.get('name', '')}"
+                        short_name=self._generate_short_name(
+                            faculty_data.get("name", "")
+                        ),
+                        description=f"Факультет {faculty_data.get('name', '')}",
                     )
-                    
+
                     # Используем merge для обновления существующих записей
                     await session.merge(faculty)
-                
+
                 await session.commit()
                 logger.info(f"Saved {len(faculties_data)} faculties to database")
                 return True
@@ -136,21 +142,21 @@ class FacultyService:
         """Получить факультеты из базы данных."""
         try:
             from sqlalchemy import select
-            
+
             async for session in get_session():
-                result = await session.execute(
-                    select(Faculty).order_by(Faculty.name)
-                )
+                result = await session.execute(select(Faculty).order_by(Faculty.name))
                 faculties = []
-                
+
                 for faculty in result.scalars():
-                    faculties.append({
-                        "id": faculty.id,
-                        "name": faculty.name,
-                        "short_name": faculty.short_name,
-                        "description": faculty.description
-                    })
-                
+                    faculties.append(
+                        {
+                            "id": faculty.id,
+                            "name": faculty.name,
+                            "short_name": faculty.short_name,
+                            "description": faculty.description,
+                        }
+                    )
+
                 return faculties
         except Exception as e:
             logger.error(f"Error getting faculties from database: {e}")
@@ -162,14 +168,14 @@ class FacultyService:
         try:
             # Загружаем с API
             api_faculties = await self.load_faculties_from_api()
-            
+
             if api_faculties:
                 # Сохраняем в БД
                 success = await self.save_faculties_to_db(api_faculties)
                 if success:
                     logger.info("Successfully synced faculties")
                     return True
-            
+
             return False
         except Exception as e:
             logger.error(f"Error syncing faculties: {e}")
@@ -179,7 +185,7 @@ class FacultyService:
         """Получить только названия факультетов."""
         try:
             from sqlalchemy import select
-            
+
             async for session in get_session():
                 result = await session.execute(
                     select(Faculty.name).order_by(Faculty.name)
@@ -194,21 +200,21 @@ class FacultyService:
         """Получить факультет по названию."""
         try:
             from sqlalchemy import select
-            
+
             async for session in get_session():
                 result = await session.execute(
                     select(Faculty).filter(Faculty.name == name)
                 )
                 faculty = result.scalar_one_or_none()
-                
+
                 if faculty:
                     return {
                         "id": faculty.id,
                         "name": faculty.name,
                         "short_name": faculty.short_name,
-                        "description": faculty.description
+                        "description": faculty.description,
                     }
-                
+
                 return None
         except Exception as e:
             logger.error(f"Error getting faculty by name: {e}")

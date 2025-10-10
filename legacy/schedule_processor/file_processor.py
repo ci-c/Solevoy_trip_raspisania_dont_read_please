@@ -119,5 +119,3 @@ def process_xlsx_file(file_path: Path) -> list:
         schedule_data.append(current_row)
 
     return schedule_data
-
-

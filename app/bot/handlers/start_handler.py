@@ -12,7 +12,10 @@ from app.bot.states import MainMenu, GroupSetupStates
 from app.services.user_service import UserService
 from app.utils.validation import validate_user_input, ValidationError
 from app.utils.error_handling import ErrorHandler, DatabaseError
-from app.bot.handlers.group_setup_handler import handle_group_command, handle_help_command
+from app.bot.handlers.group_setup_handler import (
+    handle_group_command,
+    handle_help_command,
+)
 
 
 async def cmd_start(message: types.Message, state: FSMContext) -> None:
@@ -24,6 +27,7 @@ async def cmd_start(message: types.Message, state: FSMContext) -> None:
 
     # Rate limiting
     from app.utils.rate_limiter import check_rate_limit_manual
+
     is_allowed, error_message = check_rate_limit_manual(message.from_user.id, "start")
     if not is_allowed:
         await message.answer(f"⏱️ {error_message}")
@@ -38,18 +42,24 @@ async def cmd_start(message: types.Message, state: FSMContext) -> None:
         # Валидация входных данных
         username = None
         full_name = None
-        
+
         if message.from_user.username:
             try:
-                username = validate_user_input("username", message.from_user.username, required=False)
+                username = validate_user_input(
+                    "username", message.from_user.username, required=False
+                )
             except ValidationError as e:
                 logger.warning(f"Invalid username for user {message.from_user.id}: {e}")
-        
+
         if message.from_user.full_name:
             try:
-                full_name = validate_user_input("name", message.from_user.full_name, required=False)
+                full_name = validate_user_input(
+                    "name", message.from_user.full_name, required=False
+                )
             except ValidationError as e:
-                logger.warning(f"Invalid full_name for user {message.from_user.id}: {e}")
+                logger.warning(
+                    f"Invalid full_name for user {message.from_user.id}: {e}"
+                )
                 full_name = f"User {message.from_user.id}"
 
         # Получаем или создаем пользователя
@@ -86,7 +96,7 @@ async def cmd_start(message: types.Message, state: FSMContext) -> None:
                 "Я помогу вам с расписанием, оценками и посещаемостью.\n\n"
                 "Для начала настройте группу или выберите действие:"
             )
-        
+
         await message.answer(text, reply_markup=get_main_menu_reply_keyboard())
 
     except ValidationError as e:
@@ -113,17 +123,16 @@ async def cmd_clean(message: types.Message, state: FSMContext) -> None:
     """Обработчик команды /clean - очистка диалога."""
     try:
         logger.info(f"User {message.from_user.id} requested dialog cleanup")
-        
+
         # Очищаем состояние
         await state.clear()
-        
+
         # Отправляем сообщение об очистке
         await message.answer(
-            "🧹 Диалог очищен!\n\n"
-            "Все предыдущие сообщения скрыты. Выберите действие:",
-            reply_markup=get_main_menu_reply_keyboard()
+            "🧹 Диалог очищен!\n\nВсе предыдущие сообщения скрыты. Выберите действие:",
+            reply_markup=get_main_menu_reply_keyboard(),
         )
-        
+
     except Exception as e:
         logger.error(f"Error in cmd_clean: {e}")
         logger.error(f"Traceback: {e.__traceback__}")

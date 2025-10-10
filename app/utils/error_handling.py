@@ -12,42 +12,48 @@ from app.utils.validation import ValidationError
 
 class BotError(Exception):
     """Базовый класс для ошибок бота."""
+
     pass
 
 
 class DatabaseError(BotError):
     """Ошибка базы данных."""
+
     pass
 
 
 class APIError(BotError):
     """Ошибка внешнего API."""
+
     pass
 
 
 class UserError(BotError):
     """Ошибка пользователя (неправильный ввод и т.д.)."""
+
     pass
 
 
 class SecurityError(BotError):
     """Ошибка безопасности."""
+
     pass
 
 
 def safe_async_execute(
     error_message: str = "Произошла ошибка",
     log_error: bool = True,
-    reraise: bool = False
+    reraise: bool = False,
 ):
     """
     Декоратор для безопасного выполнения асинхронных функций.
-    
+
     Args:
         error_message: Сообщение об ошибке для пользователя
         log_error: Логировать ли ошибку
         reraise: Пробрасывать ли ошибку дальше
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         async def wrapper(*args, **kwargs):
@@ -82,12 +88,15 @@ def safe_async_execute(
                 if reraise:
                     raise
                 return None
+
         return wrapper
+
     return decorator
 
 
 def handle_database_error(func: Callable) -> Callable:
     """Декоратор для обработки ошибок базы данных."""
+
     @wraps(func)
     async def wrapper(*args, **kwargs):
         try:
@@ -95,11 +104,13 @@ def handle_database_error(func: Callable) -> Callable:
         except Exception as e:
             logger.error(f"Database error in {func.__name__}: {e}")
             raise DatabaseError(f"Ошибка базы данных: {str(e)}")
+
     return wrapper
 
 
 def handle_api_error(func: Callable) -> Callable:
     """Декоратор для обработки ошибок API."""
+
     @wraps(func)
     async def wrapper(*args, **kwargs):
         try:
@@ -107,16 +118,17 @@ def handle_api_error(func: Callable) -> Callable:
         except Exception as e:
             logger.error(f"API error in {func.__name__}: {e}")
             raise APIError(f"Ошибка API: {str(e)}")
+
     return wrapper
 
 
 def format_error_for_user(error: Exception) -> str:
     """
     Форматирование ошибки для показа пользователю.
-    
+
     Args:
         error: Исключение
-        
+
     Returns:
         Отформатированное сообщение об ошибке
     """
@@ -135,11 +147,11 @@ def format_error_for_user(error: Exception) -> str:
 def log_error_context(
     func_name: str,
     user_id: Optional[int] = None,
-    additional_data: Optional[Dict[str, Any]] = None
+    additional_data: Optional[Dict[str, Any]] = None,
 ) -> None:
     """
     Логирование контекста ошибки.
-    
+
     Args:
         func_name: Название функции
         user_id: ID пользователя
@@ -149,21 +161,21 @@ def log_error_context(
         "function": func_name,
         "user_id": user_id,
     }
-    
+
     if additional_data:
         context.update(additional_data)
-    
+
     logger.error(f"Error context: {context}")
 
 
 class ErrorHandler:
     """Класс для централизованной обработки ошибок."""
-    
+
     @staticmethod
     async def handle_validation_error(error: ValidationError, message) -> None:
         """Обработка ошибки валидации."""
         await message.answer(f"❌ {str(error)}")
-    
+
     @staticmethod
     async def handle_database_error(error: DatabaseError, message) -> None:
         """Обработка ошибки базы данных."""
@@ -171,23 +183,19 @@ class ErrorHandler:
         await message.answer(
             "❌ Ошибка базы данных. Попробуйте позже или обратитесь к администратору."
         )
-    
+
     @staticmethod
     async def handle_api_error(error: APIError, message) -> None:
         """Обработка ошибки API."""
         logger.error(f"API error: {error}")
-        await message.answer(
-            "❌ Ошибка внешнего сервиса. Попробуйте позже."
-        )
-    
+        await message.answer("❌ Ошибка внешнего сервиса. Попробуйте позже.")
+
     @staticmethod
     async def handle_security_error(error: SecurityError, message) -> None:
         """Обработка ошибки безопасности."""
         logger.error(f"Security error: {error}")
-        await message.answer(
-            "❌ Ошибка безопасности. Обратитесь к администратору."
-        )
-    
+        await message.answer("❌ Ошибка безопасности. Обратитесь к администратору.")
+
     @staticmethod
     async def handle_unknown_error(error: Exception, message) -> None:
         """Обработка неизвестной ошибки."""

@@ -24,26 +24,26 @@ from app.services.group_service import GroupService
 def detect_group_info(group_number: str) -> Dict[str, str]:
     """Автоматическое определение информации о группе по номеру."""
     # Простая логика определения факультета по номеру
-    if group_number.startswith(('1', '2')):
+    if group_number.startswith(("1", "2")):
         faculty = "ЛФ"  # Лечебный факультет
-    elif group_number.startswith(('3', '4')):
+    elif group_number.startswith(("3", "4")):
         faculty = "ПФ"  # Педиатрический факультет
-    elif group_number.startswith(('5', '6')):
+    elif group_number.startswith(("5", "6")):
         faculty = "МПФ"  # Медико-профилактический факультет
     else:
         faculty = "ЛФ"  # По умолчанию
-    
+
     # Определяем курс по первой цифре
     course = int(group_number[0]) if group_number[0].isdigit() else 1
-    
+
     # Определяем поток по последней букве
     stream = group_number[-1] if group_number[-1].isalpha() else "а"
-    
+
     return {
         "faculty": faculty,
         "course": course,
         "stream": stream,
-        "number": group_number
+        "number": group_number,
     }
 
 
@@ -120,7 +120,9 @@ async def process_manual_group_input(message: types.Message, state: FSMContext) 
 
         # Ищем или создаем группу в БД
         group_service = GroupService()
-        group_info = await group_service.find_or_create_group({"number": normalized_group})
+        group_info = await group_service.find_or_create_group(
+            {"number": normalized_group}
+        )
 
         if group_info:
             # Автоматически определяем факультет, курс, поток
@@ -194,15 +196,19 @@ async def show_faculty_groups(
             text += "✍️ Введите номер вашей группы из списка выше:"
 
             await state.set_state(GroupSearchStates.entering_group_number)
-            
+
             # Проверяем, изменился ли текст
             current_text = message.text or ""
             if text != current_text:
                 try:
-                    await message.edit_text(text, reply_markup=get_group_selection_keyboard())
+                    await message.edit_text(
+                        text, reply_markup=get_group_selection_keyboard()
+                    )
                 except Exception as edit_error:
                     logger.error(f"Could not edit message: {edit_error}")
-                    await message.answer(text, reply_markup=get_group_selection_keyboard())
+                    await message.answer(
+                        text, reply_markup=get_group_selection_keyboard()
+                    )
             else:
                 # Сообщение не изменилось, ничего не делаем
                 pass
@@ -339,8 +345,6 @@ async def confirm_group_selection(
             "Попробуйте позже или обратитесь к администратору.",
             reply_markup=get_group_selection_keyboard(),
         )
-
-
 
 
 async def register_group_selection_handlers(dp: Dispatcher):

@@ -1,0 +1,4 @@
+model = "gpt-5-codex"
+model_reasoning_effort = "high"
+[projects."/home/c/Documents/Project/P-2"]
+trust_level = "trusted"

@@ -102,6 +102,7 @@ async def show_group_selection(message: types.Message, state: FSMContext) -> Non
     try:
         # Получаем список доступных факультетов из БД
         from app.services.schedule_service import ScheduleService
+
         schedule_service = ScheduleService()
         faculties_data = await schedule_service.get_available_faculties()
         faculties = [faculty["name"] for faculty in faculties_data]

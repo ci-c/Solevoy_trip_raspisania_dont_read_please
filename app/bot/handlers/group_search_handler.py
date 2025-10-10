@@ -33,11 +33,14 @@ async def handle_group_search(
     """Обработчик поиска групп."""
     # Rate limiting
     from app.utils.rate_limiter import check_rate_limit_manual
-    is_allowed, error_message = check_rate_limit_manual(callback.from_user.id, "callback")
+
+    is_allowed, error_message = check_rate_limit_manual(
+        callback.from_user.id, "callback"
+    )
     if not is_allowed:
         await callback.answer(f"⏱️ {error_message}", show_alert=True)
         return
-    
+
     await callback.answer()
     action = callback_data.action
 
@@ -91,11 +94,12 @@ async def process_group_number(message: types.Message, state: FSMContext) -> Non
     """Обработка введенного номера группы."""
     # Rate limiting
     from app.utils.rate_limiter import check_rate_limit_manual
+
     is_allowed, error_message = check_rate_limit_manual(message.from_user.id, "search")
     if not is_allowed:
         await message.answer(f"⏱️ {error_message}")
         return
-    
+
     group_number = message.text.strip()
 
     # Дополнительная валидация ввода

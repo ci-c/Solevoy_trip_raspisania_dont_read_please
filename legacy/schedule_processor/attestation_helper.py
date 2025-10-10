@@ -8,23 +8,23 @@ from pathlib import Path
 
 class AttestationHelper:
     """Помощник для работы с вопросами об аттестации."""
-    
+
     def __init__(self) -> None:
         self.docs_path = Path(__file__).parent.parent / "ai_docs"
         self._load_regulations()
-    
+
     def _load_regulations(self) -> None:
         """Загрузка данных из сводки регламентов."""
         try:
             summary_file = self.docs_path / "szgmu_regulations_summary.md"
             if summary_file.exists():
-                with open(summary_file, 'r', encoding='utf-8') as f:
+                with open(summary_file, "r", encoding="utf-8") as f:
                     self.regulations_text = f.read()
             else:
                 self.regulations_text = ""
         except Exception:
             self.regulations_text = ""
-    
+
     def get_absence_info(self) -> Dict[str, str]:
         """Получить информацию об уважительных причинах пропусков."""
         return {
@@ -34,9 +34,9 @@ class AttestationHelper:
             "донорство": "Справка о сдаче крови (2 дня, не влияет на КНЛ/КНС)",
             "олимпиады": "По приказу ректора (не влияет на КНЛ/КНС)",
             "вызовы_в_органы": "Повестки в суд, военкомат (не влияет на КНЛ/КНС)",
-            "медосмотры": "Диспансеризация, вакцинация (не влияет на КНЛ/КНС)"
+            "медосмотры": "Диспансеризация, вакцинация (не влияет на КНЛ/КНС)",
         }
-    
+
     def get_knl_kns_explanation(self) -> str:
         """Объяснение системы КНЛ/КНС."""
         return """🔢 **Система коэффициентов КНЛ/КНС**
@@ -51,7 +51,7 @@ class AttestationHelper:
 • Пропуски по уважительной причине НЕ снижают коэффициенты
 • Пропуски без уважительной причины снижают КНЛ/КНС
 • ОСБ влияет на порядок прохождения аттестации"""
-    
+
     def get_individual_consultations_info(self) -> str:
         """Информация об индивидуальных консультациях."""
         return """📚 **Индивидуальные консультации**
@@ -68,7 +68,7 @@ class AttestationHelper:
 📅 **График:**
 • Не реже раза в неделю в обычное время
 • Ежедневно в период сессии"""
-    
+
     def get_document_deadlines(self) -> str:
         """Сроки подачи документов."""
         return """📋 **Сроки подачи документов**
@@ -82,68 +82,82 @@ class AttestationHelper:
 • Заявление о непризнании пропуска нарушением
 
 ⚠️ **Важно:** Университет может не рассматривать документы, поданные позже установленного срока"""
-    
+
     def analyze_question(self, question: str) -> Optional[str]:
         """Анализ вопроса и подбор подходящего ответа."""
         question_lower = question.lower()
-        
+
         # Вопросы о КНЛ/КНС
-        if any(term in question_lower for term in ['кнл', 'кнс', 'коэффициент', 'посещаемость', 'осб']):
+        if any(
+            term in question_lower
+            for term in ["кнл", "кнс", "коэффициент", "посещаемость", "осб"]
+        ):
             return self.get_knl_kns_explanation()
-        
+
         # Вопросы о пропусках
-        if any(term in question_lower for term in ['пропуск', 'болезнь', 'справка', 'уважительн', 'документ']):
+        if any(
+            term in question_lower
+            for term in ["пропуск", "болезнь", "справка", "уважительн", "документ"]
+        ):
             return self._get_absence_detailed_info()
-        
+
         # Вопросы об индивидуальных консультациях
-        if any(term in question_lower for term in ['консультаци', 'отработк', 'исправ', 'долг']):
+        if any(
+            term in question_lower
+            for term in ["консультаци", "отработк", "исправ", "долг"]
+        ):
             return self.get_individual_consultations_info()
-        
+
         # Вопросы о сроках
-        if any(term in question_lower for term in ['срок', 'когда подав', 'сколько дней']):
+        if any(
+            term in question_lower for term in ["срок", "когда подав", "сколько дней"]
+        ):
             return self.get_document_deadlines()
-        
+
         # Вопросы об аттестации
-        if any(term in question_lower for term in ['аттестаци', 'экзамен', 'зачет', 'сесси']):
+        if any(
+            term in question_lower
+            for term in ["аттестаци", "экзамен", "зачет", "сесси"]
+        ):
             return self._get_attestation_info()
-        
+
         return None
-    
+
     def _get_absence_detailed_info(self) -> str:
         """Детальная информация о пропусках."""
         absences = self.get_absence_info()
-        
+
         result = "📋 **Уважительные причины пропусков**\n\n"
-        
+
         for key, info in absences.items():
             emoji_map = {
                 "болезнь": "🏥",
-                "брак": "💒", 
+                "брак": "💒",
                 "смерть_родственников": "⚰️",
                 "донорство": "🩸",
                 "олимпиады": "🏆",
                 "вызовы_в_органы": "⚖️",
-                "медосмотры": "🔬"
+                "медосмотры": "🔬",
             }
-            
+
             name_map = {
                 "болезнь": "Болезнь",
                 "брак": "Регистрация брака",
-                "смерть_родственников": "Смерть близких родственников", 
+                "смерть_родственников": "Смерть близких родственников",
                 "донорство": "Донорство крови",
                 "олимпиады": "Олимпиады и мероприятия",
                 "вызовы_в_органы": "Вызовы в официальные органы",
-                "медосмотры": "Медицинские осмотры"
+                "медосмотры": "Медицинские осмотры",
             }
-            
+
             emoji = emoji_map.get(key, "📝")
             name = name_map.get(key, key)
             result += f"{emoji} **{name}:** {info}\n\n"
-        
+
         result += "⚠️ **Важно:** Документы подавать в течение **5 рабочих дней**"
-        
+
         return result
-    
+
     def _get_attestation_info(self) -> str:
         """Информация об аттестации."""
         return """🎓 **Промежуточная аттестация**
@@ -163,7 +177,7 @@ class AttestationHelper:
 • Кафедры определяют конкретный порядок по своему усмотрению
 
 ⏰ **Переходный период:** До осени 2025 действуют старые документы"""
-    
+
     def get_practical_tips(self) -> List[str]:
         """Практические советы для студентов."""
         return [
@@ -172,5 +186,5 @@ class AttestationHelper:
             "⏰ У вас есть 30 дней на исправление через индивидуальные консультации",
             "🎯 ОСБ влияет на аттестацию - следите за текущими оценками",
             "💬 При спорных ситуациях требуйте присутствия заведующего кафедрой",
-            "🏥 Все медсправки должны быть заверены в поликлинике университета"
+            "🏥 Все медсправки должны быть заверены в поликлинике университета",
         ]

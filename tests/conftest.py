@@ -31,31 +31,33 @@ def mock_telegram_api():
     return mock
 
 
-@pytest.fixture 
+@pytest.fixture
 def mock_szgmu_api():
     """Mock для SZGMU API."""
     mock = AsyncMock()
-    mock.search_schedules = AsyncMock(return_value=[
-        {
-            "id": 1,
-            "display_name": "31.05.01 лечебное дело - 1 курс, а поток",
-            "data": {
-                "scheduleLessonDtoList": [
-                    {
-                        "subject": "Анатомия",
-                        "teacher": "Иванов И.И.",
-                        "room": "101",
-                        "timeStart": "09:00",
-                        "timeEnd": "10:35",
-                        "dayName": "понедельник",
-                        "weekNumber": 1,
-                        "group": "101а",
-                        "lessonType": "лекция"
-                    }
-                ]
+    mock.search_schedules = AsyncMock(
+        return_value=[
+            {
+                "id": 1,
+                "display_name": "31.05.01 лечебное дело - 1 курс, а поток",
+                "data": {
+                    "scheduleLessonDtoList": [
+                        {
+                            "subject": "Анатомия",
+                            "teacher": "Иванов И.И.",
+                            "room": "101",
+                            "timeStart": "09:00",
+                            "timeEnd": "10:35",
+                            "dayName": "понедельник",
+                            "weekNumber": 1,
+                            "group": "101а",
+                            "lessonType": "лекция",
+                        }
+                    ]
+                },
             }
-        }
-    ])
+        ]
+    )
     return mock
 
 
@@ -67,7 +69,7 @@ def test_user_service() -> UserService:
 
 @pytest.fixture
 def test_schedule_service() -> ScheduleService:
-    """Сервис расписания для тестов.""" 
+    """Сервис расписания для тестов."""
     return ScheduleService()
 
 
@@ -78,11 +80,11 @@ def sample_user_data() -> Dict[str, str]:
         "telegram_id": 123456789,
         "telegram_username": "test_user",
         "full_name": "Test User",
-        "access_level": AccessLevel.BASIC
+        "access_level": AccessLevel.BASIC,
     }
 
 
-@pytest.fixture 
+@pytest.fixture
 def sample_group_data() -> Dict[str, str]:
     """Тестовые данные группы."""
     return {
@@ -91,7 +93,7 @@ def sample_group_data() -> Dict[str, str]:
         "stream": "а",
         "speciality": "31.05.01 лечебное дело",
         "academic_year": "2024/2025",
-        "current_semester": "осенний"
+        "current_semester": "осенний",
     }
 
 
@@ -104,10 +106,10 @@ def sample_lesson_data() -> Dict[str, str]:
         "teacher_name": "Петров П.П.",
         "room_number": "201",
         "start_time": "09:00",
-        "end_time": "10:35", 
+        "end_time": "10:35",
         "day_of_week": 1,
         "week_number": 1,
-        "date": "2024-09-02"
+        "date": "2024-09-02",
     }
 
 

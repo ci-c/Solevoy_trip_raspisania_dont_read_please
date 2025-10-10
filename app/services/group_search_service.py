@@ -8,15 +8,14 @@ from dataclasses import dataclass
 from loguru import logger
 
 from app.database.session import get_session
-from app.database.models import (
-    Schedule, Lesson, Faculty, Speciality
-)
+from app.database.models import Schedule, Lesson, Faculty, Speciality
 from sqlalchemy import select, and_, or_
 
 
 @dataclass
 class GroupInfo:
     """Информация о группе."""
+
     number: str  # "103а"
     speciality: str
     course: int
@@ -29,11 +28,10 @@ class GroupInfo:
     unified_schedule: Dict[str, str] | None = None
 
 
-
-
 @dataclass
 class UnifiedSchedule:
     """Объединенное расписание."""
+
     group: str
     week_schedule: Dict[str, List[Lesson]]  # день недели -> уроки
     metadata: Dict[str, object]
@@ -58,7 +56,7 @@ class GroupSearchService:
         """Поиск группы по номеру (103а, 204б, etc)."""
         try:
             logger.info(f"Searching for group: {group_number}")
-            
+
             async for session in get_session():
                 # Ищем занятия с таким номером группы
                 result = await session.execute(
@@ -70,55 +68,55 @@ class GroupSearchService:
                         and_(
                             or_(
                                 Lesson.subgroup == group_number,
-                                Lesson.study_group == group_number
+                                Lesson.study_group == group_number,
                             ),
-                            Lesson.schedule_id == Schedule.id
+                            Lesson.schedule_id == Schedule.id,
                         )
                     )
                     .order_by(Lesson.week_number, Lesson.day_name)
                 )
-                
+
                 lessons = result.scalars().all()
-                
+
                 if not lessons:
                     logger.info(f"No lessons found for group {group_number}")
                     return []
-                
+
                 # Группируем по расписаниям
                 schedules: Dict[int, Dict[str, object]] = {}
                 for lesson in lessons:
                     schedule_id = lesson.schedule_id
                     if schedule_id not in schedules:
                         schedules[schedule_id] = {
-                            'schedule': lesson.schedule,
-                            'lessons': []
+                            "schedule": lesson.schedule,
+                            "lessons": [],
                         }
                     # Type assertion для mypy
-                    lessons_list = schedules[schedule_id]['lessons']
+                    lessons_list = schedules[schedule_id]["lessons"]
                     if isinstance(lessons_list, list):
                         lessons_list.append(lesson)
-                
+
                 # Создаем GroupInfo для каждого расписания
                 groups = []
                 for schedule_id, data in schedules.items():
-                    lessons_list = data['lessons']
+                    lessons_list = data["lessons"]
                     if not isinstance(lessons_list, list) or not lessons_list:
                         continue
                     lesson = lessons_list[0]  # Берем первый урок для метаданных
-                    schedule = data['schedule']
-                    
+                    schedule = data["schedule"]
+
                     # Определяем тип расписания по названию файла
-                    if hasattr(schedule, 'file_name'):
+                    if hasattr(schedule, "file_name"):
                         file_name = schedule.file_name.lower()
                     else:
                         file_name = ""
-                    if 'лекц' in file_name or 'л' in file_name:
-                        schedule_type = 'lecture'
-                    elif 'сем' in file_name or 'с' in file_name:
-                        schedule_type = 'seminar'
+                    if "лекц" in file_name or "л" in file_name:
+                        schedule_type = "lecture"
+                    elif "сем" in file_name or "с" in file_name:
+                        schedule_type = "seminar"
                     else:
-                        schedule_type = 'mixed'
-                    
+                        schedule_type = "mixed"
+
                     group_info = GroupInfo(
                         number=group_number,
                         speciality=lesson.schedule.speciality.name,
@@ -127,31 +125,37 @@ class GroupSearchService:
                         semester=lesson.schedule.semester.name,
                         year=lesson.schedule.academic_year.name,
                         faculty=lesson.schedule.speciality.faculty.name,
-                        lecture_schedule_id=schedule_id if schedule_type in ['lecture', 'mixed'] else None,
-                        seminar_schedule_id=schedule_id if schedule_type in ['seminar', 'mixed'] else None
+                        lecture_schedule_id=schedule_id
+                        if schedule_type in ["lecture", "mixed"]
+                        else None,
+                        seminar_schedule_id=schedule_id
+                        if schedule_type in ["seminar", "mixed"]
+                        else None,
                     )
-                    
+
                     groups.append(group_info)
-                
+
                 logger.info(f"Found {len(groups)} group variants for {group_number}")
                 return groups
-                
+
         except Exception as e:
             logger.error(f"Error searching group by number: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
         return None
 
     async def search_groups_by_filters(
-        self, 
+        self,
         faculty: str | None = None,
         speciality: str | None = None,
         course: int | None = None,
-        stream: str | None = None
+        stream: str | None = None,
     ) -> List[GroupInfo]:
         """Поиск групп по фильтрам."""
         try:
-            logger.info(f"Searching groups with filters: faculty={faculty}, speciality={speciality}, course={course}, stream={stream}")
-            
+            logger.info(
+                f"Searching groups with filters: faculty={faculty}, speciality={speciality}, course={course}, stream={stream}"
+            )
+
             async for session in get_session():
                 query = (
                     select(Lesson)
@@ -160,36 +164,36 @@ class GroupSearchService:
                     .join(Faculty)
                     .where(Lesson.schedule_id == Schedule.id)
                 )
-                
+
                 if faculty:
                     query = query.where(Faculty.name == faculty)
-                
+
                 if speciality:
                     query = query.where(Speciality.name == speciality)
-                
+
                 if course:
                     # Фильтруем по номеру курса в названии группы
                     query = query.where(
                         or_(
                             Lesson.subgroup.like(f"{course}%"),
-                            Lesson.study_group.like(f"{course}%")
+                            Lesson.study_group.like(f"{course}%"),
                         )
                     )
-                
+
                 if stream:
                     query = query.where(
                         or_(
                             Lesson.subgroup.like(f"%{stream}"),
-                            Lesson.study_group.like(f"%{stream}")
+                            Lesson.study_group.like(f"%{stream}"),
                         )
                     )
-                
+
                 result = await session.execute(
                     query.order_by(Faculty.name, Speciality.name, Lesson.subgroup)
                 )
-                
+
                 lessons = result.scalars().all()
-                
+
                 # Группируем по группам
                 groups = {}
                 for lesson in lessons:
@@ -202,12 +206,12 @@ class GroupSearchService:
                             stream=self._extract_stream(group_key),
                             semester=lesson.schedule.semester.name,
                             year=lesson.schedule.academic_year.name,
-                            faculty=lesson.schedule.speciality.faculty.name
+                            faculty=lesson.schedule.speciality.faculty.name,
                         )
-                
+
                 logger.info(f"Found {len(groups)} groups with filters")
                 return list(groups.values())
-                
+
         except Exception as e:
             logger.error(f"Error searching groups by filters: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
@@ -226,15 +230,16 @@ class GroupSearchService:
                 "course": group.course,
                 "stream": group.stream,
                 "semester": group.semester,
-                "year": group.year
-            }
+                "year": group.year,
+            },
         )
 
     def _extract_course_number(self, group_name: str) -> int:
         """Извлечь номер курса из названия группы."""
         try:
             import re
-            match = re.match(r'^(\d+)', group_name)
+
+            match = re.match(r"^(\d+)", group_name)
             if match:
                 return int(match.group(1))
         except Exception as e:
@@ -246,7 +251,8 @@ class GroupSearchService:
         """Извлечь поток из названия группы."""
         try:
             import re
-            match = re.search(r'([абвгд])', group_name.lower())
+
+            match = re.search(r"([абвгд])", group_name.lower())
             if match:
                 return match.group(1)
         except Exception as e:
@@ -259,51 +265,51 @@ class GroupSearchService:
         try:
             async for session in get_session():
                 result = await session.execute(
-                    select(Faculty)
-                    .distinct()
-                    .order_by(Faculty.name)
+                    select(Faculty).distinct().order_by(Faculty.name)
                 )
-                
+
                 faculties = result.scalars().all()
-                
+
                 return [
                     {
                         "id": faculty.id,
                         "name": faculty.name,
                         "short_name": faculty.short_name,
-                        "description": faculty.description
+                        "description": faculty.description,
                     }
                     for faculty in faculties
                 ]
-                
+
         except Exception as e:
             logger.error(f"Error getting faculties: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
         return []
 
-    async def get_available_specialities(self, faculty_id: int | None = None) -> List[Dict[str, object]]:
+    async def get_available_specialities(
+        self, faculty_id: int | None = None
+    ) -> List[Dict[str, object]]:
         """Получить список доступных специальностей."""
         try:
             async for session in get_session():
                 query = select(Speciality).distinct().order_by(Speciality.name)
-                
+
                 if faculty_id:
                     query = query.where(Speciality.faculty_id == faculty_id)
-                
+
                 result = await session.execute(query)
                 specialities = result.scalars().all()
-                
+
                 return [
                     {
                         "id": spec.id,
                         "name": spec.name,
                         "code": spec.code,
                         "faculty_id": spec.faculty_id,
-                        "faculty_name": spec.faculty.name
+                        "faculty_name": spec.faculty.name,
                     }
                     for spec in specialities
                 ]
-                
+
         except Exception as e:
             logger.error(f"Error getting specialities: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
@@ -314,10 +320,9 @@ class GroupSearchService:
         try:
             async for session in get_session():
                 result = await session.execute(
-                    select(Lesson.subgroup, Lesson.study_group)
-                    .distinct()
+                    select(Lesson.subgroup, Lesson.study_group).distinct()
                 )
-                
+
                 courses = set()
                 for row in result.fetchall():
                     subgroup, study_group = row
@@ -326,9 +331,9 @@ class GroupSearchService:
                         course = self._extract_course_number(group_name)
                         if 1 <= course <= 6:  # Валидные курсы
                             courses.add(course)
-                
+
                 return sorted(list(courses))
-                
+
         except Exception as e:
             logger.error(f"Error getting courses: {e}")
             return [1, 2, 3, 4, 5, 6]  # По умолчанию
@@ -339,10 +344,9 @@ class GroupSearchService:
         try:
             async for session in get_session():
                 result = await session.execute(
-                    select(Lesson.subgroup, Lesson.study_group)
-                    .distinct()
+                    select(Lesson.subgroup, Lesson.study_group).distinct()
                 )
-                
+
                 streams = set()
                 for row in result.fetchall():
                     subgroup, study_group = row
@@ -350,9 +354,9 @@ class GroupSearchService:
                     if group_name:
                         stream = self._extract_stream(group_name)
                         streams.add(stream)
-                
+
                 return sorted(list(streams))
-                
+
         except Exception as e:
             logger.error(f"Error getting streams: {e}")
             return ["а", "б", "в", "г"]  # По умолчанию
@@ -361,8 +365,4 @@ class GroupSearchService:
     def get_current_semester_info(self) -> Dict[str, object]:
         """Получить информацию о текущем семестре."""
         semester, year = self.current_semester
-        return {
-            "name": semester,
-            "year": year,
-            "is_current": True
-        }
+        return {"name": semester, "year": year, "is_current": True}

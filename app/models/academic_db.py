@@ -37,7 +37,7 @@ class TimestampMixin:
 
 class FacultyDB(Base, TimestampMixin):
     """Faculty database model."""
-    
+
     __tablename__ = "faculties"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -49,7 +49,7 @@ class FacultyDB(Base, TimestampMixin):
 
 class SpecialityDB(Base, TimestampMixin):
     """Speciality database model."""
-    
+
     __tablename__ = "specialities"
 
     id = Column(Integer, primary_key=True, autoincrement=True)

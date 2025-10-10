@@ -9,49 +9,51 @@ from pathlib import Path
 
 class DisclaimerManager:
     """Менеджер дисклеймеров и пользовательских соглашений."""
-    
+
     def __init__(self, storage_path: Path):
         self.storage_path = Path(storage_path)
         self.storage_path.mkdir(parents=True, exist_ok=True)
         self.agreements_file = self.storage_path / "user_agreements.json"
         self._load_agreements()
-    
+
     def _load_agreements(self) -> None:
         """Загрузить соглашения пользователей."""
         if self.agreements_file.exists():
             try:
-                with open(self.agreements_file, 'r', encoding='utf-8') as f:
+                with open(self.agreements_file, "r", encoding="utf-8") as f:
                     self.agreements = json.load(f)
             except Exception:
                 self.agreements = {}
         else:
             self.agreements = {}
-    
+
     def _save_agreements(self) -> None:
         """Сохранить соглашения пользователей."""
         try:
-            with open(self.agreements_file, 'w', encoding='utf-8') as f:
+            with open(self.agreements_file, "w", encoding="utf-8") as f:
                 json.dump(self.agreements, f, ensure_ascii=False, indent=2)
         except Exception:
             pass
-    
+
     def has_user_agreed(self, user_id: str, version: str = "1.0") -> bool:
         """Проверить, согласился ли пользователь с дисклеймером."""
         user_agreement = self.agreements.get(user_id)
         if not user_agreement:
             return False
-        
-        return user_agreement.get('version') == version and user_agreement.get('agreed', False)
-    
+
+        return user_agreement.get("version") == version and user_agreement.get(
+            "agreed", False
+        )
+
     def record_user_agreement(self, user_id: str, version: str = "1.0") -> None:
         """Записать согласие пользователя."""
         self.agreements[user_id] = {
-            'agreed': True,
-            'version': version,
-            'agreed_at': datetime.now().isoformat(),
+            "agreed": True,
+            "version": version,
+            "agreed_at": datetime.now().isoformat(),
         }
         self._save_agreements()
-    
+
     def get_disclaimer_text(self) -> str:
         """Получить текст дисклеймера."""
         return """📋 **Важная информация**
@@ -71,11 +73,11 @@ class DisclaimerManager:
 ⚖️ **Ответственность**
 Разработчики не несут ответственности за неточности.
 Всегда сверяйтесь с официальными источниками."""
-    
+
     def get_short_disclaimer(self) -> str:
         """Короткий дисклеймер для футеров."""
         return "ℹ️ Данные из открытых источников СЗГМУ • Проверяйте в деканате"
-    
+
     def get_welcome_agreement(self) -> str:
         """Соглашение при первом запуске."""
         return """✅ **Добро пожаловать!**

@@ -8,6 +8,7 @@ from rich import print  # noqa: A004
 
 FILE_PATH: Path = Path("./бассейн.csv")
 
+
 class GroupInterval:
     def __init__(self, start: str, end: str | None) -> None:
         """Handle group intervals like '104' (104А, 104Б) or '205Б-206' (205Б, 206А, 206Б).
@@ -25,9 +26,8 @@ class GroupInterval:
         if not end and len(start) == 3:
             self.end_g = start + "Б"
 
-
     @classmethod
-    def from_str(cls, s: str) -> 'GroupInterval':
+    def from_str(cls, s: str) -> "GroupInterval":
         """Create GroupInterval from string like '104' or '205Б-206'.
 
         Args:
@@ -37,19 +37,19 @@ class GroupInterval:
             GroupInterval: New instance
 
         """
-        parts = s.split('-')
+        parts = s.split("-")
         start = parts[0]
         end = parts[1] if len(parts) > 1 else None
         return cls(start, end)
 
     @staticmethod
     def __increment(gr: str) -> str:
-        if gr.endswith('А'):
-            return gr[:-1] + 'Б'
-        elif gr.endswith('Б'):
-            return str(int(gr[:-1]) + 1) + 'А'
+        if gr.endswith("А"):
+            return gr[:-1] + "Б"
+        elif gr.endswith("Б"):
+            return str(int(gr[:-1]) + 1) + "А"
         else:
-            return gr + 'А'
+            return gr + "А"
 
     def __iter__(self):
         current = self.start_g
@@ -84,7 +84,6 @@ def time_correction(s: str) -> str:
 
 
 def week_correction(s: str) -> int:
-
     VARIATIONS = {
         0: ["mon", "monday", "пн", "понедельник"],
         1: ["tue", "tuesday", "вт", "вторник"],
@@ -118,10 +117,11 @@ def parse_cell(cell: str) -> list[GroupInterval]:
     out = []
     for i in cell.split(","):
         if i:
-            #out.append(GroupInterval.from_str(i))
+            # out.append(GroupInterval.from_str(i))
             for j in GroupInterval.from_str(i):
                 out.append(j)
     return out
+
 
 def get_sw_dict(path: Path = FILE_PATH) -> dict:
     out: dict = {}
