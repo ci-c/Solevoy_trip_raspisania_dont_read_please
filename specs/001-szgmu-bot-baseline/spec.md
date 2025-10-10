@@ -79,7 +79,7 @@ User stories упорядочены по приоритету, каждая — 
 
 ### Архитектурные вводные
 
-- **Стек**: Python 3.10+, aiogram 3, SQLAlchemy 2.0, Pydantic, Loguru, async HTTP клиент `httpx`. Управление зависимостями — `uv`.
+- **Стек**: Python 3.14, aiogram 3, SQLAlchemy 2.0, Pydantic, Loguru, async HTTP клиент `httpx`. Управление зависимостями — `uv`.
 - **Слои**: `app/bot` (хендлеры), `app/services` (бизнес-логика), `app/schedule` (ингест и экспорт), `app/database` (ORM), `app/utils` (общие функции).
 - **Данные**: Единственный источник для рантайма — SQLite с миграциями/сидерами; первичное наполнение поступает с официального сайта (PDF/таблицы, приводимые к CSV), резервное — из неофициального API для сверки и backfill.
 - **Инфраструктура качества**: Обязательные команды `uv run ruff format .`, `uv run ruff check .`, `uv run mypy app`, `uv run pytest` выполняются до ревью.

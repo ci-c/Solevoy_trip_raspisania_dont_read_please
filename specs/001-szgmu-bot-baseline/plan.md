@@ -11,7 +11,7 @@
 
 ## Technical Context
 
-**Language/Version**: Python 3.10+ managed with `uv`  
+**Language/Version**: Python 3.14 managed with `uv`  
 **Primary Dependencies**: aiogram 3.x, SQLAlchemy 2.0, Pydantic, Loguru, async HTTP client `httpx`  
 **Storage**: SQLite (`data/szgmu_bot.db`) через модели и сессии в `app/database/`  
 **Testing**: `pytest` (asyncio-mode=auto) с маркерами `unit`, `integration`, `slow`, `database`, `external`; фикстуры в `tests/fixtures/`  
