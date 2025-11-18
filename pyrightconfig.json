@@ -1,0 +1,9 @@
+{
+  "pythonVersion": "3.14",
+  "venvPath": ".",
+  "venv": "uv",
+  "include": ["app"],
+  "strict": ["app"],
+  "reportMissingTypeStubs": true,
+  "reportUnusedImport": "warning"
+}

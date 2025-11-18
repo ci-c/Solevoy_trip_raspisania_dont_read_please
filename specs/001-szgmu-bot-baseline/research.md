@@ -24,7 +24,7 @@
 
 ### Testing & Quality
 - Тестовая структура (`tests/unit/`, `tests/integration/`, smoke) существует, но покрытие по данным сценариям ограничено. Необходимо добавить фикстуры расписаний и профилей.
-- Настроены `ruff`, `mypy`, `pytest`; переход на Python 3.14 потребует проверки конфигов (`pyproject.toml`, `mypy.ini`).
+- Настроены `ruff`, `pyright`, `pytest`; переход на Python 3.14 потребует проверки конфигов (`pyproject.toml`, `pyrightconfig.json`).
 - Отсутствует стратегия тестирования парсинга PDF; потребуется либо мокирование, либо хранение эталонных файлов в `tests/fixtures/files/`.
 
 ### Tooling & Dev Experience

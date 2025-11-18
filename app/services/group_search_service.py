@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from loguru import logger
 
 from app.database.session import get_session
-from app.database.models import Schedule, Lesson, Faculty, Speciality
+from app.database.models import Schedule, ScheduleLesson, Faculty, Speciality
 from sqlalchemy import select, and_, or_
 
 
@@ -33,7 +33,7 @@ class UnifiedSchedule:
     """Объединенное расписание."""
 
     group: str
-    week_schedule: Dict[str, List[Lesson]]  # день недели -> уроки
+    week_schedule: Dict[str, List[ScheduleLesson]]  # день недели -> уроки
     metadata: Dict[str, object]
 
 
@@ -60,20 +60,24 @@ class GroupSearchService:
             async for session in get_session():
                 # Ищем занятия с таким номером группы
                 result = await session.execute(
-                    select(Lesson)
+                    select(ScheduleLesson)
                     .join(Schedule)
                     .join(Speciality)
                     .join(Faculty)
                     .where(
                         and_(
                             or_(
-                                Lesson.subgroup == group_number,
-                                Lesson.study_group == group_number,
+                                ScheduleLesson.subgroup == group_number,
+                                ScheduleLesson.study_group == group_number,
                             ),
-                            Lesson.schedule_id == Schedule.id,
+                            ScheduleLesson.schedule_id == Schedule.id,
                         )
                     )
-                    .order_by(Lesson.week_number, Lesson.day_name)
+                    .order_by(
+                        ScheduleLesson.week_number,
+                        ScheduleLesson.day_name,
+                        ScheduleLesson.start_time,
+                    )
                 )
 
                 lessons = result.scalars().all()
@@ -158,11 +162,11 @@ class GroupSearchService:
 
             async for session in get_session():
                 query = (
-                    select(Lesson)
+                    select(ScheduleLesson)
                     .join(Schedule)
                     .join(Speciality)
                     .join(Faculty)
-                    .where(Lesson.schedule_id == Schedule.id)
+                    .where(ScheduleLesson.schedule_id == Schedule.id)
                 )
 
                 if faculty:
@@ -175,21 +179,26 @@ class GroupSearchService:
                     # Фильтруем по номеру курса в названии группы
                     query = query.where(
                         or_(
-                            Lesson.subgroup.like(f"{course}%"),
-                            Lesson.study_group.like(f"{course}%"),
+                            ScheduleLesson.subgroup.like(f"{course}%"),
+                            ScheduleLesson.study_group.like(f"{course}%"),
                         )
                     )
 
                 if stream:
                     query = query.where(
                         or_(
-                            Lesson.subgroup.like(f"%{stream}"),
-                            Lesson.study_group.like(f"%{stream}"),
+                            ScheduleLesson.subgroup.like(f"%{stream}"),
+                            ScheduleLesson.study_group.like(f"%{stream}"),
                         )
                     )
 
                 result = await session.execute(
-                    query.order_by(Faculty.name, Speciality.name, Lesson.subgroup)
+                    query.order_by(
+                        Faculty.name,
+                        Speciality.name,
+                        ScheduleLesson.subgroup,
+                        ScheduleLesson.start_time,
+                    )
                 )
 
                 lessons = result.scalars().all()
@@ -320,7 +329,9 @@ class GroupSearchService:
         try:
             async for session in get_session():
                 result = await session.execute(
-                    select(Lesson.subgroup, Lesson.study_group).distinct()
+                    select(
+                        ScheduleLesson.subgroup, ScheduleLesson.study_group
+                    ).distinct()
                 )
 
                 courses = set()
@@ -344,7 +355,9 @@ class GroupSearchService:
         try:
             async for session in get_session():
                 result = await session.execute(
-                    select(Lesson.subgroup, Lesson.study_group).distinct()
+                    select(
+                        ScheduleLesson.subgroup, ScheduleLesson.study_group
+                    ).distinct()
                 )
 
                 streams = set()

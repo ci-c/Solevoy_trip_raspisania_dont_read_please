@@ -1,28 +1,27 @@
-"""
-Реальный сервис для работы с расписанием через SZGMU API.
-"""
+"""Реальный сервис для работы с расписанием через SZGMU API."""
 
-import aiohttp
 from datetime import datetime
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
+
+import httpx
 from loguru import logger
 
+from app.database.models import Group, Schedule
 from app.database.session import get_session
-from app.database.models import Schedule, Group
 from app.utils.secrets import get_api_base_url
 
 
 class RealScheduleService:
     """Реальный сервис для работы с расписанием."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.api_base_url = get_api_base_url()
-        self.session: Optional[aiohttp.ClientSession] = None
+        self._client: Optional[httpx.AsyncClient] = None
 
-    async def __aenter__(self):
-        """Async context manager entry."""
-        self.session = aiohttp.ClientSession(
-            timeout=aiohttp.ClientTimeout(total=30),
+    async def __aenter__(self) -> "RealScheduleService":
+        """Инициализирует HTTP‑клиент при входе в async‑контекст."""
+        self._client = httpx.AsyncClient(
+            timeout=httpx.Timeout(30.0),
             headers={
                 "User-Agent": "SZGMU-Schedule-Bot/2.0",
                 "Accept": "application/json",
@@ -30,106 +29,132 @@ class RealScheduleService:
         )
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """Async context manager exit."""
-        if self.session:
-            await self.session.close()
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+        """Закрывает HTTP‑клиент при выходе из контекста."""
+        if self._client:
+            await self._client.aclose()
+            self._client = None
+
+    def _require_client(self) -> httpx.AsyncClient:
+        if not self._client:
+            raise RuntimeError("Service not initialized. Use async with RealScheduleService.")
+        return self._client
 
     async def search_groups(self, query: str) -> List[Dict[str, Any]]:
         """Поиск групп через API."""
-        if not self.session:
-            raise RuntimeError("Service not initialized. Use async with.")
-
+        client = self._require_client()
         try:
             url = f"{self.api_base_url}/groups/search"
             params = {"q": query, "limit": 10}
 
-            async with self.session.get(url, params=params) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    return data.get("groups", [])
-                else:
-                    logger.warning(f"API returned status {response.status}")
-                    return []
+            response = await client.get(url, params=params)
+            response.raise_for_status()
+            data = response.json()
+            return data.get("groups", [])
+        except httpx.HTTPStatusError as exc:
+            logger.warning(
+                "API returned non-success status %s for %s",
+                exc.response.status_code,
+                exc.request.url,
+            )
+            return []
+        except httpx.RequestError as exc:
+            logger.error(f"Error searching groups: {exc}")
+            logger.error(f"Traceback: {exc.__traceback__}")
         except Exception as e:
             logger.error(f"Error searching groups: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
-        return None
+        return []
 
     async def get_group_schedule(
         self, group_id: str, week: int = None
     ) -> List[Dict[str, Any]]:
         """Получить расписание группы."""
-        if not self.session:
-            raise RuntimeError("Service not initialized. Use async with.")
-
+        client = self._require_client()
         try:
             url = f"{self.api_base_url}/groups/{group_id}/schedule"
             params = {}
             if week:
                 params["week"] = week
 
-            async with self.session.get(url, params=params) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    return data.get("schedule", [])
-                else:
-                    logger.warning(f"API returned status {response.status}")
-                    return []
+            response = await client.get(url, params=params)
+            response.raise_for_status()
+            data = response.json()
+            return data.get("schedule", [])
+        except httpx.HTTPStatusError as exc:
+            logger.warning(
+                "API returned non-success status %s for %s",
+                exc.response.status_code,
+                exc.request.url,
+            )
+            return []
+        except httpx.RequestError as exc:
+            logger.error(f"Error getting group schedule: {exc}")
+            logger.error(f"Traceback: {exc.__traceback__}")
         except Exception as e:
             logger.error(f"Error getting group schedule: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
-        return None
+        return []
 
     async def get_teacher_schedule(
         self, teacher_id: str, week: int = None
     ) -> List[Dict[str, Any]]:
         """Получить расписание преподавателя."""
-        if not self.session:
-            raise RuntimeError("Service not initialized. Use async with.")
-
+        client = self._require_client()
         try:
             url = f"{self.api_base_url}/teachers/{teacher_id}/schedule"
             params = {}
             if week:
                 params["week"] = week
 
-            async with self.session.get(url, params=params) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    return data.get("schedule", [])
-                else:
-                    logger.warning(f"API returned status {response.status}")
-                    return []
+            response = await client.get(url, params=params)
+            response.raise_for_status()
+            data = response.json()
+            return data.get("schedule", [])
+        except httpx.HTTPStatusError as exc:
+            logger.warning(
+                "API returned non-success status %s for %s",
+                exc.response.status_code,
+                exc.request.url,
+            )
+            return []
+        except httpx.RequestError as exc:
+            logger.error(f"Error getting teacher schedule: {exc}")
+            logger.error(f"Traceback: {exc.__traceback__}")
         except Exception as e:
             logger.error(f"Error getting teacher schedule: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
-        return None
+        return []
 
     async def get_room_schedule(
         self, room_id: str, week: int = None
     ) -> List[Dict[str, Any]]:
         """Получить расписание аудитории."""
-        if not self.session:
-            raise RuntimeError("Service not initialized. Use async with.")
-
+        client = self._require_client()
         try:
             url = f"{self.api_base_url}/rooms/{room_id}/schedule"
             params = {}
             if week:
                 params["week"] = week
 
-            async with self.session.get(url, params=params) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    return data.get("schedule", [])
-                else:
-                    logger.warning(f"API returned status {response.status}")
-                    return []
+            response = await client.get(url, params=params)
+            response.raise_for_status()
+            data = response.json()
+            return data.get("schedule", [])
+        except httpx.HTTPStatusError as exc:
+            logger.warning(
+                "API returned non-success status %s for %s",
+                exc.response.status_code,
+                exc.request.url,
+            )
+            return []
+        except httpx.RequestError as exc:
+            logger.error(f"Error getting room schedule: {exc}")
+            logger.error(f"Traceback: {exc.__traceback__}")
         except Exception as e:
             logger.error(f"Error getting room schedule: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
-        return None
+        return []
 
     async def save_schedule_to_db(
         self, group_id: str, schedule_data: List[Dict[str, Any]]

@@ -4,11 +4,15 @@
 
 from datetime import datetime, timezone
 from typing import List, Optional
+
 from loguru import logger
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 from app.database.session import get_session
-from app.database.models import User as UserModel
+from app.database.models import (
+    User as UserModel,
+    UserProfile as UserProfileModel,
+)
 from app.models.user import User, StudentProfile, Subscription, AccessLevel
 
 
@@ -24,33 +28,37 @@ class UserService:
         """Создать нового пользователя."""
         now = datetime.now(tz=timezone.utc)
 
+        stored_now = now.replace(tzinfo=None)
+
         async for session in get_session():
-            # Создаем SQLAlchemy модель
+            existing_result = await session.execute(
+                select(UserModel).where(UserModel.telegram_id == telegram_id)
+            )
+            existing_user = existing_result.scalar_one_or_none()
+
+            if existing_user:
+                logger.info(
+                    "User with telegram_id %s already exists, returning existing record",
+                    telegram_id,
+                )
+                return self._to_user_model(existing_user)
+
             db_user = UserModel(
                 telegram_id=telegram_id,
                 username=telegram_username,
                 first_name=full_name or "",
                 last_name=None,
+                access_level=AccessLevel.GUEST.value,
+                is_active=True,
+                last_seen=stored_now,
             )
 
             session.add(db_user)
             await session.commit()
             await session.refresh(db_user)
 
-            # Конвертируем в Pydantic модель
-            user = User(
-                id=db_user.id,
-                telegram_id=db_user.telegram_id,
-                telegram_username=db_user.username,
-                full_name=db_user.first_name,
-                access_level=AccessLevel.GUEST,  # По умолчанию
-                is_active=True,
-                last_seen=now,
-                created_at=now,
-                updated_at=now,
-            )
-
-            logger.info(f"Created new user {user.id} (telegram_id: {telegram_id})")
+            user = self._to_user_model(db_user)
+            logger.info("Created new user %s (telegram_id: %s)", user.id, telegram_id)
             return user
 
     async def get_user_by_telegram_id(self, telegram_id: int) -> Optional[User]:
@@ -64,39 +72,102 @@ class UserService:
             if not db_user:
                 return None
 
-            return User(
-                id=db_user.id,
-                telegram_id=db_user.telegram_id,
-                telegram_username=db_user.username,
-                full_name=db_user.first_name,
-                access_level=AccessLevel.GUEST,  # TODO: добавить поле в модель
-                is_active=True,
-                last_seen=datetime.now(tz=timezone.utc),
-                created_at=db_user.created_at,
-                updated_at=db_user.updated_at,
-            )
+            return self._to_user_model(db_user)
 
     async def update_user_activity(self, user_id: int) -> None:
         """Обновить время последней активности пользователя."""
-        # TODO: добавить поле last_seen в модель User
-        pass
+        now = datetime.now(tz=timezone.utc)
+        async for session in get_session():
+            result = await session.execute(
+                select(UserModel).where(UserModel.id == user_id)
+            )
+            db_user = result.scalar_one_or_none()
+            if not db_user:
+                logger.warning("User %s not found for activity update", user_id)
+                return
+
+            db_user.last_seen = now.astimezone(timezone.utc).replace(tzinfo=None)
+            await session.commit()
+            logger.debug("Updated last_seen for user %s", user_id)
 
     async def update_user_access_level(
         self, user_id: int, access_level: AccessLevel
     ) -> bool:
         """Обновить уровень доступа пользователя."""
-        # TODO: добавить поле access_level в модель User
-        return True
+        async for session in get_session():
+            result = await session.execute(
+                select(UserModel).where(UserModel.id == user_id)
+            )
+            db_user = result.scalar_one_or_none()
+            if not db_user:
+                logger.warning("User %s not found for access level update", user_id)
+                return False
+
+            db_user.access_level = access_level.value
+            await session.commit()
+            logger.info(
+                "Updated access level for user %s to %s",
+                user_id,
+                access_level.value,
+            )
+            return True
 
     async def get_user_profile(self, user_id: int) -> Optional[StudentProfile]:
         """Получить профиль студента."""
-        # TODO: реализовать через SQLAlchemy
-        return None
+        async for session in get_session():
+            result = await session.execute(
+                select(UserProfileModel).where(UserProfileModel.user_id == user_id)
+            )
+            profile = result.scalar_one_or_none()
+            if not profile:
+                return None
+
+            return StudentProfile(
+                id=profile.user_id,
+                user_id=profile.user_id,
+                group_id=profile.group_id,
+                student_id=profile.student_id,
+                preferred_format=profile.preferred_export_format,
+                created_at=profile.created_at,
+                updated_at=profile.updated_at,
+            )
 
     async def create_or_update_profile(self, profile: StudentProfile) -> StudentProfile:
         """Создать или обновить профиль студента."""
-        # TODO: реализовать через SQLAlchemy
-        return profile
+        async for session in get_session():
+            result = await session.execute(
+                select(UserProfileModel).where(
+                    UserProfileModel.user_id == profile.user_id
+                )
+            )
+            db_profile = result.scalar_one_or_none()
+
+            if db_profile:
+                db_profile.group_id = profile.group_id
+                db_profile.student_id = profile.student_id
+                db_profile.preferred_export_format = profile.preferred_format
+            else:
+                db_profile = UserProfileModel(
+                    user_id=profile.user_id,
+                    group_id=profile.group_id,
+                    student_id=profile.student_id,
+                    preferred_export_format=profile.preferred_format,
+                )
+                session.add(db_profile)
+
+            await session.commit()
+            await session.refresh(db_profile)
+
+            logger.info("Upserted profile for user %s", profile.user_id)
+            return StudentProfile(
+                id=db_profile.user_id,
+                user_id=db_profile.user_id,
+                group_id=db_profile.group_id,
+                student_id=db_profile.student_id,
+                preferred_format=db_profile.preferred_export_format,
+                created_at=db_profile.created_at,
+                updated_at=db_profile.updated_at,
+            )
 
     async def get_user_subscription(self, user_id: int) -> Optional[Subscription]:
         """Получить активную подписку пользователя."""
@@ -140,27 +211,39 @@ class UserService:
                 select(UserModel).offset(offset).limit(limit)
             )
             db_users = result.scalars().all()
-
-            users = []
-            for db_user in db_users:
-                users.append(
-                    User(
-                        id=db_user.id,
-                        telegram_id=db_user.telegram_id,
-                        telegram_username=db_user.username,
-                        full_name=db_user.first_name,
-                        access_level=AccessLevel.GUEST,
-                        is_active=True,
-                        last_seen=datetime.now(tz=timezone.utc),
-                        created_at=db_user.created_at,
-                        updated_at=db_user.updated_at,
-                    )
-                )
-
-            return users
+            return [self._to_user_model(user) for user in db_users]
 
     async def get_users_count(self) -> int:
         """Получить общее количество пользователей."""
         async for session in get_session():
-            result = await session.execute(select(UserModel))
-            return len(result.scalars().all())
+            result = await session.execute(select(func.count(UserModel.id)))
+            return result.scalar_one()
+
+    def _to_user_model(self, db_user: UserModel) -> User:
+        """Преобразовать SQLAlchemy-модель пользователя в Pydantic-модель."""
+        full_name = db_user.first_name
+        if db_user.last_name:
+            full_name = f"{db_user.first_name} {db_user.last_name}".strip()
+
+        try:
+            level = AccessLevel(db_user.access_level)
+        except ValueError:
+            level = AccessLevel.GUEST
+
+        last_seen = (
+            db_user.last_seen.replace(tzinfo=timezone.utc)
+            if db_user.last_seen
+            else None
+        )
+
+        return User(
+            id=db_user.id,
+            telegram_id=db_user.telegram_id,
+            telegram_username=db_user.username,
+            full_name=full_name,
+            access_level=level,
+            is_active=db_user.is_active,
+            last_seen=last_seen,
+            created_at=db_user.created_at,
+            updated_at=db_user.updated_at,
+        )

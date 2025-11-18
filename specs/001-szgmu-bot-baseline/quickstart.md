@@ -36,7 +36,7 @@ uv run python main.py
 ```bash
 uv run ruff format --check .
 uv run ruff check .
-uv run mypy app
+uv run pyright
 uv run pytest -m "unit"
 uv run pytest -m "integration"
 ```

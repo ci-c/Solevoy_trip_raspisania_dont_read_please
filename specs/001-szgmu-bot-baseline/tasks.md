@@ -78,7 +78,7 @@
 
 - [ ] T100 Актуализировать README, quickstart, docs по новым настройкам
 - [ ] T101 Настроить мониторинг импортов и уведомлений (алерты)
-- [ ] T102 Провести проход `uv run ruff format .`, `uv run ruff check .`, `uv run mypy app`, `uv run pytest`
+- [ ] T102 Провести проход `uv run ruff format .`, `uv run ruff check .`, `uv run pyright`, `uv run pytest`
 - [ ] T103 Подготовить релизные заметки и миграционные инструкции
 
 ---

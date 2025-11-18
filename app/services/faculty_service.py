@@ -2,36 +2,33 @@
 Сервис для работы с факультетами через реальный SZGMU API.
 """
 
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
+
+import httpx
 from loguru import logger
 
 from app.database.session import get_session
 from app.database.models import Faculty
-from app.schedule.faculty_api_client import FacultyAPIClient
 
 
 class FacultyService:
     """Сервис для работы с факультетами."""
 
     def __init__(self):
-        self.api_client = FacultyAPIClient()
 
     async def load_faculties_from_api(self) -> List[Dict[str, Any]]:
         """Загрузить факультеты из реального SZGMU API."""
         try:
-            import requests
             import json
 
-            # Получаем все расписания для извлечения факультетов
             url = "https://frsview.szgmu.ru/api/xlsxSchedule/findAll/0"
-            payload = {}
+            payload: Dict[str, Any] = {}
             headers = {"Content-Type": "application/json"}
 
-            response = requests.post(
-                url, headers=headers, data=json.dumps(payload), timeout=15
-            )
-            response.raise_for_status()
-            data = response.json()
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                response = await client.post(url, headers=headers, json=payload)
+                response.raise_for_status()
+                data = response.json()
 
             if "content" not in data:
                 logger.warning("API response missing 'content' key")
@@ -68,10 +65,20 @@ class FacultyService:
                 logger.warning("No faculties extracted from API")
                 return []
 
+        except httpx.HTTPStatusError as e:
+            logger.error(
+                "Faculty load request failed with status %s",
+                e.response.status_code,
+            )
+            return []
+        except httpx.RequestError as e:
+            logger.error(f"Error loading faculties from API: {e}")
+            logger.error(f"Traceback: {e.__traceback__}")
+            return []
         except Exception as e:
             logger.error(f"Error loading faculties from API: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
-            return None
+            return []
 
     def _extract_faculty_from_speciality(self, speciality: str) -> str:
         """Извлечь название факультета из специальности."""

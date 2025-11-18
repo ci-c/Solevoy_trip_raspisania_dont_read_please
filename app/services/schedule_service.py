@@ -9,13 +9,14 @@ from loguru import logger
 from app.database.session import get_session
 from app.database.models import (
     Schedule,
-    Lesson,
+    ScheduleLesson,
     Faculty,
     Speciality,
     AcademicYear,
     Semester,
+    Group,
 )
-from sqlalchemy import select, and_, or_
+from sqlalchemy import select, and_, or_, func
 
 
 class ScheduleService:
@@ -36,7 +37,7 @@ class ScheduleService:
             Список занятий пользователя
         """
         try:
-            # Получаем группу пользователя из БД
+            # Получаем пользователя и его группу из профиля
             async for session in get_session():
                 from app.database.models import User as UserModel
 
@@ -45,29 +46,48 @@ class ScheduleService:
                 )
                 user = result.scalar_one_or_none()
 
-                if not user or not user.group_id:
+                if not user:
+                    logger.warning(f"User {user_id} not found")
+                    return None
+
+                group_id = None
+                if getattr(user, "profile", None) and user.profile.group_id:
+                    group_id = user.profile.group_id
+                elif user.group_id:
+                    group_id = user.group_id
+
+                if not group_id:
                     logger.warning(f"User {user_id} has no group assigned")
                     return None
 
-            # Получаем занятия группы
+            # Получаем занятия группы из нормализованной таблицы
             async for session in get_session():
-                result = await session.execute(
-                    select(Lesson)
-                    .join(Schedule)
-                    .join(Speciality)
-                    .join(Faculty)
-                    .where(
-                        and_(
-                            Schedule.speciality_id == user.group.speciality_id,
-                            Lesson.schedule_id == Schedule.id,
-                        )
+                query = select(ScheduleLesson).where(
+                    ScheduleLesson.group_id == group_id
+                )
+
+                if start_date:
+                    query = query.where(
+                        ScheduleLesson.date.isnot(None),
+                        ScheduleLesson.date >= start_date,
                     )
-                    .order_by(Lesson.week_number, Lesson.day_name, Lesson.start_time)
+                if end_date:
+                    query = query.where(
+                        ScheduleLesson.date.isnot(None),
+                        ScheduleLesson.date <= end_date,
+                    )
+
+                result = await session.execute(
+                    query.order_by(
+                        func.coalesce(ScheduleLesson.date, datetime.utcnow().date()),
+                        ScheduleLesson.week_number,
+                        ScheduleLesson.day_name,
+                        ScheduleLesson.start_time,
+                    )
                 )
 
                 lessons = result.scalars().all()
 
-                # Форматируем результат
                 formatted_lessons = []
                 for lesson in lessons:
                     formatted_lessons.append(
@@ -75,7 +95,7 @@ class ScheduleService:
                             "id": lesson.id,
                             "subject": lesson.subject.name,
                             "type": lesson.lesson_type.name,
-                            "lecturer": lesson.lecturer.name
+                            "lecturer": lesson.lecturer.full_name
                             if lesson.lecturer
                             else None,
                             "classroom": lesson.classroom.number
@@ -84,11 +104,15 @@ class ScheduleService:
                             "building": lesson.classroom.building
                             if lesson.classroom
                             else None,
+                            "campus": lesson.classroom.campus
+                            if lesson.classroom
+                            else None,
                             "day_name": lesson.day_name,
                             "week_number": lesson.week_number,
                             "pair_time": lesson.pair_time,
                             "start_time": lesson.start_time,
                             "end_time": lesson.end_time,
+                            "date": lesson.date,
                             "subgroup": lesson.subgroup,
                             "study_group": lesson.study_group,
                             "department": lesson.department.name
@@ -119,34 +143,31 @@ class ScheduleService:
         """
         try:
             async for session in get_session():
-                query = (
-                    select(Lesson)
-                    .join(Schedule)
-                    .join(Speciality)
-                    .join(Faculty)
-                    .where(
-                        and_(
-                            or_(
-                                Lesson.subgroup == group_name,
-                                Lesson.study_group == group_name,
-                            ),
-                            Lesson.schedule_id == Schedule.id,
-                        )
-                    )
+                group_result = await session.execute(
+                    select(Group).where(Group.name == group_name)
+                )
+                group = group_result.scalar_one_or_none()
+                if not group:
+                    logger.warning(f"Group {group_name} not found")
+                    return None
+
+                query = select(ScheduleLesson).where(
+                    ScheduleLesson.group_id == group.id
                 )
 
                 if week_number:
-                    query = query.where(Lesson.week_number == week_number)
+                    query = query.where(ScheduleLesson.week_number == week_number)
 
                 result = await session.execute(
                     query.order_by(
-                        Lesson.week_number, Lesson.day_name, Lesson.start_time
+                        ScheduleLesson.week_number,
+                        ScheduleLesson.day_name,
+                        ScheduleLesson.start_time,
                     )
                 )
 
                 lessons = result.scalars().all()
 
-                # Форматируем результат
                 formatted_lessons = []
                 for lesson in lessons:
                     formatted_lessons.append(
@@ -154,7 +175,7 @@ class ScheduleService:
                             "id": lesson.id,
                             "subject": lesson.subject.name,
                             "type": lesson.lesson_type.name,
-                            "lecturer": lesson.lecturer.name
+                            "lecturer": lesson.lecturer.full_name
                             if lesson.lecturer
                             else None,
                             "classroom": lesson.classroom.number
@@ -163,18 +184,26 @@ class ScheduleService:
                             "building": lesson.classroom.building
                             if lesson.classroom
                             else None,
+                            "campus": lesson.classroom.campus
+                            if lesson.classroom
+                            else None,
                             "day_name": lesson.day_name,
                             "week_number": lesson.week_number,
                             "pair_time": lesson.pair_time,
                             "start_time": lesson.start_time,
                             "end_time": lesson.end_time,
+                            "date": lesson.date,
                             "subgroup": lesson.subgroup,
                             "study_group": lesson.study_group,
                             "department": lesson.department.name
                             if lesson.department
                             else None,
-                            "faculty": lesson.schedule.speciality.faculty.name,
-                            "speciality": lesson.schedule.speciality.name,
+                            "faculty": group.faculty_obj.name
+                            if group.faculty_obj
+                            else None,
+                            "speciality": group.speciality_obj.name
+                            if group.speciality_obj
+                            else None,
                         }
                     )
 
@@ -205,11 +234,9 @@ class ScheduleService:
         try:
             async for session in get_session():
                 query = (
-                    select(Lesson)
-                    .join(Schedule)
-                    .join(Speciality)
-                    .join(Faculty)
-                    .where(Lesson.schedule_id == Schedule.id)
+                    select(Group)
+                    .join(Speciality, Group.speciality_id == Speciality.id, isouter=True)
+                    .join(Faculty, Speciality.faculty_id == Faculty.id, isouter=True)
                 )
 
                 if faculty_name:
@@ -219,37 +246,28 @@ class ScheduleService:
                     query = query.where(Speciality.name == speciality_name)
 
                 if course_number:
-                    # Извлекаем номер курса из названия группы
-                    query = query.where(
-                        or_(
-                            Lesson.subgroup.like(f"{course_number}%"),
-                            Lesson.study_group.like(f"{course_number}%"),
-                        )
-                    )
+                    query = query.where(Group.course == course_number)
 
-                result = await session.execute(
-                    query.order_by(Faculty.name, Speciality.name, Lesson.subgroup)
-                )
+                result = await session.execute(query.order_by(Group.name))
+                groups = result.scalars().all()
 
-                lessons = result.scalars().all()
+                semester, year = self.current_semester
 
-                # Группируем по группам
-                groups = {}
-                for lesson in lessons:
-                    group_key = lesson.subgroup or lesson.study_group
-                    if group_key and group_key not in groups:
-                        groups[group_key] = {
-                            "group_name": group_key,
-                            "faculty": lesson.schedule.speciality.faculty.name,
-                            "speciality": lesson.schedule.speciality.name,
-                            "course": self._extract_course_number(group_key),
-                            "lessons_count": 0,
-                        }
-
-                    if group_key:
-                        groups[group_key]["lessons_count"] += 1
-
-                return list(groups.values())
+                return [
+                    {
+                        "group_name": group.name,
+                        "faculty": group.faculty_obj.name
+                        if group.faculty_obj
+                        else None,
+                        "speciality": group.speciality_obj.name
+                        if group.speciality_obj
+                        else None,
+                        "course": group.course,
+                        "semester": semester,
+                        "year": year,
+                    }
+                    for group in groups
+                ]
 
         except Exception as e:
             logger.error(f"Error searching groups: {e}")
@@ -386,20 +404,26 @@ class ScheduleService:
         """
         try:
             async for session in get_session():
+                group_result = await session.execute(
+                    select(Group).where(Group.name == group_name)
+                )
+                group = group_result.scalar_one_or_none()
+                if not group:
+                    logger.warning(f"Group {group_name} not found")
+                    return None
+
                 result = await session.execute(
-                    select(Lesson)
-                    .join(Schedule)
+                    select(ScheduleLesson)
                     .where(
                         and_(
-                            or_(
-                                Lesson.subgroup == group_name,
-                                Lesson.study_group == group_name,
-                            ),
-                            Lesson.week_number == week_number,
-                            Lesson.schedule_id == Schedule.id,
+                            ScheduleLesson.group_id == group.id,
+                            ScheduleLesson.week_number == week_number,
                         )
                     )
-                    .order_by(Lesson.day_name, Lesson.start_time)
+                    .order_by(
+                        ScheduleLesson.day_name,
+                        ScheduleLesson.start_time,
+                    )
                 )
 
                 lessons = result.scalars().all()
@@ -415,13 +439,16 @@ class ScheduleService:
                             "id": lesson.id,
                             "subject": lesson.subject.name,
                             "type": lesson.lesson_type.name,
-                            "lecturer": lesson.lecturer.name
+                            "lecturer": lesson.lecturer.full_name
                             if lesson.lecturer
                             else None,
                             "classroom": lesson.classroom.number
                             if lesson.classroom
                             else None,
                             "building": lesson.classroom.building
+                            if lesson.classroom
+                            else None,
+                            "campus": lesson.classroom.campus
                             if lesson.classroom
                             else None,
                             "pair_time": lesson.pair_time,
@@ -460,7 +487,7 @@ class ScheduleService:
         try:
             async for session in get_session():
                 # Подсчитываем общее количество занятий
-                lessons_count = await session.execute(select(Lesson.id))
+                lessons_count = await session.execute(select(ScheduleLesson.id))
                 total_lessons = len(lessons_count.scalars().all())
 
                 # Подсчитываем количество расписаний

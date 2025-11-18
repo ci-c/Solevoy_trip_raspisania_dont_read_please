@@ -59,7 +59,13 @@ class User(Base):
     username: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     first_name: Mapped[str] = mapped_column(String(64))
     last_name: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    access_level: Mapped[str] = mapped_column(String(16), default="guest")
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    last_seen: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
 
     # Relationships
     group: Mapped["Group"] = relationship(back_populates="users")
@@ -133,6 +139,7 @@ class UserProfile(Base):
     quiet_hours_start: Mapped[Optional[time]] = mapped_column(Time, nullable=True)
     quiet_hours_end: Mapped[Optional[time]] = mapped_column(Time, nullable=True)
     timezone: Mapped[str] = mapped_column(String(64), default="Europe/Moscow")
+    student_id: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,

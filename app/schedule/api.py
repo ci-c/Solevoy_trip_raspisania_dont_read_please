@@ -9,10 +9,12 @@ API client for SZGMU schedule data.
 - Обеспечение надежности запросов с тайм-аутами и обработкой ошибок
 """
 
-import requests
 import json
 import logging
 from typing import Dict, List, Optional
+
+import httpx
+
 from app.schedule.models import Lesson
 
 # Set up logging for the module
@@ -60,12 +62,10 @@ def find_schedule_ids(
     headers = {"Content-Type": "application/json"}
 
     try:
-        # Добавляем тайм-аут 10 секунд для API запросов
-        response = requests.post(
-            url, headers=headers, data=json.dumps(payload), timeout=10
-        )
-        response.raise_for_status()
-        data = response.json()
+        with httpx.Client(timeout=10.0) as client:
+            response = client.post(url, headers=headers, json=payload)
+            response.raise_for_status()
+            data = response.json()
 
         if "content" in data:
             found_ids = [item["id"] for item in data["content"]]
@@ -74,8 +74,16 @@ def find_schedule_ids(
             logger.error("API response is missing the 'content' key.")
             return []
 
-    except requests.exceptions.RequestException as e:
+    except httpx.HTTPStatusError as e:
+        logger.error(
+            "Schedule ID request failed with status %s", e.response.status_code
+        )
+        return []
+    except httpx.RequestError as e:
         logger.error(f"HTTP request error occurred: {e}")
+        return []
+    except Exception as e:
+        logger.error(f"Unexpected error searching schedule IDs: {e}")
         return []
     except json.JSONDecodeError:
         logger.error("JSON decoding error: The response is not valid JSON.")
@@ -95,10 +103,10 @@ def get_schedule_data(schedule_id: int) -> dict | None:
     api_url = f"https://frsview.szgmu.ru/api/xlsxSchedule/findById?xlsxScheduleId={schedule_id}"
 
     try:
-        # Добавляем тайм-аут 15 секунд для загрузки данных расписания
-        response = requests.get(api_url, timeout=15)
-        response.raise_for_status()
-        data = response.json()
+        with httpx.Client(timeout=15.0) as client:
+            response = client.get(api_url)
+            response.raise_for_status()
+            data = response.json()
 
         # Log general schedule parameters
         logger.info("-" * 20)
@@ -115,8 +123,17 @@ def get_schedule_data(schedule_id: int) -> dict | None:
         logger.info("-" * 20)
 
         return data
-    except requests.exceptions.RequestException as e:
+    except httpx.HTTPStatusError as e:
+        logger.error(
+            "Schedule data request failed with status %s",
+            e.response.status_code,
+        )
+        return None
+    except httpx.RequestError as e:
         logger.error(f"HTTP request error occurred: {e}")
+        return None
+    except Exception as e:
+        logger.error(f"Unexpected error fetching schedule data: {e}")
         return None
     except json.JSONDecodeError:
         logger.error("JSON decoding error: The response is not valid JSON.")
@@ -210,19 +227,20 @@ async def search_schedules(selected_filters: Dict[str, List[str]]) -> List[Dict]
             f"API parameters: course={course_number}, speciality={speciality}, stream={group_stream}"
         )
 
-        # Find schedule IDs с защитой от блокировки
-        def _find_schedule_ids_sync():
-            return find_schedule_ids(
-                group_stream=group_stream,
-                speciality=speciality,
-                course_number=course_number,
-                academic_year=academic_year,
-                semester=semester,
-            )
-
-        # Выполняем поиск в отдельном потоке с тайм-аутом
         loop = asyncio.get_event_loop()
+        results: List[Dict[str, Any]] = []
+
         with ThreadPoolExecutor() as executor:
+            # Find schedule IDs с защитой от блокировки
+            def _find_schedule_ids_sync():
+                return find_schedule_ids(
+                    group_stream=group_stream,
+                    speciality=speciality,
+                    course_number=course_number,
+                    academic_year=academic_year,
+                    semester=semester,
+                )
+
             try:
                 schedule_ids = await asyncio.wait_for(
                     loop.run_in_executor(executor, _find_schedule_ids_sync),
@@ -232,84 +250,82 @@ async def search_schedules(selected_filters: Dict[str, List[str]]) -> List[Dict]
                 logger.error("Schedule IDs search timed out")
                 return []
 
-        logger.info(f"Found {len(schedule_ids)} schedule IDs")
+            logger.info(f"Found {len(schedule_ids)} schedule IDs")
 
-        if not schedule_ids:
-            logger.warning("No schedule IDs found")
-            return []
+            if not schedule_ids:
+                logger.warning("No schedule IDs found")
+                return []
 
-        # Get schedule data for each ID with limits and error handling
-        results = []
-        max_schedules = min(5, len(schedule_ids))  # Ограничиваем до 5 для скорости
+            max_schedules = min(5, len(schedule_ids))
 
-        for i, schedule_id in enumerate(schedule_ids[:max_schedules]):
-            logger.info(
-                f"Processing schedule {i + 1}/{max_schedules}: ID {schedule_id}"
-            )
-
-            def _get_schedule_data_sync():
-                return get_schedule_data(schedule_id)
-
-            try:
-                # Получаем данные расписания с тайм-аутом
-                schedule_data = await asyncio.wait_for(
-                    loop.run_in_executor(executor, _get_schedule_data_sync),
-                    timeout=15.0,
+            for i, schedule_id in enumerate(schedule_ids[:max_schedules]):
+                logger.info(
+                    f"Processing schedule {i + 1}/{max_schedules}: ID {schedule_id}"
                 )
 
-                if schedule_data:
-                    # Extract meaningful display name from schedule data
-                    lessons = schedule_data.get("scheduleLessonDtoList", [])
-                    if lessons:
-                        first_lesson = lessons[0]
-                        speciality_name = first_lesson.get("speciality", "Unknown")
-                        course_num = first_lesson.get("courseNumber", "Unknown")
-                        stream = first_lesson.get("groupStream", "Unknown")
-                        semester_name = first_lesson.get("semester", "Unknown")
-                        year = first_lesson.get("academicYear", "Unknown")
+                def _get_schedule_data_sync():
+                    return get_schedule_data(schedule_id)
 
-                        display_name = f"{speciality_name} - {course_num} курс, {stream} поток, {semester_name} {year}"
-
-                        # Фильтруем по группе, если указана
-                        if group:
-                            group_found = False
-                            for lesson in lessons[:10]:  # Проверяем первые 10 занятий
-                                lesson_group = lesson.get("group", "")
-                                if any(
-                                    g.lower() in lesson_group.lower() for g in group
-                                ):
-                                    group_found = True
-                                    break
-                            if not group_found:
-                                logger.info(
-                                    f"Schedule {schedule_id} doesn't contain requested group"
-                                )
-                                continue
-
-                    else:
-                        file_name = schedule_data.get(
-                            "fileName", f"Schedule {schedule_id}"
-                        )
-                        display_name = file_name
-
-                    results.append(
-                        {
-                            "id": schedule_id,
-                            "display_name": display_name,
-                            "data": schedule_data,
-                        }
+                try:
+                    schedule_data = await asyncio.wait_for(
+                        loop.run_in_executor(executor, _get_schedule_data_sync),
+                        timeout=15.0,
                     )
 
-                    logger.info(f"Successfully processed schedule {schedule_id}")
-                else:
-                    logger.warning(f"No data for schedule {schedule_id}")
+                    if schedule_data:
+                        lessons = schedule_data.get("scheduleLessonDtoList", [])
+                        if lessons:
+                            first_lesson = lessons[0]
+                            speciality_name = first_lesson.get("speciality", "Unknown")
+                            course_num = first_lesson.get("courseNumber", "Unknown")
+                            stream = first_lesson.get("groupStream", "Unknown")
+                            semester_name = first_lesson.get("semester", "Unknown")
+                            year = first_lesson.get("academicYear", "Unknown")
 
-            except asyncio.TimeoutError:
-                logger.warning(f"Timeout getting data for schedule {schedule_id}")
-                continue
-            except Exception as e:
-                logger.error(f"Error processing schedule {schedule_id}: {e}")
-                continue
+                            display_name = (
+                                f"{speciality_name} - {course_num} курс, {stream} поток, "
+                                f"{semester_name} {year}"
+                            )
+
+                            if group:
+                                group_found = False
+                                for lesson in lessons[:10]:
+                                    lesson_group = lesson.get("group", "")
+                                    if any(
+                                        g.lower() in lesson_group.lower() for g in group
+                                    ):
+                                        group_found = True
+                                        break
+                                if not group_found:
+                                    logger.info(
+                                        "Schedule %s doesn't contain requested group",
+                                        schedule_id,
+                                    )
+                                    continue
+                        else:
+                            display_name = schedule_data.get(
+                                "fileName", f"Schedule {schedule_id}"
+                            )
+
+                        results.append(
+                            {
+                                "id": schedule_id,
+                                "display_name": display_name,
+                                "data": schedule_data,
+                            }
+                        )
+                        logger.info(
+                            "Successfully processed schedule %s", schedule_id
+                        )
+                    else:
+                        logger.warning("No data for schedule %s", schedule_id)
+
+                except asyncio.TimeoutError:
+                    logger.warning("Timeout getting data for schedule %s", schedule_id)
+                    continue
+                except Exception as e:
+                    logger.error(f"Error processing schedule {schedule_id}: {e}")
+                    continue
 
         logger.info(f"Returning {len(results)} processed schedules")
         return results

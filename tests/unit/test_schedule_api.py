@@ -24,14 +24,16 @@ from app.schedule.api import (
 class TestScheduleAPI:
     """Тесты для Schedule API."""
 
-    @patch("app.schedule.api.requests.post")
-    def test_find_schedule_ids_success(self, mock_post):
+    @patch("app.schedule.api.httpx.Client")
+    def test_find_schedule_ids_success(self, mock_client_cls):
         """Тест успешного поиска ID расписаний."""
         # Мокируем успешный ответ API
         mock_response = MagicMock()
         mock_response.json.return_value = {"content": [{"id": 123}, {"id": 456}]}
         mock_response.raise_for_status.return_value = None
-        mock_post.return_value = mock_response
+        mock_client = MagicMock()
+        mock_client.post.return_value = mock_response
+        mock_client_cls.return_value.__enter__.return_value = mock_client
 
         result = find_schedule_ids(
             group_stream=["а"],
@@ -41,19 +43,21 @@ class TestScheduleAPI:
         )
 
         assert result == [123, 456]
-        mock_post.assert_called_once()
+        mock_client.post.assert_called_once()
 
-    @patch("app.schedule.api.requests.post")
-    def test_find_schedule_ids_api_error(self, mock_post):
+    @patch("app.schedule.api.httpx.Client")
+    def test_find_schedule_ids_api_error(self, mock_client_cls):
         """Тест обработки ошибки API при поиске ID."""
-        mock_post.side_effect = Exception("API Error")
+        mock_client = MagicMock()
+        mock_client.post.side_effect = Exception("API Error")
+        mock_client_cls.return_value.__enter__.return_value = mock_client
 
         result = find_schedule_ids(group_stream=["а"])
 
         assert result == []
 
-    @patch("app.schedule.api.requests.get")
-    def test_get_schedule_data_success(self, mock_get):
+    @patch("app.schedule.api.httpx.Client")
+    def test_get_schedule_data_success(self, mock_client_cls):
         """Тест успешного получения данных расписания."""
         mock_response = MagicMock()
         mock_response.json.return_value = {
@@ -69,7 +73,9 @@ class TestScheduleAPI:
             ],
         }
         mock_response.raise_for_status.return_value = None
-        mock_get.return_value = mock_response
+        mock_client = MagicMock()
+        mock_client.get.return_value = mock_response
+        mock_client_cls.return_value.__enter__.return_value = mock_client
 
         result = get_schedule_data(schedule_id=123)
 
@@ -77,10 +83,12 @@ class TestScheduleAPI:
         assert result["fileName"] == "test_schedule.xlsx"
         assert len(result["scheduleLessonDtoList"]) == 1
 
-    @patch("app.schedule.api.requests.get")
-    def test_get_schedule_data_timeout(self, mock_get):
+    @patch("app.schedule.api.httpx.Client")
+    def test_get_schedule_data_timeout(self, mock_client_cls):
         """Тест обработки тайм-аута при получении данных."""
-        mock_get.side_effect = Exception("Timeout")
+        mock_client = MagicMock()
+        mock_client.get.side_effect = Exception("Timeout")
+        mock_client_cls.return_value.__enter__.return_value = mock_client
 
         result = get_schedule_data(schedule_id=123)
 

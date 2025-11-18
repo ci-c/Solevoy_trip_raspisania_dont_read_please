@@ -1,38 +1,53 @@
-"""
-Улучшенный API клиент для работы с расписаниями СЗГМУ.
-"""
+"""Асинхронный HTTP‑клиент для работы с расписаниями СЗГМУ."""
+
+from __future__ import annotations
 
 import asyncio
-import json
-from concurrent.futures import ThreadPoolExecutor
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
+
+import httpx
 from loguru import logger
-import requests
 
 
 class APIClient:
-    """Асинхронный API клиент для СЗГМУ."""
+    """Асинхронный клиент для API `xlsxSchedule`."""
 
-    def __init__(self):
+    def __init__(self, timeout: float = 20.0) -> None:
         self.base_url = "https://frsview.szgmu.ru/api/xlsxSchedule"
-        self.session = requests.Session()
-        self.session.headers.update(
-            {"Content-Type": "application/json", "User-Agent": "SZGMU-Schedule-Bot/1.0"}
-        )
+        self._headers = {
+            "Content-Type": "application/json",
+            "User-Agent": "SZGMU-Schedule-Bot/2.0",
+        }
+        self._timeout = httpx.Timeout(timeout)
 
-    def _find_schedule_ids_sync(
+    async def _post_json(
+        self, client: httpx.AsyncClient, endpoint: str, payload: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        response = await client.post(
+            f"{self.base_url}{endpoint}", json=payload, headers=self._headers
+        )
+        response.raise_for_status()
+        return response.json()
+
+    async def _get_json(
+        self, client: httpx.AsyncClient, endpoint: str
+    ) -> Dict[str, Any]:
+        response = await client.get(
+            f"{self.base_url}{endpoint}", headers=self._headers
+        )
+        response.raise_for_status()
+        return response.json()
+
+    async def find_schedule_ids(
         self,
-        group_stream: List[str] | None = None,
-        speciality: List[str] | None = None,
-        course_number: List[str] | None = None,
+        group_stream: Optional[List[str]] = None,
+        speciality: Optional[List[str]] = None,
+        course_number: Optional[List[str]] = None,
         academic_year: Optional[List[str]] = None,
         lesson_type: Optional[List[str]] = None,
         semester: Optional[List[str]] = None,
     ) -> List[int]:
-        """Синхронный поиск ID расписаний."""
-        url = f"{self.base_url}/findAll/0"
-
-        payload = {
+        payload: Dict[str, Any] = {
             "groupStream": group_stream or [],
             "speciality": speciality or [],
             "courseNumber": course_number or [],
@@ -41,289 +56,121 @@ class APIClient:
             "semester": semester or [],
         }
 
-        logger.debug(f"API request payload: {payload}")
+        schedule_ids: List[int] = []
+        page = 0
+        total_elements: Optional[int] = None
 
-        try:
-            response = self.session.post(url, data=json.dumps(payload), timeout=15)
-            response.raise_for_status()
-            data = response.json()
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            while True:
+                try:
+                    data = await self._post_json(
+                        client, f"/findAll/{page}", payload
+                    )
+                except httpx.HTTPStatusError as exc:
+                    logger.warning(
+                        "Schedule list request returned %s on page %s",
+                        exc.response.status_code,
+                        page,
+                    )
+                    break
+                except httpx.RequestError as exc:
+                    logger.error(f"Schedule list request error: {exc}")
+                    break
 
-            if "content" in data:
-                schedule_ids = [item["id"] for item in data["content"]]
-                total_elements = data.get("totalElements", 0)
-                logger.info(
-                    f"Found {len(schedule_ids)} schedule IDs (total: {total_elements})"
+                content = data.get("content", [])
+                if not content:
+                    if page == 0:
+                        logger.info("API returned empty content for first page")
+                    break
+
+                page_ids = [item.get("id") for item in content if item.get("id")]
+                schedule_ids.extend(page_ids)
+
+                if total_elements is None:
+                    total_elements = data.get("totalElements", len(schedule_ids))
+
+                if len(schedule_ids) >= total_elements:
+                    break
+
+                page += 1
+
+        logger.info(f"Collected {len(schedule_ids)} schedule IDs")
+        return schedule_ids
+
+    async def get_schedule_data(self, schedule_id: int) -> Optional[Dict[str, Any]]:
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            try:
+                data = await self._get_json(
+                    client, f"/findById?xlsxScheduleId={schedule_id}"
                 )
-
-                # Если есть еще страницы, получаем их все
-                if total_elements > len(schedule_ids):
-                    logger.info(
-                        f"Fetching all pages to get {total_elements} total schedules..."
-                    )
-
-                    page = 0
-                    all_schedule_ids = schedule_ids.copy()
-
-                    while len(all_schedule_ids) < total_elements:
-                        page += 1
-                        page_url = f"{self.base_url}/findAll/{page}"
-
-                        try:
-                            page_response = self.session.post(
-                                page_url, data=json.dumps(payload), timeout=15
-                            )
-                            page_response.raise_for_status()
-                            page_data = page_response.json()
-
-                            if "content" in page_data and page_data["content"]:
-                                page_ids = [item["id"] for item in page_data["content"]]
-                                all_schedule_ids.extend(page_ids)
-                                logger.info(
-                                    f"Page {page}: found {len(page_ids)} more schedule IDs"
-                                )
-                            else:
-                                logger.info(f"Page {page}: empty, stopping pagination")
-                                break
-
-                        except Exception as e:
-                            logger.warning(f"Error fetching page {page}: {e}")
-                            break
-
-                    logger.info(
-                        f"Total schedule IDs collected: {len(all_schedule_ids)}"
-                    )
-                    return all_schedule_ids
-
-                return schedule_ids
-            else:
-                logger.warning("API response missing 'content' key")
-                return []
-
-        except requests.exceptions.Timeout:
-            logger.error("Schedule IDs request timed out")
-            return []
-        except requests.exceptions.RequestException as e:
-            logger.error(f"HTTP request error: {e}")
-            return []
-        except json.JSONDecodeError as e:
-            logger.error(f"JSON decode error: {e}")
-            return []
-
-    def _get_schedule_data_sync(self, schedule_id: int) -> Optional[Dict]:
-        """Синхронное получение данных расписания."""
-        url = f"{self.base_url}/findById?xlsxScheduleId={schedule_id}"
-
-        try:
-            response = self.session.get(url, timeout=20)
-            response.raise_for_status()
-            data = response.json()
-
-            # Базовая валидация данных
-            if not data.get("scheduleLessonDtoList"):
-                logger.warning(f"Schedule {schedule_id} has no lessons")
+            except httpx.HTTPStatusError as exc:
+                logger.warning(
+                    "Schedule data request returned %s for id %s",
+                    exc.response.status_code,
+                    schedule_id,
+                )
                 return None
-
-            logger.debug(
-                f"Loaded schedule {schedule_id} with {len(data['scheduleLessonDtoList'])} lessons"
-            )
-            return data
-
-        except requests.exceptions.Timeout:
-            logger.error(f"Schedule data request timed out for ID {schedule_id}")
-            return None
-        except requests.exceptions.RequestException as e:
-            logger.error(f"HTTP request error for schedule {schedule_id}: {e}")
-            return None
-        except json.JSONDecodeError as e:
-            logger.error(f"JSON decode error for schedule {schedule_id}: {e}")
-            return None
-
-    async def find_schedule_ids(
-        self,
-        group_stream: List[str] | None = None,
-        speciality: List[str] | None = None,
-        course_number: List[str] | None = None,
-        academic_year: Optional[List[str]] = None,
-        lesson_type: Optional[List[str]] = None,
-        semester: Optional[List[str]] = None,
-    ) -> List[int]:
-        """Асинхронный поиск ID расписаний."""
-        loop = asyncio.get_event_loop()
-
-        with ThreadPoolExecutor(max_workers=2) as executor:
-            try:
-                schedule_ids = await asyncio.wait_for(
-                    loop.run_in_executor(
-                        executor,
-                        self._find_schedule_ids_sync,
-                        group_stream,
-                        speciality,
-                        course_number,
-                        academic_year,
-                        lesson_type,
-                        semester,
-                    ),
-                    timeout=20.0,
-                )
-                return schedule_ids
-
-            except asyncio.TimeoutError:
-                logger.error("Async schedule IDs search timed out")
-                return []
-
-    async def get_schedule_data(self, schedule_id: int) -> Optional[Dict]:
-        """Асинхронное получение данных расписания."""
-        loop = asyncio.get_event_loop()
-
-        with ThreadPoolExecutor(max_workers=2) as executor:
-            try:
-                schedule_data = await asyncio.wait_for(
-                    loop.run_in_executor(
-                        executor, self._get_schedule_data_sync, schedule_id
-                    ),
-                    timeout=25.0,
-                )
-                return schedule_data
-
-            except asyncio.TimeoutError:
+            except httpx.RequestError as exc:
                 logger.error(
-                    f"Async schedule data request timed out for ID {schedule_id}"
+                    f"Schedule data request error for id {schedule_id}: {exc}"
                 )
                 return None
 
-    async def search_schedules(self, filters: Dict[str, List[str]]) -> List[Dict]:
-        """Поиск расписаний с улучшенной обработкой ошибок."""
+        lessons = data.get("scheduleLessonDtoList")
+        if not lessons:
+            logger.warning(f"Schedule {schedule_id} has no lessons")
+            return None
+
+        logger.debug(
+            "Loaded schedule %s with %s lessons", schedule_id, len(lessons)
+        )
+        return data
+
+    async def search_schedules(self, filters: Dict[str, List[str]]) -> List[Dict[str, Any]]:
         logger.info(f"Starting schedule search with filters: {filters}")
 
-        try:
-            # Извлекаем параметры поиска
-            course_number = filters.get("Курс", [])
-            speciality = filters.get("Специальность", [])
-            group_stream = filters.get("Поток", [])
-            semester = filters.get("Семестр", [])
-            academic_year = filters.get("Учебный год", [])
-            group = filters.get("Группа", [])
+        course_number = filters.get("Курс", [])
+        speciality = filters.get("Специальность", [])
+        group_stream = filters.get("Поток", [])
+        semester = filters.get("Семестр", [])
+        academic_year = filters.get("Учебный год", [])
+        group = filters.get("Группа", [])
 
-            # Автоматически извлекаем курс из номера группы
-            if group and not course_number:
-                for group_num in group:
-                    if group_num and group_num[0].isdigit():
-                        course_number = [group_num[0]]
-                        logger.info(
-                            f"Extracted course {course_number[0]} from group {group_num}"
-                        )
-                        break
-
-            # Поиск ID расписаний
-            schedule_ids = await self.find_schedule_ids(
-                group_stream=group_stream,
-                speciality=speciality,
-                course_number=course_number,
-                academic_year=academic_year,
-                semester=semester,
-            )
-
-            if not schedule_ids:
-                logger.warning("No schedule IDs found")
-                return []
-
-            # Ограничиваем количество для производительности
-            max_schedules = min(3, len(schedule_ids))
-            results = []
-
-            # Обрабатываем расписания параллельно
-            tasks = [
-                self.get_schedule_data(schedule_id)
-                for schedule_id in schedule_ids[:max_schedules]
-            ]
-
-            schedule_data_list = await asyncio.gather(*tasks, return_exceptions=True)
-
-            for i, (schedule_id, schedule_data) in enumerate(
-                zip(schedule_ids[:max_schedules], schedule_data_list)
-            ):
-                if isinstance(schedule_data, Exception):
-                    logger.error(
-                        f"Error loading schedule {schedule_id}: {schedule_data}"
+        if group and not course_number:
+            for group_num in group:
+                if group_num and group_num[0].isdigit():
+                    course_number = [group_num[0]]
+                    logger.info(
+                        "Extracted course %s from group %s",
+                        course_number[0],
+                        group_num,
                     )
-                    continue
+                    break
 
-                if not schedule_data:
-                    continue
+        schedule_ids = await self.find_schedule_ids(
+            group_stream=group_stream,
+            speciality=speciality,
+            course_number=course_number,
+            academic_year=academic_year,
+            semester=semester,
+        )
 
-                # Type assertion для mypy
-                if not isinstance(schedule_data, dict):
-                    continue
+        if not schedule_ids:
+            logger.warning("No schedule IDs found")
+            return []
 
-                # Фильтрация по группе
-                if group:
-                    group_found = self._check_group_in_schedule(schedule_data, group)
-                    if not group_found:
-                        logger.debug(
-                            f"Schedule {schedule_id} doesn't contain requested group"
-                        )
-                        continue
+        max_schedules = min(3, len(schedule_ids))
+        tasks = [self.get_schedule_data(schedule_id) for schedule_id in schedule_ids[:max_schedules]]
+        schedule_data_list = await asyncio.gather(*tasks, return_exceptions=True)
 
-                # Формируем результат
-                display_name = self._create_display_name(schedule_data, schedule_id)
+        results: List[Dict[str, Any]] = []
+        for schedule_id, data in zip(schedule_ids, schedule_data_list):
+            if isinstance(data, Exception):
+                logger.error(f"Error in schedule task for ID {schedule_id}: {data}")
+                continue
+            if not data:
+                continue
+            results.append(data)
 
-                results.append(
-                    {
-                        "id": schedule_id,
-                        "display_name": display_name,
-                        "data": schedule_data,
-                    }
-                )
-
-                logger.info(f"Processed schedule {schedule_id}: {display_name}")
-
-            logger.info(f"Returning {len(results)} schedules")
-            return results
-
-        except Exception as e:
-            logger.error(f"Critical error in search_schedules: {e}")
-            logger.error(f"Traceback: {e.__traceback__}")
-        return []
-
-    def _check_group_in_schedule(self, schedule_data: Dict, groups: List[str]) -> bool:
-        """Проверить содержит ли расписание указанную группу."""
-        lessons = schedule_data.get("scheduleLessonDtoList", [])
-
-        for lesson in lessons[:20]:  # Проверяем первые 20 занятий
-            lesson_group = lesson.get("group", "").lower()
-            if any(g.lower() in lesson_group for g in groups):
-                return True
-
-        return False
-
-    def _create_display_name(self, schedule_data: Dict, schedule_id: int) -> str:
-        """Создать отображаемое имя расписания."""
-        lessons = schedule_data.get("scheduleLessonDtoList", [])
-
-        if lessons:
-            first_lesson = lessons[0]
-            speciality = first_lesson.get("speciality", "Unknown")[:30]
-            course_num = first_lesson.get("courseNumber", "Unknown")
-            stream = first_lesson.get("groupStream", "Unknown")
-            semester = first_lesson.get("semester", "Unknown")
-            year = first_lesson.get("academicYear", "Unknown")
-
-            return (
-                f"{speciality} - {course_num} курс, {stream} поток, {semester} {year}"
-            )
-        else:
-            file_name = schedule_data.get("fileName", f"Schedule {schedule_id}")
-            return file_name[:50]
-
-    def close(self):
-        """Закрыть сессию."""
-        if self.session:
-            self.session.close()
-
-    def __del__(self):
-        """Деструктор для очистки ресурсов."""
-        try:
-            self.close()
-        except Exception as e:
-            logger.error(f"Unexpected error: {e}")
-            logger.error(f"Traceback: {e.__traceback__}")
+        logger.info(f"Collected {len(results)} schedules")
+        return results

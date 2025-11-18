@@ -11,6 +11,7 @@ import pytest
 from app.services.user_service import UserService
 from app.services.schedule_service import ScheduleService
 from app.models.user import AccessLevel
+from app.database.session import DATABASE_PATH, init_db
 
 
 @pytest.fixture(scope="session")
@@ -19,6 +20,15 @@ def event_loop():
     loop = asyncio.new_event_loop()
     yield loop
     loop.close()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def reset_database(event_loop):
+    """Пересоздать БД перед тестовой сессией."""
+    if DATABASE_PATH.exists():
+        DATABASE_PATH.unlink()
+    event_loop.run_until_complete(init_db())
+    yield
 
 
 @pytest.fixture

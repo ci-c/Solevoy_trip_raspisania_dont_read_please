@@ -5,7 +5,7 @@
 import asyncio
 import time
 from datetime import datetime, time as dt_time
-from typing import Optional, Set
+from typing import Any, Dict, List, Optional, Set
 from loguru import logger
 
 from app.database.session import get_session
@@ -124,37 +124,31 @@ class APISyncService:
         # Создаем группы из занятий после синхронизации
         await self._create_groups_from_lessons()
 
-    async def _get_all_schedules(self) -> list[dict[str, str]]:
-        """Получить все расписания из API."""
+    async def _get_all_schedules(self) -> List[dict[str, Any]]:
+        """Получить и загрузить все расписания из API."""
         try:
-            loop = asyncio.get_event_loop()
-            schedules = await loop.run_in_executor(
-                None, self.api_client._find_schedule_ids_sync
-            )
+            schedule_ids = await self.api_client.find_schedule_ids()
+            if not schedule_ids:
+                return []
 
-            all_schedules = []
-            for schedule_id in schedules:
-                schedule_data = await loop.run_in_executor(
-                    None, self.api_client._get_schedule_data_sync, schedule_id
-                )
-                if schedule_data:
-                    all_schedules.append(schedule_data)
+            schedules: List[dict[str, Any]] = []
+            for schedule_id in schedule_ids:
+                data = await self.api_client.get_schedule_data(schedule_id)
+                if data:
+                    schedules.append(data)
 
-            logger.info(f"Retrieved {len(all_schedules)} schedules from API")
-            return all_schedules
+            logger.info("Retrieved %s schedules from API", len(schedules))
+            return schedules
 
         except Exception as e:
             logger.error(f"Error getting schedules from API: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
-        return None
+        return []
 
-    async def _get_schedule_details(self, schedule_id: int) -> dict[str, str] | None:
+    async def _get_schedule_details(self, schedule_id: int) -> dict[str, Any] | None:
         """Получить детали расписания."""
         try:
-            loop = asyncio.get_event_loop()
-            return await loop.run_in_executor(
-                None, self.api_client._get_schedule_data_sync, schedule_id
-            )
+            return await self.api_client.get_schedule_data(schedule_id)
         except Exception as e:
             logger.error(f"Error getting schedule details for {schedule_id}: {e}")
             logger.error(f"Traceback: {e.__traceback__}")

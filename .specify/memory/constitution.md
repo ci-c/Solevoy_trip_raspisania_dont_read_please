@@ -61,7 +61,7 @@ Follow-up TODOs:
 
 ## Implementation Constraints
 
-- **Language & Tooling**: Python 3.14 managed with `uv`; `black` formatting, `ruff` linting, and `mypy` typing are gate checks.
+- **Language & Tooling**: Python 3.13 managed with `uv`; `black` formatting, `ruff` linting, and `mypy` typing are gate checks.
 - **Frameworks**: aiogram 3 for Telegram flows, SQLAlchemy 2.0 for ORM, Pydantic for validation, Loguru for logging. Deviations require constitution amendment.
 - **Data Stores**: SQLite (`data/szgmu_bot.db`) is the canonical store; alternative engines demand migration plans reviewed during planning.
 - **Ingestion Sources**: ICS and Excel imports MUST route through `app/schedule/` abstractions; legacy scripts in `legacy/` may inform design but never run in production.
