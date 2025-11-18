@@ -1,7 +1,0 @@
-(A) 2025-09-22 Архитектурный обзор @arch +issue_id:ISS-0001 +status:in_progress +assignee:AGENT_001_v1 +sp5 +architecture +planning
-(A) 2025-09-22 Проверить сервисы расписаний @be +issue_id:ISS-0002 +status:ready +assignee:AGENT_001_v1 +sp3 +backend +orientation
-(A) 2025-09-22 Аудит пользовательских сценариев @fe +issue_id:ISS-0003 +status:ready +assignee:AGENT_001_v1 +sp2 +frontend +ux
-(B) 2025-09-22 Критические тест-кейсы @qa +issue_id:ISS-0004 +status:ready +assignee:AGENT_001_v1 +sp2 +testing +quality
-(B) 2025-09-22 Мониторинг и алерты @do +issue_id:ISS-0005 +status:ready +assignee:AGENT_001_v1 +sp3 +devops +monitoring
-(A) 2025-09-22 Уточнить требования пользователя @po +issue_id:ISS-0006 +status:in_refinement +assignee:AGENT_001_v1 +sp2 +planning +backlog
-(A) 2025-09-22 Организовать процесс @sm +issue_id:ISS-0007 +status:ready +assignee:AGENT_001_v1 +sp2 +scrum +coordination
