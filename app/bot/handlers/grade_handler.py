@@ -4,10 +4,8 @@
 """Обработчики для модуля оценок и академических показателей."""
 
 from datetime import date
-from typing import List
 
 from aiogram import Dispatcher, types
-from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from loguru import logger
 
@@ -20,7 +18,6 @@ from app.bot.keyboards import (
 from app.bot.states import GradeStates
 from app.services.grade_calculator_service import GradeCalculatorService
 from app.services.user_service import UserService
-from app.models.academic import GradeType
 
 
 async def handle_grades_main(
@@ -49,7 +46,7 @@ async def handle_grades_main(
         # Получаем общую статистику
         stats = await grade_service.get_user_overall_stats(user_id)
 
-        text = f"🔢 **Академические показатели**\n\n"
+        text = "🔢 **Академические показатели**\n\n"
         text += f"👤 {user.full_name or 'Пользователь'}\n"
         text += f"🎓 Группа: {user.group_name or 'Не указана'}\n\n"
 
@@ -96,12 +93,12 @@ async def handle_subject_selection(
         subject_stats = await grade_service.get_subject_stats(user_id, subject)
 
         text = f"📚 **{subject}**\n\n"
-        text += f"📊 **Показатели:**\n"
+        text += "📊 **Показатели:**\n"
         text += f"• ТСБ: {subject_stats.tsb:.2f}\n"
         text += f"• КНЛ: {subject_stats.knl:.2f}\n"
         text += f"• КНС: {subject_stats.kns:.2f}\n"
         text += f"• **ОСБ: {subject_stats.osb:.2f}**\n\n"
-        text += f"📈 **Посещаемость:**\n"
+        text += "📈 **Посещаемость:**\n"
         text += f"• Всего занятий: {subject_stats.total_lessons}\n"
         text += f"• Посещено: {subject_stats.attended_lessons}\n"
         text += f"• Пропущено (ув.): {subject_stats.excused_absences}\n"
@@ -198,7 +195,7 @@ async def handle_add_grade(
     except Exception as e:
         logger.error(f"Error in add grade handler: {e}")
         await callback.message.edit_text(
-            f"❌ Ошибка при добавлении оценки. Попробуйте позже.",
+            "❌ Ошибка при добавлении оценки. Попробуйте позже.",
             reply_markup=get_grades_keyboard([]),
         )
 
@@ -265,7 +262,7 @@ async def handle_grade_type_selection(
     except Exception as e:
         logger.error(f"Error in grade type selection handler: {e}")
         await callback.message.edit_text(
-            f"❌ Ошибка при выборе типа оценки. Попробуйте позже.",
+            "❌ Ошибка при выборе типа оценки. Попробуйте позже.",
             reply_markup=get_grades_keyboard([]),
         )
 
@@ -322,7 +319,7 @@ async def handle_grade_value_selection(
             )
         else:
             await callback.message.edit_text(
-                f"❌ Ошибка при сохранении оценки. Попробуйте позже.",
+                "❌ Ошибка при сохранении оценки. Попробуйте позже.",
                 reply_markup=get_grades_keyboard([]),
             )
 
@@ -331,7 +328,7 @@ async def handle_grade_value_selection(
     except Exception as e:
         logger.error(f"Error in grade value selection handler: {e}")
         await callback.message.edit_text(
-            f"❌ Ошибка при сохранении оценки. Попробуйте позже.",
+            "❌ Ошибка при сохранении оценки. Попробуйте позже.",
             reply_markup=get_grades_keyboard([]),
         )
 
@@ -383,7 +380,7 @@ async def handle_add_attendance(
     except Exception as e:
         logger.error(f"Error in add attendance handler: {e}")
         await callback.message.edit_text(
-            f"❌ Ошибка при добавлении посещаемости. Попробуйте позже.",
+            "❌ Ошибка при добавлении посещаемости. Попробуйте позже.",
             reply_markup=get_grades_keyboard([]),
         )
 
@@ -443,7 +440,7 @@ async def handle_attendance_type_selection(
     except Exception as e:
         logger.error(f"Error in attendance type selection handler: {e}")
         await callback.message.edit_text(
-            f"❌ Ошибка при выборе типа занятия. Попробуйте позже.",
+            "❌ Ошибка при выборе типа занятия. Попробуйте позже.",
             reply_markup=get_grades_keyboard([]),
         )
 
@@ -510,7 +507,7 @@ async def handle_attendance_status_selection(
             )
         else:
             await callback.message.edit_text(
-                f"❌ Ошибка при сохранении посещаемости. Попробуйте позже.",
+                "❌ Ошибка при сохранении посещаемости. Попробуйте позже.",
                 reply_markup=get_grades_keyboard([]),
             )
 
@@ -519,7 +516,7 @@ async def handle_attendance_status_selection(
     except Exception as e:
         logger.error(f"Error in attendance status selection handler: {e}")
         await callback.message.edit_text(
-            f"❌ Ошибка при сохранении посещаемости. Попробуйте позже.",
+            "❌ Ошибка при сохранении посещаемости. Попробуйте позже.",
             reply_markup=get_grades_keyboard([]),
         )
 

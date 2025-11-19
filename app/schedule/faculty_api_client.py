@@ -1,7 +1,6 @@
 """API client for working with SZGMU faculties and specialities."""
 
 import json
-from typing import Optional
 
 import httpx
 from loguru import logger

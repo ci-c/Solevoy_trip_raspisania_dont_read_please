@@ -16,7 +16,7 @@ from app.database.models import (
     Semester,
     Group,
 )
-from sqlalchemy import select, and_, or_, func
+from sqlalchemy import select, and_, func
 
 
 class ScheduleService:

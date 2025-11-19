@@ -2,10 +2,9 @@
 Асинхронный сервис для синхронизации данных с API СЗГМУ.
 """
 
-import asyncio
 import time
 from datetime import datetime, time as dt_time
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, List, Optional, Set
 from loguru import logger
 
 from app.database.session import get_session

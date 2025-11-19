@@ -6,9 +6,6 @@
 import pytest
 import asyncio
 from unittest.mock import AsyncMock, MagicMock
-from aiogram import Bot, Dispatcher
-from aiogram.types import Message, User, Chat, CallbackQuery, Update
-from aiogram.fsm.context import FSMContext
 
 from app.bot.main import create_bot_app
 from app.services.schedule_service import ScheduleService

@@ -2,16 +2,14 @@
 Простой и понятный обработчик настройки группы.
 """
 
-from typing import Dict, Any
 from loguru import logger
 
 from aiogram import types
 from aiogram.fsm.context import FSMContext
 
+from app.bot.callbacks import GroupSearchCallback
 from app.bot.states import GroupSetupStates
-from app.bot.keyboards import get_simple_group_keyboard, get_confirm_keyboard
 from app.services.group_service import GroupService
-from app.utils.validation import validate_user_input, ValidationError
 
 
 async def handle_group_command(message: types.Message, state: FSMContext) -> None:
@@ -333,7 +331,6 @@ async def show_faculty_groups(
     """Показать группы выбранного факультета."""
     try:
         logger.info(f"Showing groups for faculty {faculty_id}")
-        from app.services.group_search_service import GroupSearchService
         from app.services.schedule_service import ScheduleService
 
         # Получаем информацию о факультете

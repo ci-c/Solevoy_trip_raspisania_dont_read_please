@@ -7,8 +7,8 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from loguru import logger
 
-from app.bot.keyboards import get_main_menu_keyboard, get_main_menu_reply_keyboard
-from app.bot.states import MainMenu, GroupSetupStates
+from app.bot.keyboards import get_main_menu_reply_keyboard
+from app.bot.states import MainMenu
 from app.services.user_service import UserService
 from app.utils.validation import validate_user_input, ValidationError
 from app.utils.error_handling import ErrorHandler, DatabaseError

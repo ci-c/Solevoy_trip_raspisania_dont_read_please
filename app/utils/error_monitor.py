@@ -3,7 +3,7 @@
 """Система мониторинга и предотвращения runtime ошибок."""
 
 import traceback
-from typing import Any, Callable, TypeVar, Optional
+from typing import Any, Callable, TypeVar
 from functools import wraps
 from dataclasses import dataclass
 from datetime import datetime, timedelta

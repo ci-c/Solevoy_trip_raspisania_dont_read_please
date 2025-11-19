@@ -3,8 +3,6 @@
 
 """Обработчики для системы инвайтов и контроля доступа."""
 
-from datetime import datetime
-from typing import List
 
 from aiogram import Dispatcher, types
 from aiogram.filters import StateFilter

@@ -5,7 +5,7 @@
 import traceback
 from typing import Callable, Dict, Any, Awaitable
 from aiogram import BaseMiddleware
-from aiogram.types import TelegramObject, Update
+from aiogram.types import TelegramObject
 from loguru import logger
 
 from app.utils.error_monitor import error_monitor

@@ -3,13 +3,13 @@
 """
 
 # Используем встроенные типы Python 3.9+
-from typing import Union, Optional, List, Dict, Any
+from typing import Optional, List, Dict
 from loguru import logger
 
 from app.database.session import get_session
 from app.database.models import Group
 from app.utils.validators import validate_group_data, ValidationError
-from app.utils.error_monitor import safe_execute_async, async_error_handler
+from app.utils.error_monitor import async_error_handler
 from sqlalchemy import select
 
 

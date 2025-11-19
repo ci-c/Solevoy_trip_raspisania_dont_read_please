@@ -2,7 +2,6 @@
 Сервис для инициализации системы при запуске.
 """
 
-from typing import Optional
 from loguru import logger
 
 from app.services.api_sync_service import APISyncService

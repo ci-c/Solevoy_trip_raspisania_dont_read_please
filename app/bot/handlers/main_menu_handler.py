@@ -11,7 +11,6 @@
 """
 
 from aiogram import types
-from aiogram.filters import Command
 from loguru import logger
 
 from app.bot.keyboards import get_main_menu_reply_keyboard
