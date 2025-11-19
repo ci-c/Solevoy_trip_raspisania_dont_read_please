@@ -15,11 +15,12 @@ class FacultyService:
     """Сервис для работы с факультетами."""
 
     def __init__(self):
+        """Initialize Faculty Service."""
+        pass
 
     async def load_faculties_from_api(self) -> List[Dict[str, Any]]:
         """Загрузить факультеты из реального SZGMU API."""
         try:
-            import json
 
             url = "https://frsview.szgmu.ru/api/xlsxSchedule/findAll/0"
             payload: Dict[str, Any] = {}

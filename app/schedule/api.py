@@ -11,7 +11,7 @@ API client for SZGMU schedule data.
 
 import json
 import logging
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import httpx
 

@@ -24,4 +24,5 @@ async def register_handlers(dp: Dispatcher):
     await register_group_setup_handlers(dp)
     await register_profile_handlers(dp)
     await register_grade_handlers(dp)
+    await register_invitation_handlers(dp)
     await register_error_handler(dp)

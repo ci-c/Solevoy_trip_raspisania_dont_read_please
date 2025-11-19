@@ -39,7 +39,7 @@ async def handle_invitation_main(
             )
             return
 
-        invitation_service = InvitationService()
+        InvitationService()
 
         # Проверяем права пользователя
         if user.access_level in [AccessLevel.ADMIN, AccessLevel.TESTER]:
@@ -218,7 +218,6 @@ async def handle_use_invitation(
 ) -> None:
     """Использование инвайта."""
     await callback.answer()
-    user_id = callback.from_user.id
 
     try:
         await state.set_state(InvitationStates.entering_code)

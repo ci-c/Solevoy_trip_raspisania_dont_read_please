@@ -126,7 +126,6 @@ async def handle_add_grade(
     """Добавление новой оценки."""
     await callback.answer()
     subject = callback_data.subject
-    user_id = callback.from_user.id
 
     try:
         await state.set_state(GradeStates.entering_grade_data)
@@ -207,7 +206,6 @@ async def handle_grade_type_selection(
     await callback.answer()
     subject = callback_data.subject
     grade_type = callback_data.data
-    user_id = callback.from_user.id
 
     try:
         await state.update_data(grade_type=grade_type)
@@ -339,7 +337,6 @@ async def handle_add_attendance(
     """Добавление записи о посещаемости."""
     await callback.answer()
     subject = callback_data.subject
-    user_id = callback.from_user.id
 
     try:
         await state.set_state(GradeStates.entering_attendance_data)
@@ -392,7 +389,6 @@ async def handle_attendance_type_selection(
     await callback.answer()
     subject = callback_data.subject
     lesson_type = callback_data.data
-    user_id = callback.from_user.id
 
     try:
         await state.update_data(lesson_type=lesson_type)
