@@ -74,21 +74,21 @@ class UserService:
 
             return self._to_user_model(db_user)
 
-    async def update_user_activity(self, user_id: int) -> None:
-        """Обновить время последней активности пользователя."""
+    async def update_user_activity(self, telegram_id: int) -> None:
+        """Обновить время последней активности пользователя по telegram_id."""
         now = datetime.now(tz=timezone.utc)
         async for session in get_session():
             result = await session.execute(
-                select(UserModel).where(UserModel.id == user_id)
+                select(UserModel).where(UserModel.telegram_id == telegram_id)
             )
             db_user = result.scalar_one_or_none()
             if not db_user:
-                logger.warning("User %s not found for activity update", user_id)
+                logger.warning("User with telegram_id %s not found for activity update", telegram_id)
                 return
 
             db_user.last_seen = now.astimezone(timezone.utc).replace(tzinfo=None)
             await session.commit()
-            logger.debug("Updated last_seen for user %s", user_id)
+            logger.debug("Updated last_seen for user telegram_id %s", telegram_id)
 
     async def update_user_access_level(
         self, user_id: int, access_level: AccessLevel

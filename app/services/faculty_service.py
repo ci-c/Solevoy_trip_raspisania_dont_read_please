@@ -26,7 +26,7 @@ class FacultyService:
             payload: Dict[str, Any] = {}
             headers = {"Content-Type": "application/json"}
 
-            async with httpx.AsyncClient(timeout=15.0) as client:
+            async with httpx.AsyncClient(verify=False, timeout=15.0) as client:
                 response = await client.post(url, headers=headers, json=payload)
                 response.raise_for_status()
                 data = response.json()
