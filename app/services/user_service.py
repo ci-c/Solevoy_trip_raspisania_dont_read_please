@@ -243,6 +243,7 @@ class UserService:
             full_name=full_name,
             access_level=level,
             is_active=db_user.is_active,
+            selected_group_id=db_user.group_id,
             last_seen=last_seen,
             created_at=db_user.created_at,
             updated_at=db_user.updated_at,

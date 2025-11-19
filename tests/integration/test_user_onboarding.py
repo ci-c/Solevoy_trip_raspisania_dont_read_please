@@ -89,7 +89,7 @@ class TestUserOnboarding:
         assert user.full_name is not None
         assert user.access_level is not None
         assert user.created_at is not None
-        assert user.last_activity is not None
+        assert user.last_seen is not None
 
         # Assert - Defaults are correct
         assert user.access_level == AccessLevel.BASIC
@@ -117,7 +117,7 @@ class TestUserOnboarding:
             telegram_username=sample_telegram_user["username"],
             full_name=sample_telegram_user["first_name"]
         )
-        first_activity = user.last_activity
+        first_activity = user.last_seen
 
         # Wait a moment to ensure timestamp difference
         import asyncio
@@ -128,7 +128,7 @@ class TestUserOnboarding:
 
         # Assert - Activity timestamp updated
         updated_user = await user_service.get_user(telegram_id)
-        assert updated_user.last_activity > first_activity
+        assert updated_user.last_seen > first_activity
 
     async def test_group_selection_flow_complete(
         self,

@@ -30,14 +30,18 @@ class SubscriptionPlan(str, Enum):
 class User(BaseModel):
     """Модель пользователя Telegram."""
 
+    id: Optional[int] = Field(None, description="ID в базе данных")
     telegram_id: int = Field(..., description="ID пользователя в Telegram")
     telegram_username: Optional[str] = Field(None, description="Username в Telegram")
     full_name: Optional[str] = Field(None, description="Полное имя пользователя")
     access_level: AccessLevel = Field(AccessLevel.GUEST, description="Уровень доступа")
     is_active: bool = Field(True, description="Активен ли пользователь")
+    selected_group_id: Optional[int] = Field(None, description="ID выбранной группы")
     last_seen: Optional[datetime] = Field(
         None, description="Время последней активности"
     )
+    created_at: Optional[datetime] = Field(None, description="Время создания")
+    updated_at: Optional[datetime] = Field(None, description="Время обновления")
 
 
 class StudentProfile(BaseModel):
