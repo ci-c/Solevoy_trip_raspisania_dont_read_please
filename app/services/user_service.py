@@ -48,7 +48,7 @@ class UserService:
                 username=telegram_username,
                 first_name=full_name or "",
                 last_name=None,
-                access_level=AccessLevel.GUEST.value,
+                access_level=AccessLevel.BASIC.value,  # New users get BASIC access
                 is_active=True,
                 last_seen=stored_now,
             )
@@ -247,3 +247,26 @@ class UserService:
             created_at=db_user.created_at,
             updated_at=db_user.updated_at,
         )
+
+    async def get_or_create_user(
+        self,
+        telegram_id: int,
+        telegram_username: Optional[str] = None,
+        full_name: Optional[str] = None,
+    ) -> User:
+        """Получить существующего пользователя или создать нового."""
+        # Сначала пытаемся получить
+        existing_user = await self.get_user_by_telegram_id(telegram_id)
+        if existing_user:
+            return existing_user
+
+        # Если не найден, создаем нового
+        return await self.create_user(telegram_id, telegram_username, full_name)
+
+    async def get_user(self, telegram_id: int) -> Optional[User]:
+        """Получить пользователя по telegram_id (alias для get_user_by_telegram_id)."""
+        return await self.get_user_by_telegram_id(telegram_id)
+
+    async def set_user_group(self, telegram_id: int, group_id: int) -> bool:
+        """Установить группу пользователя (alias для update_user_group)."""
+        return await self.update_user_group(telegram_id, group_id)

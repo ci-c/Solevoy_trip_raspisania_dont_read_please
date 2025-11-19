@@ -228,3 +228,15 @@ class FacultyService:
             logger.error(f"Error getting faculty by name: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
         return None
+
+    async def get_all_faculties(self) -> List[Faculty]:
+        """Получить все факультеты (для тестов и общего использования)."""
+        try:
+            from sqlalchemy import select
+
+            async for session in get_session():
+                result = await session.execute(select(Faculty).order_by(Faculty.name))
+                return list(result.scalars().all())
+        except Exception as e:
+            logger.error(f"Error getting all faculties: {e}")
+            return []

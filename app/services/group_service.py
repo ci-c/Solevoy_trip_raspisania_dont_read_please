@@ -19,40 +19,39 @@ class GroupService:
     def __init__(self) -> None:
         pass
 
-    async def get_all_groups(self) -> List[Dict[str, str]]:
+    async def get_all_groups(self) -> List[Group]:
         """Получить все группы."""
-        logger.info("Getting all groups (stub)")
-        return []
+        try:
+            async for session in get_session():
+                result = await session.execute(select(Group).order_by(Group.name))
+                return list(result.scalars().all())
+        except Exception as e:
+            logger.error(f"Error getting all groups: {e}")
+            return []
 
-    async def get_group_by_id(self, group_id: int) -> Optional[Dict[str, str]]:
-        """Получить группу по ID."""
-        logger.info(f"Getting group {group_id} (stub)")
-        return None
+    async def get_group(self, group_id: int) -> Optional[Group]:
+        """Получить группу по ID (для тестов)."""
+        try:
+            async for session in get_session():
+                result = await session.execute(
+                    select(Group).where(Group.id == group_id)
+                )
+                return result.scalar_one_or_none()
+        except Exception as e:
+            logger.error(f"Error getting group {group_id}: {e}")
+            return None
 
-    async def create_group(self, group_data: dict[str, str]) -> dict[str, str]:
-        """Создать новую группу."""
-        logger.info("Creating group (stub)")
-        return group_data
-
-    async def update_group(self, group_id: int, group_data: dict[str, str]) -> bool:
-        """Обновить группу."""
-        logger.info(f"Updating group {group_id} (stub)")
-        return True
-
-    async def delete_group(self, group_id: int) -> bool:
-        """Удалить группу."""
-        logger.info(f"Deleting group {group_id} (stub)")
-        return True
-
-    async def find_groups_by_number(self, group_number: str) -> list[dict[str, str]]:
-        """Найти группы по номеру."""
-        logger.info(f"Finding groups by number {group_number} (stub)")
-        return []
-
-    async def get_groups_by_faculty(self, faculty: str) -> list[dict[str, str]]:
-        """Получить группы по факультету."""
-        logger.info(f"Getting groups by faculty {faculty} (stub)")
-        return []
+    async def search_groups(self, query: str) -> List[Group]:
+        """Найти группы по номеру/названию."""
+        try:
+            async for session in get_session():
+                result = await session.execute(
+                    select(Group).where(Group.name.like(f"%{query}%")).order_by(Group.name)
+                )
+                return list(result.scalars().all())
+        except Exception as e:
+            logger.error(f"Error searching groups with query '{query}': {e}")
+            return []
 
     async def get_available_faculties(self) -> list[str]:
         """Получить список доступных факультетов из базы данных."""
