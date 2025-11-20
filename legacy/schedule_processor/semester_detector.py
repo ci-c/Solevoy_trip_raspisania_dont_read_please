@@ -2,8 +2,8 @@
 Модуль для автоматического определения текущего семестра и учебного года.
 """
 
-from datetime import datetime, date
 from dataclasses import dataclass
+from datetime import date, datetime
 
 
 @dataclass
@@ -27,16 +27,15 @@ class SemesterDetector:
         # Осенний семестр: сентябрь-январь
         if 9 <= now.month <= 12:
             return self._get_autumn_semester_info(now.year)
-        elif now.month == 1:
+        if now.month == 1:
             return self._get_autumn_semester_info(now.year - 1)
 
         # Весенний семестр: февраль-июнь
-        elif 2 <= now.month <= 6:
+        if 2 <= now.month <= 6:
             return self._get_spring_semester_info(now.year)
 
         # Каникулы: июль-август - показываем следующий семестр
-        else:
-            return self._get_next_semester_during_vacation(now)
+        return self._get_next_semester_during_vacation(now)
 
     def _get_autumn_semester_info(self, start_year: int) -> SemesterInfo:
         """Информация об осеннем семестре."""

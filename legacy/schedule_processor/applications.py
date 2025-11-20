@@ -1,9 +1,9 @@
 """Модуль для генерации заявлений на пропуски по системе СЗГМУ."""
 
 from dataclasses import dataclass
-from typing import List, Dict, Optional
 from datetime import date
 from pathlib import Path
+
 from .student_profile import StudentProfile
 from .yaml_config import get_config
 
@@ -13,11 +13,11 @@ class AbsenceRequest:
     """Запрос на создание заявления о пропуске."""
 
     student_profile: StudentProfile
-    absence_dates: List[date]
+    absence_dates: list[date]
     reason: str  # Причина пропуска
     reason_code: str  # Код причины (illness, family, etc.)
-    subjects: List[str]  # Список дисциплин для пропуска
-    additional_info: Optional[str] = None  # Дополнительная информация
+    subjects: list[str]  # Список дисциплин для пропуска
+    additional_info: str | None = None  # Дополнительная информация
 
 
 @dataclass
@@ -33,13 +33,13 @@ class GeneratedApplication:
 class ApplicationGenerator:
     """Генератор заявлений по системе СЗГМУ."""
 
-    def __init__(self, templates_path: Path):
+    def __init__(self, templates_path: Path) -> None:
         self.templates_path = Path(templates_path)
         self.config = get_config()
 
     def generate_applications(
         self, request: AbsenceRequest
-    ) -> List[GeneratedApplication]:
+    ) -> list[GeneratedApplication]:
         """
         Генерирует все необходимые заявления согласно системе СЗГМУ:
         - Отдельное заявление для каждой дисциплины
@@ -107,14 +107,14 @@ class ApplicationGenerator:
         )
 
     def _format_discipline_application(
-        self, request: AbsenceRequest, subject: str, config: Dict
+        self, request: AbsenceRequest, subject: str, config: dict
     ) -> str:
         """Форматирует текст заявления по дисциплине."""
 
         profile = request.student_profile
         dates_str = self._format_dates(request.absence_dates)
 
-        content = f"""
+        return f"""
 {config.get("recipients", "Заведующему кафедрой")}
 от студента {profile.course} курса
 {profile.specialty}
@@ -135,16 +135,15 @@ class ApplicationGenerator:
 ПРИМЕЧАНИЕ: Документ требует печати, подписи студента и личной подачи согласно регламенту СЗГМУ.
         """.strip()
 
-        return content
 
-    def _format_explanatory_note(self, request: AbsenceRequest, config: Dict) -> str:
+    def _format_explanatory_note(self, request: AbsenceRequest, config: dict) -> str:
         """Форматирует объяснительную записку."""
 
         profile = request.student_profile
         dates_str = self._format_dates(request.absence_dates)
         subjects_str = ", ".join(request.subjects)
 
-        content = f"""
+        return f"""
 {config.get("recipients", "В дирекцию института")}
 от студента {profile.course} курса
 {profile.specialty}
@@ -171,23 +170,20 @@ class ApplicationGenerator:
 ПРИМЕЧАНИЕ: Документ требует печати, подписи студента и личной подачи в дирекцию института.
         """.strip()
 
-        return content
 
-    def _format_dates(self, dates: List[date]) -> str:
+    def _format_dates(self, dates: list[date]) -> str:
         """Форматирует список дат для документа."""
         if len(dates) == 1:
             return f"{dates[0].strftime('%d.%m.%Y')}"
-        elif len(dates) == 2:
+        if len(dates) == 2:
             return f"{dates[0].strftime('%d.%m.%Y')} и {dates[1].strftime('%d.%m.%Y')}"
-        else:
-            # Группируем по непрерывным периодам
-            sorted_dates = sorted(dates)
-            if self._is_continuous_period(sorted_dates):
-                return f"с {sorted_dates[0].strftime('%d.%m.%Y')} по {sorted_dates[-1].strftime('%d.%m.%Y')}"
-            else:
-                return ", ".join(d.strftime("%d.%m.%Y") for d in sorted_dates)
+        # Группируем по непрерывным периодам
+        sorted_dates = sorted(dates)
+        if self._is_continuous_period(sorted_dates):
+            return f"с {sorted_dates[0].strftime('%d.%m.%Y')} по {sorted_dates[-1].strftime('%d.%m.%Y')}"
+        return ", ".join(d.strftime("%d.%m.%Y") for d in sorted_dates)
 
-    def _is_continuous_period(self, dates: List[date]) -> bool:
+    def _is_continuous_period(self, dates: list[date]) -> bool:
         """Проверяет, являются ли даты непрерывным периодом."""
         if len(dates) <= 1:
             return True
@@ -226,12 +222,12 @@ class ApplicationGenerator:
         # Обрезаем до разумной длины
         return sanitized[:50]
 
-    def get_available_reasons(self) -> Dict[str, Dict]:
+    def get_available_reasons(self) -> dict[str, dict]:
         """Получает доступные причины пропусков."""
         app_config = self.config.get_applications_config()
         return app_config.get("absence_reasons", {})
 
-    def get_document_requirements(self) -> Dict[str, str]:
+    def get_document_requirements(self) -> dict[str, str]:
         """Получает требования к документообороту."""
         szgmu_config = self.config.get("academic_szgmu", {})
         workflow = szgmu_config.get("document_workflow", {})

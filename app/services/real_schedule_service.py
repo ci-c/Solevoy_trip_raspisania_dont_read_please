@@ -1,6 +1,6 @@
 """Реальный сервис для работы с расписанием через SZGMU API."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import httpx
@@ -92,7 +92,7 @@ class RealScheduleService:
         except httpx.RequestError as exc:
             logger.error(f"Error getting group schedule: {exc}")
             logger.error(f"Traceback: {exc.__traceback__}")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error getting group schedule: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
         return []
@@ -122,7 +122,7 @@ class RealScheduleService:
         except httpx.RequestError as exc:
             logger.error(f"Error getting teacher schedule: {exc}")
             logger.error(f"Traceback: {exc.__traceback__}")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error getting teacher schedule: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
         return []
@@ -152,7 +152,7 @@ class RealScheduleService:
         except httpx.RequestError as exc:
             logger.error(f"Error getting room schedule: {exc}")
             logger.error(f"Traceback: {exc.__traceback__}")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error getting room schedule: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
         return []
@@ -188,13 +188,13 @@ class RealScheduleService:
                         day_of_week=lesson_data.get("day", 1),
                         week_number=lesson_data.get("week", 1),
                         lesson_type=lesson_data.get("type", "lecture"),
-                        date=lesson_data.get("date", datetime.now(tz=timezone.utc).date()),
+                        date=lesson_data.get("date", datetime.now(tz=UTC).date()),
                     )
                     session.add(schedule)
 
                 await session.commit()
                 return True
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error saving schedule to DB: {e}")
             return False
 
@@ -210,27 +210,24 @@ class RealScheduleService:
                     query = query.filter(Schedule.week_number == week)
 
                 schedules = await session.execute(query)
-                results = []
+                return [
+                    {
+                        "subject": schedule.subject_name,
+                        "teacher": schedule.teacher_name,
+                        "room": schedule.room_number,
+                        "start_time": schedule.start_time,
+                        "end_time": schedule.end_time,
+                        "day": schedule.day_of_week,
+                        "week": schedule.week_number,
+                        "type": schedule.lesson_type,
+                        "date": schedule.date.isoformat()
+                        if schedule.date
+                        else None,
+                    }
+                    for schedule in schedules.scalars()
+                ]
 
-                for schedule in schedules.scalars():
-                    results.append(
-                        {
-                            "subject": schedule.subject_name,
-                            "teacher": schedule.teacher_name,
-                            "room": schedule.room_number,
-                            "start_time": schedule.start_time,
-                            "end_time": schedule.end_time,
-                            "day": schedule.day_of_week,
-                            "week": schedule.week_number,
-                            "type": schedule.lesson_type,
-                            "date": schedule.date.isoformat()
-                            if schedule.date
-                            else None,
-                        },
-                    )
-
-                return results
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error getting schedule from DB: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
         return None
@@ -252,7 +249,7 @@ class RealScheduleService:
                         return True
 
                 return False
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error syncing schedule for group {group_id}: {e}")
             return False
 

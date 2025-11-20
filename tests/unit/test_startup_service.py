@@ -1,6 +1,6 @@
 """Tests for startup service."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -28,35 +28,31 @@ class TestInitializeSystem:
             service.schedule_service,
             "get_available_faculties",
             return_value=mock_faculties,
-        ):
-            with patch.object(
-                service.schedule_service,
-                "get_schedule_statistics",
-                return_value=mock_stats,
-            ):
-                with patch.object(
-                    service.schedule_service,
-                    "get_current_semester",
-                    return_value=mock_semester,
-                ):
-                    with patch.object(
-                        service.schedule_service,
-                        "get_current_academic_year",
-                        return_value=mock_year,
-                    ):
-                        with patch(
-                            "app.services.group_service.GroupService"
-                        ) as mock_group_svc:
-                            group_instance = AsyncMock()
-                            group_instance.get_groups_count = AsyncMock(return_value=5)
-                            mock_group_svc.return_value = group_instance
+        ), patch.object(
+            service.schedule_service,
+            "get_schedule_statistics",
+            return_value=mock_stats,
+        ), patch.object(
+            service.schedule_service,
+            "get_current_semester",
+            return_value=mock_semester,
+        ), patch.object(
+            service.schedule_service,
+            "get_current_academic_year",
+            return_value=mock_year,
+        ), patch(
+            "app.services.group_service.GroupService"
+        ) as mock_group_svc:
+            group_instance = AsyncMock()
+            group_instance.get_groups_count = AsyncMock(return_value=5)
+            mock_group_svc.return_value = group_instance
 
-                            result = await service.initialize_system()
+            result = await service.initialize_system()
 
-                            assert result is not None
-                            assert result["faculties_loaded"] is True
-                            assert result["database_ready"] is True
-                            assert len(result["errors"]) == 0
+            assert result is not None
+            assert result["faculties_loaded"] is True
+            assert result["database_ready"] is True
+            assert len(result["errors"]) == 0
 
     async def test_initialize_system_no_faculties(self, service):
         """Test initializing system with no faculties."""
@@ -64,37 +60,32 @@ class TestInitializeSystem:
 
         with patch.object(
             service.schedule_service, "get_available_faculties", return_value=[]
-        ):
+        ), patch.object(
+            service.schedule_service,
+            "get_schedule_statistics",
+            return_value=mock_stats,
+        ), patch.object(
+            service.schedule_service, "get_current_semester", return_value=None
+        ), patch.object(
+            service.schedule_service,
+            "get_current_academic_year",
+            return_value=None,
+        ), patch(
+            "app.services.group_service.GroupService"
+        ) as mock_group_svc:
+            group_instance = AsyncMock()
+            group_instance.get_groups_count = AsyncMock(return_value=0)
+            mock_group_svc.return_value = group_instance
+
             with patch.object(
-                service.schedule_service,
-                "get_schedule_statistics",
-                return_value=mock_stats,
-            ):
-                with patch.object(
-                    service.schedule_service, "get_current_semester", return_value=None
-                ):
-                    with patch.object(
-                        service.schedule_service,
-                        "get_current_academic_year",
-                        return_value=None,
-                    ):
-                        with patch(
-                            "app.services.group_service.GroupService"
-                        ) as mock_group_svc:
-                            group_instance = AsyncMock()
-                            group_instance.get_groups_count = AsyncMock(return_value=0)
-                            mock_group_svc.return_value = group_instance
+                service.api_sync_service,
+                "_create_groups_from_lessons",
+                return_value=None,
+            ), patch("asyncio.create_task"):
+                result = await service.initialize_system()
 
-                            with patch.object(
-                                service.api_sync_service,
-                                "_create_groups_from_lessons",
-                                return_value=None,
-                            ):
-                                with patch("asyncio.create_task"):
-                                    result = await service.initialize_system()
-
-                                    assert result is not None
-                                    assert result["faculties_loaded"] is False
+                assert result is not None
+                assert result["faculties_loaded"] is False
 
     async def test_initialize_system_database_not_ready(self, service):
         """Test initializing system when database not ready."""
@@ -104,30 +95,26 @@ class TestInitializeSystem:
             service.schedule_service,
             "get_available_faculties",
             return_value=mock_faculties,
-        ):
-            with patch.object(
-                service.schedule_service, "get_schedule_statistics", return_value=None
-            ):
-                with patch.object(
-                    service.schedule_service, "get_current_semester", return_value=None
-                ):
-                    with patch.object(
-                        service.schedule_service,
-                        "get_current_academic_year",
-                        return_value=None,
-                    ):
-                        with patch(
-                            "app.services.group_service.GroupService"
-                        ) as mock_group_svc:
-                            group_instance = AsyncMock()
-                            group_instance.get_groups_count = AsyncMock(return_value=5)
-                            mock_group_svc.return_value = group_instance
+        ), patch.object(
+            service.schedule_service, "get_schedule_statistics", return_value=None
+        ), patch.object(
+            service.schedule_service, "get_current_semester", return_value=None
+        ), patch.object(
+            service.schedule_service,
+            "get_current_academic_year",
+            return_value=None,
+        ), patch(
+            "app.services.group_service.GroupService"
+        ) as mock_group_svc:
+            group_instance = AsyncMock()
+            group_instance.get_groups_count = AsyncMock(return_value=5)
+            mock_group_svc.return_value = group_instance
 
-                            result = await service.initialize_system()
+            result = await service.initialize_system()
 
-                            assert result is not None
-                            assert result["database_ready"] is False
-                            assert "Database not ready" in result["errors"]
+            assert result is not None
+            assert result["database_ready"] is False
+            assert "Database not ready" in result["errors"]
 
     async def test_initialize_system_error(self, service):
         """Test initializing system with error."""
@@ -191,51 +178,45 @@ class TestCheckSystemHealth:
             service.schedule_service,
             "get_schedule_statistics",
             return_value=mock_stats,
+        ), patch.object(
+            service.schedule_service,
+            "get_available_faculties",
+            return_value=mock_faculties,
+        ), patch.object(
+            service.schedule_service,
+            "get_available_specialities",
+            return_value=mock_specialities,
+        ), patch.object(
+            service.schedule_service,
+            "get_current_semester",
+            return_value=mock_semester,
         ):
-            with patch.object(
-                service.schedule_service,
-                "get_available_faculties",
-                return_value=mock_faculties,
-            ):
-                with patch.object(
-                    service.schedule_service,
-                    "get_available_specialities",
-                    return_value=mock_specialities,
-                ):
-                    with patch.object(
-                        service.schedule_service,
-                        "get_current_semester",
-                        return_value=mock_semester,
-                    ):
-                        result = await service.check_system_health()
+            result = await service.check_system_health()
 
-                        assert result is not None
-                        assert result["status"] == "healthy"
-                        assert len(result["issues"]) == 0
+            assert result is not None
+            assert result["status"] == "healthy"
+            assert len(result["issues"]) == 0
 
     async def test_check_system_health_database_unhealthy(self, service):
         """Test checking system health when database unhealthy."""
         with patch.object(
             service.schedule_service, "get_schedule_statistics", return_value=None
+        ), patch.object(
+            service.schedule_service, "get_available_faculties", return_value=[]
+        ), patch.object(
+            service.schedule_service,
+            "get_available_specialities",
+            return_value=[],
+        ), patch.object(
+            service.schedule_service,
+            "get_current_semester",
+            return_value=None,
         ):
-            with patch.object(
-                service.schedule_service, "get_available_faculties", return_value=[]
-            ):
-                with patch.object(
-                    service.schedule_service,
-                    "get_available_specialities",
-                    return_value=[],
-                ):
-                    with patch.object(
-                        service.schedule_service,
-                        "get_current_semester",
-                        return_value=None,
-                    ):
-                        result = await service.check_system_health()
+            result = await service.check_system_health()
 
-                        assert result is not None
-                        assert result["status"] == "unhealthy"
-                        assert len(result["issues"]) > 0
+            assert result is not None
+            assert result["status"] == "unhealthy"
+            assert len(result["issues"]) > 0
 
     async def test_check_system_health_no_semester_warning(self, service):
         """Test checking system health with no semester (warning)."""
@@ -342,14 +323,12 @@ class TestRunStartupChecks:
 
         with patch.object(
             service, "initialize_system", return_value=mock_init_results
-        ):
-            with patch.object(
-                service, "check_system_health", return_value=mock_health
-            ):
-                with patch.object(service, "warm_up_cache", return_value=None):
-                    result = await service.run_startup_checks()
+        ), patch.object(
+            service, "check_system_health", return_value=mock_health
+        ), patch.object(service, "warm_up_cache", return_value=None):
+            result = await service.run_startup_checks()
 
-                    assert result is True
+            assert result is True
 
     async def test_run_startup_checks_health_failure(self, service):
         """Test running startup checks with health failure."""
@@ -358,14 +337,12 @@ class TestRunStartupChecks:
 
         with patch.object(
             service, "initialize_system", return_value=mock_init_results
-        ):
-            with patch.object(
-                service, "check_system_health", return_value=mock_health
-            ):
-                with patch.object(service, "warm_up_cache", return_value=None):
-                    result = await service.run_startup_checks()
+        ), patch.object(
+            service, "check_system_health", return_value=mock_health
+        ), patch.object(service, "warm_up_cache", return_value=None):
+            result = await service.run_startup_checks()
 
-                    assert result is False
+            assert result is False
 
     async def test_run_startup_checks_with_init_errors(self, service):
         """Test running startup checks with initialization errors."""
@@ -374,15 +351,13 @@ class TestRunStartupChecks:
 
         with patch.object(
             service, "initialize_system", return_value=mock_init_results
-        ):
-            with patch.object(
-                service, "check_system_health", return_value=mock_health
-            ):
-                with patch.object(service, "warm_up_cache", return_value=None):
-                    result = await service.run_startup_checks()
+        ), patch.object(
+            service, "check_system_health", return_value=mock_health
+        ), patch.object(service, "warm_up_cache", return_value=None):
+            result = await service.run_startup_checks()
 
-                    # Still returns True if health is healthy
-                    assert result is True
+            # Still returns True if health is healthy
+            assert result is True
 
     async def test_run_startup_checks_error(self, service):
         """Test running startup checks with error."""

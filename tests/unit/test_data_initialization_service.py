@@ -1,6 +1,6 @@
 """Tests for data initialization service."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -31,15 +31,14 @@ class TestInitializeFaculties:
         """Test initializing faculties when API fails."""
         with patch.object(
             service.faculty_service, "sync_faculties", return_value=False
-        ) as mock_sync:
-            with patch.object(
-                service, "_create_default_faculties", return_value=False
-            ) as mock_create:
-                result = await service.initialize_faculties()
+        ) as mock_sync, patch.object(
+            service, "_create_default_faculties", return_value=False
+        ) as mock_create:
+            result = await service.initialize_faculties()
 
-                assert result is False
-                mock_sync.assert_called_once()
-                mock_create.assert_called_once()
+            assert result is False
+            mock_sync.assert_called_once()
+            mock_create.assert_called_once()
 
     async def test_initialize_faculties_error(self, service):
         """Test initializing faculties with error."""
@@ -84,15 +83,14 @@ class TestInitializeSampleGroups:
             service.faculty_service,
             "get_faculty_names",
             return_value=mock_faculties,
-        ):
-            with patch.object(service, "_save_groups", return_value=True) as mock_save:
-                result = await service.initialize_sample_groups()
+        ), patch.object(service, "_save_groups", return_value=True) as mock_save:
+            result = await service.initialize_sample_groups()
 
-                assert result is True
-                mock_save.assert_called_once()
-                # Check that groups were created
-                groups_data = mock_save.call_args[0][0]
-                assert len(groups_data) > 0
+            assert result is True
+            mock_save.assert_called_once()
+            # Check that groups were created
+            groups_data = mock_save.call_args[0][0]
+            assert len(groups_data) > 0
 
     async def test_initialize_sample_groups_no_faculties(self, service):
         """Test initializing sample groups with no faculties."""
@@ -125,15 +123,14 @@ class TestInitializeAllData:
         """Test initializing all data successfully."""
         with patch.object(
             service, "initialize_faculties", return_value=True
-        ) as mock_faculties:
-            with patch.object(
-                service, "initialize_sample_groups", return_value=True
-            ) as mock_groups:
-                result = await service.initialize_all_data()
+        ) as mock_faculties, patch.object(
+            service, "initialize_sample_groups", return_value=True
+        ) as mock_groups:
+            result = await service.initialize_all_data()
 
-                assert result is True
-                mock_faculties.assert_called_once()
-                mock_groups.assert_called_once()
+            assert result is True
+            mock_faculties.assert_called_once()
+            mock_groups.assert_called_once()
 
     async def test_initialize_all_data_faculties_fail(self, service):
         """Test initializing all data when faculties fail."""
@@ -182,31 +179,29 @@ class TestCheckDataAvailability:
             service.faculty_service,
             "get_faculty_names",
             return_value=mock_faculties,
+        ), patch.object(
+            service.group_service, "get_all_groups", return_value=mock_groups
         ):
-            with patch.object(
-                service.group_service, "get_all_groups", return_value=mock_groups
-            ):
-                result = await service.check_data_availability()
+            result = await service.check_data_availability()
 
-                assert result is not None
-                assert result["faculties_available"] is True
-                assert result["groups_available"] is True
-                assert result["faculties_count"] == 2
-                assert result["groups_count"] == 2
+            assert result is not None
+            assert result["faculties_available"] is True
+            assert result["groups_available"] is True
+            assert result["faculties_count"] == 2
+            assert result["groups_count"] == 2
 
     async def test_check_data_availability_no_data(self, service):
         """Test checking data availability with no data."""
         with patch.object(
             service.faculty_service, "get_faculty_names", return_value=[]
-        ):
-            with patch.object(service.group_service, "get_all_groups", return_value=[]):
-                result = await service.check_data_availability()
+        ), patch.object(service.group_service, "get_all_groups", return_value=[]):
+            result = await service.check_data_availability()
 
-                assert result is not None
-                assert result["faculties_available"] is False
-                assert result["groups_available"] is False
-                assert result["faculties_count"] == 0
-                assert result["groups_count"] == 0
+            assert result is not None
+            assert result["faculties_available"] is False
+            assert result["groups_available"] is False
+            assert result["faculties_count"] == 0
+            assert result["groups_count"] == 0
 
     async def test_check_data_availability_error(self, service):
         """Test checking data availability with error."""

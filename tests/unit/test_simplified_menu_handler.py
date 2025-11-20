@@ -73,22 +73,21 @@ class TestHandleMenuAction:
 
         with patch(
             "app.bot.handlers.simplified_menu_handler.UserService"
-        ) as mock_user_svc:
-            with patch(
-                "app.bot.handlers.simplified_menu_handler.show_main_menu"
-            ) as mock_show:
-                user_service_instance = AsyncMock()
-                user_service_instance.get_user_profile = AsyncMock(
-                    return_value=mock_user_profile
-                )
-                mock_user_svc.return_value = user_service_instance
+        ) as mock_user_svc, patch(
+            "app.bot.handlers.simplified_menu_handler.show_main_menu"
+        ) as mock_show:
+            user_service_instance = AsyncMock()
+            user_service_instance.get_user_profile = AsyncMock(
+                return_value=mock_user_profile
+            )
+            mock_user_svc.return_value = user_service_instance
 
-                await handle_menu_action(mock_callback, callback_data, mock_state)
+            await handle_menu_action(mock_callback, callback_data, mock_state)
 
-                mock_callback.answer.assert_called_once()
-                mock_show.assert_called_once_with(
-                    mock_callback.message, mock_user_profile
-                )
+            mock_callback.answer.assert_called_once()
+            mock_show.assert_called_once_with(
+                mock_callback.message, mock_user_profile
+            )
 
     async def test_select_group_action(self, mock_callback, mock_state):
         """Test select group action."""
@@ -96,18 +95,17 @@ class TestHandleMenuAction:
 
         with patch(
             "app.bot.handlers.simplified_menu_handler.UserService"
-        ) as mock_user_svc:
-            with patch(
-                "app.bot.handlers.simplified_menu_handler.show_group_selection"
-            ) as mock_show:
-                user_service_instance = AsyncMock()
-                user_service_instance.get_user_profile = AsyncMock(return_value=None)
-                mock_user_svc.return_value = user_service_instance
+        ) as mock_user_svc, patch(
+            "app.bot.handlers.simplified_menu_handler.show_group_selection"
+        ) as mock_show:
+            user_service_instance = AsyncMock()
+            user_service_instance.get_user_profile = AsyncMock(return_value=None)
+            mock_user_svc.return_value = user_service_instance
 
-                await handle_menu_action(mock_callback, callback_data, mock_state)
+            await handle_menu_action(mock_callback, callback_data, mock_state)
 
-                mock_callback.answer.assert_called_once()
-                mock_show.assert_called_once_with(mock_callback.message, mock_state)
+            mock_callback.answer.assert_called_once()
+            mock_show.assert_called_once_with(mock_callback.message, mock_state)
 
     async def test_my_schedule_action_with_profile(
         self, mock_callback, mock_state, mock_user_profile
@@ -117,20 +115,19 @@ class TestHandleMenuAction:
 
         with patch(
             "app.bot.handlers.simplified_menu_handler.UserService"
-        ) as mock_user_svc:
-            with patch(
-                "app.bot.handlers.simplified_menu_handler.show_user_schedule"
-            ) as mock_show:
-                user_service_instance = AsyncMock()
-                user_service_instance.get_user_profile = AsyncMock(
-                    return_value=mock_user_profile
-                )
-                mock_user_svc.return_value = user_service_instance
+        ) as mock_user_svc, patch(
+            "app.bot.handlers.simplified_menu_handler.show_user_schedule"
+        ) as mock_show:
+            user_service_instance = AsyncMock()
+            user_service_instance.get_user_profile = AsyncMock(
+                return_value=mock_user_profile
+            )
+            mock_user_svc.return_value = user_service_instance
 
-                await handle_menu_action(mock_callback, callback_data, mock_state)
+            await handle_menu_action(mock_callback, callback_data, mock_state)
 
-                mock_callback.answer.assert_called_once()
-                mock_show.assert_called_once()
+            mock_callback.answer.assert_called_once()
+            mock_show.assert_called_once()
 
     async def test_my_schedule_action_without_profile(self, mock_callback, mock_state):
         """Test my schedule action without user profile."""
@@ -158,20 +155,19 @@ class TestHandleMenuAction:
 
         with patch(
             "app.bot.handlers.simplified_menu_handler.UserService"
-        ) as mock_user_svc:
-            with patch(
-                "app.bot.handlers.simplified_menu_handler.handle_export_schedule"
-            ) as mock_export:
-                user_service_instance = AsyncMock()
-                user_service_instance.get_user_profile = AsyncMock(
-                    return_value=mock_user_profile
-                )
-                mock_user_svc.return_value = user_service_instance
+        ) as mock_user_svc, patch(
+            "app.bot.handlers.simplified_menu_handler.handle_export_schedule"
+        ) as mock_export:
+            user_service_instance = AsyncMock()
+            user_service_instance.get_user_profile = AsyncMock(
+                return_value=mock_user_profile
+            )
+            mock_user_svc.return_value = user_service_instance
 
-                await handle_menu_action(mock_callback, callback_data, mock_state)
+            await handle_menu_action(mock_callback, callback_data, mock_state)
 
-                mock_callback.answer.assert_called_once()
-                mock_export.assert_called_once()
+            mock_callback.answer.assert_called_once()
+            mock_export.assert_called_once()
 
     async def test_export_action_without_profile(self, mock_callback, mock_state):
         """Test export action without user profile."""
@@ -199,20 +195,19 @@ class TestHandleMenuAction:
 
         with patch(
             "app.bot.handlers.simplified_menu_handler.UserService"
-        ) as mock_user_svc:
-            with patch(
-                "app.bot.handlers.simplified_menu_handler.show_settings_menu"
-            ) as mock_show:
-                user_service_instance = AsyncMock()
-                user_service_instance.get_user_profile = AsyncMock(
-                    return_value=mock_user_profile
-                )
-                mock_user_svc.return_value = user_service_instance
+        ) as mock_user_svc, patch(
+            "app.bot.handlers.simplified_menu_handler.show_settings_menu"
+        ) as mock_show:
+            user_service_instance = AsyncMock()
+            user_service_instance.get_user_profile = AsyncMock(
+                return_value=mock_user_profile
+            )
+            mock_user_svc.return_value = user_service_instance
 
-                await handle_menu_action(mock_callback, callback_data, mock_state)
+            await handle_menu_action(mock_callback, callback_data, mock_state)
 
-                mock_callback.answer.assert_called_once()
-                mock_show.assert_called_once()
+            mock_callback.answer.assert_called_once()
+            mock_show.assert_called_once()
 
     async def test_unknown_action(self, mock_callback, mock_state):
         """Test unknown action."""

@@ -10,16 +10,21 @@ These tests verify that schedule display works with proper JOINs,
 handles nullable foreign keys correctly, and doesn't crash on edge cases.
 """
 
+from datetime import date, timedelta
+
 import pytest
-from datetime import datetime, date, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.database.models import (
+    Faculty,
+    Group,
+    LessonType,
+    Schedule,
+    ScheduleLesson,
+    Subject,
+)
 from app.services.schedule_service import ScheduleService
-from app.services.group_service import GroupService
 from app.services.user_service import UserService
-from app.database.models import ScheduleLesson, Schedule, Subject, LessonType
-from app.database.models import Group
-from app.database.models import Faculty
 
 
 @pytest.mark.integration

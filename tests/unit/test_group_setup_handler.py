@@ -7,17 +7,17 @@ from aiogram import types
 from aiogram.fsm.context import FSMContext
 
 from app.bot.handlers.group_setup_handler import (
+    handle_grades_callback,
     handle_group_command,
     handle_group_setup_callback,
     handle_help_command,
+    handle_schedule_callback,
+    handle_settings_callback,
     register_group_setup_handlers,
     select_group,
     show_faculty_groups,
     show_faculty_list,
     start_group_setup,
-    handle_schedule_callback,
-    handle_grades_callback,
-    handle_settings_callback,
 )
 from app.bot.states import GroupSetupStates
 
@@ -355,25 +355,24 @@ class TestShowFacultyGroups:
 
         with patch(
             "app.services.schedule_service.ScheduleService"
-        ) as mock_schedule_svc:
-            with patch(
-                "app.bot.handlers.group_setup_handler.GroupService"
-            ) as mock_group_svc:
-                schedule_instance = AsyncMock()
-                schedule_instance.get_available_faculties = AsyncMock(
-                    return_value=mock_faculties
-                )
-                mock_schedule_svc.return_value = schedule_instance
+        ) as mock_schedule_svc, patch(
+            "app.bot.handlers.group_setup_handler.GroupService"
+        ) as mock_group_svc:
+            schedule_instance = AsyncMock()
+            schedule_instance.get_available_faculties = AsyncMock(
+                return_value=mock_faculties
+            )
+            mock_schedule_svc.return_value = schedule_instance
 
-                group_instance = AsyncMock()
-                group_instance.get_groups_by_faculty = AsyncMock(
-                    return_value=mock_groups
-                )
-                mock_group_svc.return_value = group_instance
+            group_instance = AsyncMock()
+            group_instance.get_groups_by_faculty = AsyncMock(
+                return_value=mock_groups
+            )
+            mock_group_svc.return_value = group_instance
 
-                await show_faculty_groups(mock_callback, mock_state, "1")
+            await show_faculty_groups(mock_callback, mock_state, "1")
 
-                mock_callback.message.edit_text.assert_called_once()
+            mock_callback.message.edit_text.assert_called_once()
 
     async def test_show_faculty_groups_no_groups(self, mock_callback, mock_state):
         """Test showing faculty with no groups."""
@@ -381,24 +380,23 @@ class TestShowFacultyGroups:
 
         with patch(
             "app.services.schedule_service.ScheduleService"
-        ) as mock_schedule_svc:
-            with patch(
-                "app.bot.handlers.group_setup_handler.GroupService"
-            ) as mock_group_svc:
-                schedule_instance = AsyncMock()
-                schedule_instance.get_available_faculties = AsyncMock(
-                    return_value=mock_faculties
-                )
-                mock_schedule_svc.return_value = schedule_instance
+        ) as mock_schedule_svc, patch(
+            "app.bot.handlers.group_setup_handler.GroupService"
+        ) as mock_group_svc:
+            schedule_instance = AsyncMock()
+            schedule_instance.get_available_faculties = AsyncMock(
+                return_value=mock_faculties
+            )
+            mock_schedule_svc.return_value = schedule_instance
 
-                group_instance = AsyncMock()
-                group_instance.get_groups_by_faculty = AsyncMock(return_value=[])
-                mock_group_svc.return_value = group_instance
+            group_instance = AsyncMock()
+            group_instance.get_groups_by_faculty = AsyncMock(return_value=[])
+            mock_group_svc.return_value = group_instance
 
-                await show_faculty_groups(mock_callback, mock_state, "1")
+            await show_faculty_groups(mock_callback, mock_state, "1")
 
-                call_args = str(mock_callback.message.edit_text.call_args)
-                assert "не найдены" in call_args
+            call_args = str(mock_callback.message.edit_text.call_args)
+            assert "не найдены" in call_args
 
     async def test_show_faculty_groups_error(self, mock_callback, mock_state):
         """Test showing faculty groups with error."""

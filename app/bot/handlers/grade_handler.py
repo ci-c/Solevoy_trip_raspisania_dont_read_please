@@ -3,7 +3,7 @@
 
 """Обработчики для модуля оценок и академических показателей."""
 
-from datetime import date
+from datetime import UTC, datetime
 
 from aiogram import Dispatcher, types
 from aiogram.fsm.context import FSMContext
@@ -70,8 +70,9 @@ async def handle_grades_main(
             reply_markup=get_grades_keyboard(subjects),
         )
 
-    except Exception as e:
-        logger.error(f"Error in grades main handler: {e}")
+    except Exception:  # noqa: BLE001  - catch all for user-facing error handling
+        logger.error("Error in handler")
+
         await callback.message.edit_text(
             "❌ Ошибка при загрузке оценок. Попробуйте позже.",
             reply_markup=get_main_menu_keyboard(),
@@ -112,8 +113,9 @@ async def handle_subject_selection(
             reply_markup=get_subject_grades_keyboard(subject),
         )
 
-    except Exception as e:
-        logger.error(f"Error in subject selection handler: {e}")
+    except Exception:  # noqa: BLE001  - catch all for user-facing error handling
+        logger.error("Error in handler")
+
         await callback.message.edit_text(
             f"❌ Ошибка при загрузке предмета '{subject}'. Попробуйте позже.",
             reply_markup=get_grades_keyboard([]),
@@ -191,8 +193,9 @@ async def handle_add_grade(
 
         await callback.message.edit_text(text, reply_markup=keyboard)
 
-    except Exception as e:
-        logger.error(f"Error in add grade handler: {e}")
+    except Exception:  # noqa: BLE001  - catch all for user-facing error handling
+        logger.error("Error in handler")
+
         await callback.message.edit_text(
             "❌ Ошибка при добавлении оценки. Попробуйте позже.",
             reply_markup=get_grades_keyboard([]),
@@ -257,8 +260,9 @@ async def handle_grade_type_selection(
 
         await callback.message.edit_text(text, reply_markup=keyboard)
 
-    except Exception as e:
-        logger.error(f"Error in grade type selection handler: {e}")
+    except Exception:  # noqa: BLE001  - catch all for user-facing error handling
+        logger.error("Error in handler")
+
         await callback.message.edit_text(
             "❌ Ошибка при выборе типа оценки. Попробуйте позже.",
             reply_markup=get_grades_keyboard([]),
@@ -286,7 +290,7 @@ async def handle_grade_value_selection(
             subject=subject,
             grade=grade_value,
             control_point=grade_type,
-            date=date.today(),
+            date=datetime.now(UTC).date(),
             is_excused=False,
         )
 
@@ -296,7 +300,7 @@ async def handle_grade_value_selection(
                 f"📚 Предмет: {subject}\n"
                 f"📝 Тип: {grade_type}\n"
                 f"🎯 Оценка: {grade_value}\n"
-                f"📅 Дата: {date.today().strftime('%d.%m.%Y')}\n\n"
+                f"📅 Дата: {datetime.now(UTC).date().strftime('%d.%m.%Y')}\n\n"
                 f"Оценка учтена в расчете ОСБ.",
                 reply_markup=types.InlineKeyboardMarkup(
                     inline_keyboard=[
@@ -323,8 +327,9 @@ async def handle_grade_value_selection(
 
         await state.clear()
 
-    except Exception as e:
-        logger.error(f"Error in grade value selection handler: {e}")
+    except Exception:  # noqa: BLE001  - catch all for user-facing error handling
+        logger.error("Error in handler")
+
         await callback.message.edit_text(
             "❌ Ошибка при сохранении оценки. Попробуйте позже.",
             reply_markup=get_grades_keyboard([]),
@@ -374,8 +379,9 @@ async def handle_add_attendance(
 
         await callback.message.edit_text(text, reply_markup=keyboard)
 
-    except Exception as e:
-        logger.error(f"Error in add attendance handler: {e}")
+    except Exception:  # noqa: BLE001  - catch all for user-facing error handling
+        logger.error("Error in handler")
+
         await callback.message.edit_text(
             "❌ Ошибка при добавлении посещаемости. Попробуйте позже.",
             reply_markup=get_grades_keyboard([]),
@@ -433,8 +439,9 @@ async def handle_attendance_type_selection(
 
         await callback.message.edit_text(text, reply_markup=keyboard)
 
-    except Exception as e:
-        logger.error(f"Error in attendance type selection handler: {e}")
+    except Exception:  # noqa: BLE001  - catch all for user-facing error handling
+        logger.error("Error in handler")
+
         await callback.message.edit_text(
             "❌ Ошибка при выборе типа занятия. Попробуйте позже.",
             reply_markup=get_grades_keyboard([]),
@@ -465,7 +472,7 @@ async def handle_attendance_status_selection(
             user_id=user_id,
             subject=subject,
             lesson_type=lesson_type,
-            date=date.today(),
+            date=datetime.now(UTC).date(),
             is_present=is_present,
             is_excused=is_excused,
         )
@@ -482,7 +489,7 @@ async def handle_attendance_status_selection(
                 f"📚 Предмет: {subject}\n"
                 f"📅 Тип: {lesson_type}\n"
                 f"👤 Статус: {status_text}\n"
-                f"📅 Дата: {date.today().strftime('%d.%m.%Y')}\n\n"
+                f"📅 Дата: {datetime.now(UTC).date().strftime('%d.%m.%Y')}\n\n"
                 f"Данные учтены в расчете КНЛ/КНС.",
                 reply_markup=types.InlineKeyboardMarkup(
                     inline_keyboard=[
@@ -509,8 +516,9 @@ async def handle_attendance_status_selection(
 
         await state.clear()
 
-    except Exception as e:
-        logger.error(f"Error in attendance status selection handler: {e}")
+    except Exception:  # noqa: BLE001  - catch all for user-facing error handling
+        logger.error("Error in handler")
+
         await callback.message.edit_text(
             "❌ Ошибка при сохранении посещаемости. Попробуйте позже.",
             reply_markup=get_grades_keyboard([]),

@@ -356,18 +356,17 @@ async def show_faculty_groups(
             text += f"📚 **Доступные группы ({len(groups)}):**\n\n"
 
             # Создаем кнопки для групп
-            group_buttons = []
-            for group in groups:
-                group_buttons.append(
-                    [
-                        types.InlineKeyboardButton(
-                            text=f"{group['name']} (курс {group['course']})",
-                            callback_data=GroupSearchCallback(
-                                action="select_group", group_id=int(group["id"]),
-                            ).pack(),
-                        ),
-                    ],
-                )
+            group_buttons = [
+                [
+                    types.InlineKeyboardButton(
+                        text=f"{group['name']} (курс {group['course']})",
+                        callback_data=GroupSearchCallback(
+                            action="select_group", group_id=int(group["id"]),
+                        ).pack(),
+                    ),
+                ]
+                for group in groups
+            ]
 
             # Добавляем кнопку "Назад"
             group_buttons.append(

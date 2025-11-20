@@ -1,14 +1,17 @@
 import datetime
 import logging
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from config import WEEK_DAYS
-from get_raw import get_schedule_data, process_lessons
 from get_id import find_schedule_ids
+from get_raw import get_schedule_data, process_lessons
 from ical import gen_ical
 from processing import process_lessons_for_export
 from xlsx import gen_excel_file
-from lesson import Lesson
+
+if TYPE_CHECKING:
+    from lesson import Lesson
 
 # --- Настройка логирования ---
 logger = logging.getLogger(__name__)
@@ -19,7 +22,7 @@ console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 
 
-def main():
+def main() -> None:
     """
     Главная функция для получения, обработки и экспорта расписания.
     """

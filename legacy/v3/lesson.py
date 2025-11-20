@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, List, Any
+from typing import Any
 
 
 @dataclass
@@ -12,24 +12,24 @@ class Lesson:
     """
 
     academicYear: str
-    auditoryNumber: Optional[str]
+    auditoryNumber: str | None
     courseNumber: int
     dayName: str
     departmentName: str
-    errorList: List[Any]
+    errorList: list[Any]
     fileName: str
     groupStream: str
     groupTypeName: str
     id: int
-    lectorName: Optional[str]
+    lectorName: str | None
     lessonType: str
-    locationAddress: Optional[str]
+    locationAddress: str | None
     pairTime: str
     scheduleId: int
     semester: str
     speciality: str
     studyGroup: str
-    subgroup: Optional[str]
+    subgroup: str | None
     subjectName: str
     weekNumber: int
 

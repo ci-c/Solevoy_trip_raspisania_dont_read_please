@@ -2,10 +2,8 @@
 from __future__ import annotations
 
 import argparse
-import json
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 import yaml
 
@@ -63,7 +61,7 @@ def iso_now() -> str:
     return datetime.now(UTC).replace(microsecond=0).isoformat()
 
 
-def load_yaml(path: Path, template: Dict) -> Dict:
+def load_yaml(path: Path, template: dict) -> dict:
     if not path.exists():
         return template.copy()
     data = yaml.safe_load(path.read_text(encoding="utf-8"))
@@ -72,7 +70,7 @@ def load_yaml(path: Path, template: Dict) -> Dict:
     return data
 
 
-def save_yaml(path: Path, data: Dict) -> None:
+def save_yaml(path: Path, data: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
         yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8"
@@ -88,19 +86,19 @@ class State:
         self.comm_data = load_yaml(COMM_FILE, DEFAULT_COMMUNICATIONS)
 
     @property
-    def agents(self) -> List[Dict]:
+    def agents(self) -> list[dict]:
         return self.agents_data.setdefault("agents", [])
 
     @property
-    def issues(self) -> List[Dict]:
+    def issues(self) -> list[dict]:
         return self.issues_data.setdefault("issues", [])
 
     @property
-    def events(self) -> List[Dict]:
+    def events(self) -> list[dict]:
         return self.events_data.setdefault("events", [])
 
     @property
-    def communications(self) -> List[Dict]:
+    def communications(self) -> list[dict]:
         return self.comm_data.setdefault("messages", [])
 
     def persist(self) -> None:
@@ -137,20 +135,21 @@ def ensure_state_files() -> None:
             save_yaml(path, template)
 
 
-def load_policies() -> Dict:
+def load_policies() -> dict:
     policies = load_yaml(POLICIES_FILE, {})
     if "role_policies" not in policies:
-        raise SystemExit("agent_policies.yaml должен содержать секцию role_policies")
+        msg = "agent_policies.yaml должен содержать секцию role_policies"
+        raise SystemExit(msg)
     policies.setdefault("role_priorities", list(policies["role_policies"].keys()))
     return policies
 
 
-def load_initial_tasks() -> Dict:
+def load_initial_tasks() -> dict:
     data = load_yaml(INITIAL_TASKS_FILE, {"tasks": {}})
     return data.get("tasks", {})
 
 
-def resolve_role(alias: str, policies: Dict) -> str:
+def resolve_role(alias: str, policies: dict) -> str:
     alias_upper = alias.upper()
     role_policies = policies.get("role_policies", {})
     if alias_upper in role_policies:
@@ -160,10 +159,11 @@ def resolve_role(alias: str, policies: Dict) -> str:
         title = (policy.get("title") or "").lower()
         if alias_lower == role.lower() or alias_lower in title:
             return role
-    raise SystemExit(f"Не удалось распознать роль '{alias}'")
+    msg = f"Не удалось распознать роль '{alias}'"
+    raise SystemExit(msg)
 
 
-def infer_role(agent: Dict, policies: Dict) -> Optional[str]:
+def infer_role(agent: dict, policies: dict) -> str | None:
     if agent.get("desired_role"):
         try:
             return resolve_role(agent["desired_role"], policies)
@@ -179,8 +179,8 @@ def infer_role(agent: Dict, policies: Dict) -> Optional[str]:
     return None
 
 
-def generate_agent_id(role: str, agents: List[Dict]) -> str:
-    numbers: List[int] = []
+def generate_agent_id(role: str, agents: list[dict]) -> str:
+    numbers: list[int] = []
     for entry in agents:
         agent_id = entry.get("id", "")
         if agent_id.startswith(f"{role}_"):
@@ -192,8 +192,8 @@ def generate_agent_id(role: str, agents: List[Dict]) -> str:
     return f"{role}_{next_number:03d}_v1"
 
 
-def generate_pending_id(agents: List[Dict]) -> str:
-    numbers: List[int] = []
+def generate_pending_id(agents: list[dict]) -> str:
+    numbers: list[int] = []
     for entry in agents:
         agent_id = entry.get("id", "")
         if agent_id.startswith("PENDING_"):
@@ -205,8 +205,8 @@ def generate_pending_id(agents: List[Dict]) -> str:
     return f"PENDING_{next_number:04d}"
 
 
-def generate_issue_id(issues: List[Dict]) -> str:
-    numbers: List[int] = []
+def generate_issue_id(issues: list[dict]) -> str:
+    numbers: list[int] = []
     for issue in issues:
         issue_id = issue.get("id", "")
         if issue_id.startswith("ISS-"):
@@ -218,7 +218,7 @@ def generate_issue_id(issues: List[Dict]) -> str:
     return f"ISS-{next_number:04d}"
 
 
-def agent_roles(agent: Dict) -> List[str]:
+def agent_roles(agent: dict) -> list[str]:
     roles = agent.get("roles")
     if roles:
         return sorted({role for role in roles if role})
@@ -226,8 +226,8 @@ def agent_roles(agent: Dict) -> List[str]:
     return [role] if role else []
 
 
-def get_role_counts(agents: List[Dict]) -> Dict[str, int]:
-    counts: Dict[str, int] = {}
+def get_role_counts(agents: list[dict]) -> dict[str, int]:
+    counts: dict[str, int] = {}
     for agent in agents:
         if agent.get("status") != "active":
             continue
@@ -237,11 +237,11 @@ def get_role_counts(agents: List[Dict]) -> Dict[str, int]:
 
 
 def select_role_for_agent(
-    counts: Dict[str, int],
-    policies: Dict,
-    desired: Optional[str],
-    message_source: Dict,
-) -> Optional[str]:
+    counts: dict[str, int],
+    policies: dict,
+    desired: str | None,
+    message_source: dict,
+) -> str | None:
     role_policies = policies.get("role_policies", {})
     priorities = policies.get("role_priorities", list(role_policies.keys()))
     if desired:
@@ -266,7 +266,7 @@ def select_role_for_agent(
             return role
     if priorities:
 
-        def load_key(role: str) -> Tuple[int, int]:
+        def load_key(role: str) -> tuple[int, int]:
             return (counts.get(role, 0), priorities.index(role))
 
         return min(priorities, key=load_key)
@@ -274,7 +274,7 @@ def select_role_for_agent(
 
 
 def log_event(
-    state: State, actor: str, message: str, entity: Optional[str] = None
+    state: State, actor: str, message: str, entity: str | None = None
 ) -> None:
     state.events.append(
         {
@@ -290,9 +290,9 @@ def record_communication(
     state: State,
     channel: str,
     sender: str,
-    recipient: Optional[str],
+    recipient: str | None,
     message: str,
-    metadata: Optional[Dict] = None,
+    metadata: dict | None = None,
 ) -> None:
     state.communications.append(
         {
@@ -306,18 +306,20 @@ def record_communication(
     )
 
 
-def find_issue_by_id(issues: List[Dict], issue_id: str) -> Dict:
+def find_issue_by_id(issues: list[dict], issue_id: str) -> dict:
     for issue in issues:
         if issue.get("id") == issue_id:
             return issue
-    raise SystemExit(f"Issue {issue_id} не найден")
+    msg = f"Issue {issue_id} не найден"
+    raise SystemExit(msg)
 
 
-def ensure_agent_exists(agents: List[Dict], agent_id: str) -> Dict:
+def ensure_agent_exists(agents: list[dict], agent_id: str) -> dict:
     for agent in agents:
         if agent.get("id") == agent_id:
             return agent
-    raise SystemExit(f"Агент {agent_id} не найден")
+    msg = f"Агент {agent_id} не найден"
+    raise SystemExit(msg)
 
 
 def create_issue(
@@ -325,14 +327,14 @@ def create_issue(
     title: str,
     description: str,
     issue_type: str,
-    role: Optional[str],
-    assignee: Optional[str],
+    role: str | None,
+    assignee: str | None,
     priority: str,
-    labels: Optional[List[str]] = None,
-    story_points: Optional[int] = None,
+    labels: list[str] | None = None,
+    story_points: int | None = None,
     status: str = "New",
     reporter: str = "scheduler",
-) -> Dict:
+) -> dict:
     issue_id = generate_issue_id(state.issues)
     issue = {
         "id": issue_id,
@@ -358,7 +360,7 @@ def create_issue(
     return issue
 
 
-def create_clarification_issue(state: State, agent: Dict) -> None:
+def create_clarification_issue(state: State, agent: dict) -> None:
     title = f"Уточнить требования агента {agent['name']}"
     existing = [
         issue
@@ -395,14 +397,15 @@ def create_clarification_issue(state: State, agent: Dict) -> None:
 
 def assign_role_to_agent(
     state: State,
-    agent: Dict,
+    agent: dict,
     role: str,
-    policies: Dict,
-    initial_tasks: Dict,
+    policies: dict,
+    initial_tasks: dict,
 ) -> None:
     role_policy = policies.get("role_policies", {}).get(role)
     if not role_policy:
-        raise SystemExit(f"Для роли {role} не настроена политика")
+        msg = f"Для роли {role} не настроена политика"
+        raise SystemExit(msg)
     agents = state.agents
     old_id = agent.get("id")
     new_id = generate_agent_id(role, agents)
@@ -442,7 +445,7 @@ def assign_role_to_agent(
 
 
 def build_agent_assets(
-    agent: Dict, role_policy: Dict, state: State, initial_tasks: Dict
+    agent: dict, role_policy: dict, state: State, initial_tasks: dict
 ) -> None:
     agent_dir = STATE_DIR / "agents" / agent["id"]
     agent_dir.mkdir(parents=True, exist_ok=True)
@@ -516,7 +519,7 @@ def build_agent_assets(
             ensure_initial_issue(state, agent, template)
 
 
-def ensure_initial_issue(state: State, agent: Dict, template: Dict) -> None:
+def ensure_initial_issue(state: State, agent: dict, template: dict) -> None:
     existing = [
         issue
         for issue in state.issues
@@ -544,8 +547,8 @@ def ensure_initial_issue(state: State, agent: Dict, template: Dict) -> None:
     issue["origin"] = "onboarding"
 
 
-def update_todo_export(issues: List[Dict]) -> None:
-    lines: List[str] = []
+def update_todo_export(issues: list[dict]) -> None:
+    lines: list[str] = []
     for issue in issues:
         if issue.get("status") == "Archived":
             continue
@@ -554,7 +557,7 @@ def update_todo_export(issues: List[Dict]) -> None:
         title = issue.get("title", "")
         role = issue.get("role")
         line = f"({priority}) {created} {title}".strip()
-        extras: List[str] = []
+        extras: list[str] = []
         if role:
             extras.append(f"@{role.lower()}")
         issue_id = issue.get("id")
@@ -569,7 +572,7 @@ def update_todo_export(issues: List[Dict]) -> None:
             extras.append(f"+sp{story_points}")
         for label in issue.get("labels", []):
             extras.append(f"+{label}")
-        line = " ".join([line] + extras)
+        line = " ".join([line, *extras])
         lines.append(line.strip())
     TODO_FILE.write_text("\n".join(lines) + ("\n" if lines else ""), encoding="utf-8")
 
@@ -577,13 +580,15 @@ def update_todo_export(issues: List[Dict]) -> None:
 def ensure_status_transition(current: str, target: str) -> None:
     allowed = STATUS_TRANSITIONS.get(current)
     if allowed is None:
-        raise SystemExit(f"Неизвестный статус {current}")
+        msg = f"Неизвестный статус {current}"
+        raise SystemExit(msg)
     if target not in allowed:
-        raise SystemExit(f"Статус {current} нельзя перевести в {target}")
+        msg = f"Статус {current} нельзя перевести в {target}"
+        raise SystemExit(msg)
 
 
-def scheduler_run(state: State, policies: Dict, initial_tasks: Dict) -> List[str]:
-    messages: List[str] = []
+def scheduler_run(state: State, policies: dict, initial_tasks: dict) -> list[str]:
+    messages: list[str] = []
     counts = get_role_counts(state.agents)
     for agent in list(state.agents):
         if agent.get("status") != "pending":
@@ -601,30 +606,27 @@ def scheduler_run(state: State, policies: Dict, initial_tasks: Dict) -> List[str
     return messages
 
 
-def scheduler_status(state: State, policies: Dict) -> None:
+def scheduler_status(state: State, policies: dict) -> None:
     counts = get_role_counts(state.agents)
     priorities = policies.get("role_priorities", [])
-    print("Распределение по ролям:")
     for role in priorities:
         policy = policies.get("role_policies", {}).get(role, {})
-        capacity = policy.get("capacity", "∞")
-        minimum = policy.get("minimum", 0)
-        count = counts.get(role, 0)
-        print(f"- {role}: {count} / {capacity} (минимум {minimum})")
+        policy.get("capacity", "∞")
+        policy.get("minimum", 0)
+        counts.get(role, 0)
     pending = [agent for agent in state.agents if agent.get("status") == "pending"]
     if pending:
-        print("\nОжидают распределения:")
-        for agent in pending:
-            print(f"- {agent['name']} ({agent['id']})")
+        for _agent in pending:
+            pass
     if state.events:
-        print("\nПоследние события:")
-        for event in state.events[-5:]:
-            print(f"[{event['timestamp']}] {event['message']}")
+        for _event in state.events[-5:]:
+            pass
 
 
-def ensure_role_exists(role: str, policies: Dict) -> None:
+def ensure_role_exists(role: str, policies: dict) -> None:
     if role not in policies.get("role_policies", {}):
-        raise SystemExit(f"Политика для роли {role} не настроена")
+        msg = f"Политика для роли {role} не настроена"
+        raise SystemExit(msg)
 
 
 def list_agents(state: State, args: argparse.Namespace) -> None:
@@ -634,28 +636,22 @@ def list_agents(state: State, args: argparse.Namespace) -> None:
         role_code = resolve_role(args.role, policies)
         agents = [agent for agent in agents if role_code in agent_roles(agent)]
     if not agents:
-        print("Агенты не найдены")
         return
     for agent in agents:
-        roles_display = "/".join(agent_roles(agent)) or "-"
-        print(
-            f"{agent['id']:>12} | {roles_display:<32} | {agent.get('status', '-'):<9} | {agent['name']}"
-        )
+        "/".join(agent_roles(agent)) or "-"
 
 
 def info_agent(state: State, args: argparse.Namespace) -> None:
     agent = ensure_agent_exists(state.agents, args.agent_id)
     agent_copy = dict(agent)
     agent_copy["roles"] = agent_roles(agent)
-    print(json.dumps(agent_copy, ensure_ascii=False, indent=2))
     issues = [issue for issue in state.issues if issue.get("assignee") == agent["id"]]
     if issues:
-        print("Активные задачи:")
-        for issue in issues:
-            print(f"- {issue['id']} [{issue['status']}] {issue['title']}")
+        for _issue in issues:
+            pass
 
 
-def ingest_agent(state: State, policies: Dict, args: argparse.Namespace) -> None:
+def ingest_agent(state: State, policies: dict, args: argparse.Namespace) -> None:
     pending_id = generate_pending_id(state.agents)
     entry = {
         "id": pending_id,
@@ -688,12 +684,12 @@ def ingest_agent(state: State, policies: Dict, args: argparse.Namespace) -> None
     )
     initial_tasks = load_initial_tasks()
     messages = scheduler_run(state, policies, initial_tasks)
-    for message in messages:
-        print(message)
+    for _message in messages:
+        pass
 
 
 def create_manual_agent(
-    state: State, policies: Dict, initial_tasks: Dict, args: argparse.Namespace
+    state: State, policies: dict, initial_tasks: dict, args: argparse.Namespace
 ) -> None:
     role = resolve_role(args.role, policies)
     agent_entry = {
@@ -713,7 +709,6 @@ def create_manual_agent(
     }
     state.agents.append(agent_entry)
     assign_role_to_agent(state, agent_entry, role, policies, initial_tasks)
-    print(f"Создан агент {agent_entry['id']} с ролью {role}")
 
 
 def set_agent_status(state: State, args: argparse.Namespace) -> None:
@@ -771,17 +766,13 @@ def list_issues(state: State, args: argparse.Namespace) -> None:
     if args.assignee:
         issues = [issue for issue in issues if issue.get("assignee") == args.assignee]
     if not issues:
-        print("Задачи не найдены")
         return
-    for issue in issues:
-        print(
-            f"{issue['id']:>8} | {issue.get('status', '-'):<13} | {issue.get('priority', 'B')} | {issue.get('role', '-'):<4} | {issue.get('assignee', '-'):<12} | {issue['title']}"
-        )
+    for _issue in issues:
+        pass
 
 
 def info_issue(state: State, args: argparse.Namespace) -> None:
-    issue = find_issue_by_id(state.issues, args.issue_id)
-    print(json.dumps(issue, ensure_ascii=False, indent=2))
+    find_issue_by_id(state.issues, args.issue_id)
 
 
 def move_issue(state: State, args: argparse.Namespace) -> None:
@@ -802,7 +793,8 @@ def assign_issue(state: State, args: argparse.Namespace) -> None:
     current_role = issue.get("role")
     roles = agent_roles(agent)
     if current_role and current_role not in roles:
-        raise SystemExit(f"Агент {agent['id']} не обладает ролью {current_role}")
+        msg = f"Агент {agent['id']} не обладает ролью {current_role}"
+        raise SystemExit(msg)
     if not current_role and roles:
         issue["role"] = roles[0]
     issue["updated_at"] = iso_now()
@@ -832,7 +824,6 @@ def create_issue_cli(state: State, args: argparse.Namespace) -> None:
     )
     if args.assignee:
         issue["assignee"] = args.assignee
-    print(f"Создано Issue {issue['id']}")
 
 
 def communications_send_cli(state: State, args: argparse.Namespace) -> None:
@@ -842,7 +833,7 @@ def communications_send_cli(state: State, args: argparse.Namespace) -> None:
     )
     log_event(state, args.sender, f"Сообщение в канал {args.channel}: {args.message}")
     if args.create_issue:
-        policies = load_policies()
+        load_policies()
         issue = create_issue(
             state,
             title=f"Запрос пользователя: {args.message[:60]}",
@@ -857,7 +848,6 @@ def communications_send_cli(state: State, args: argparse.Namespace) -> None:
             reporter=args.sender,
         )
         issue.setdefault("metadata", {})["source_channel"] = args.channel
-        print(f"Создано Issue {issue['id']} для PO")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -962,7 +952,7 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: Optional[List[str]] = None) -> None:
+def main(argv: list[str] | None = None) -> None:
     parser = build_parser()
     args = parser.parse_args(argv)
     if not args.command:
@@ -977,9 +967,7 @@ def main(argv: Optional[List[str]] = None) -> None:
             list_agents(state, args)
         elif args.action == "info":
             info_agent(state, args)
-        elif args.action == "ingest":
-            ingest_agent(state, policies, args)
-        elif args.action == "onboard":
+        elif args.action in {"ingest", "onboard"}:
             ingest_agent(state, policies, args)
         elif args.action == "create":
             create_manual_agent(state, policies, initial_tasks, args)
@@ -990,7 +978,8 @@ def main(argv: Optional[List[str]] = None) -> None:
         elif args.action == "remove":
             remove_agent(state, args)
         else:
-            raise SystemExit("Неизвестная команда agents")
+            msg = "Неизвестная команда agents"
+            raise SystemExit(msg)
     elif args.command == "issues":
         if args.action == "list":
             list_issues(state, args)
@@ -1003,26 +992,30 @@ def main(argv: Optional[List[str]] = None) -> None:
         elif args.action == "create":
             create_issue_cli(state, args)
         else:
-            raise SystemExit("Неизвестная команда issues")
+            msg = "Неизвестная команда issues"
+            raise SystemExit(msg)
     elif args.command == "communications":
         if args.action == "send":
             communications_send_cli(state, args)
         else:
-            raise SystemExit("Неизвестная команда communications")
+            msg = "Неизвестная команда communications"
+            raise SystemExit(msg)
     elif args.command == "scheduler":
         if args.action == "run":
             messages = scheduler_run(state, policies, initial_tasks)
             if messages:
-                for message in messages:
-                    print(message)
+                for _message in messages:
+                    pass
             else:
-                print("Изменений нет")
+                pass
         elif args.action == "status":
             scheduler_status(state, policies)
         else:
-            raise SystemExit("Неизвестная команда scheduler")
+            msg = "Неизвестная команда scheduler"
+            raise SystemExit(msg)
     else:
-        raise SystemExit("Неизвестная команда")
+        msg = "Неизвестная команда"
+        raise SystemExit(msg)
 
     state.persist()
 

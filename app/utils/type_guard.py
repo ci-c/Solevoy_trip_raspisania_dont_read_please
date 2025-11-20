@@ -64,29 +64,27 @@ def runtime_type_check(func: Callable) -> Callable:
         for param_name, value in bound_args.arguments.items():
             if param_name in sig.parameters:
                 param = sig.parameters[param_name]
-                if param.annotation != inspect.Parameter.empty:
-                    if not type_check(value, param.annotation):
-                        msg = (
-                            f"Parameter '{param_name}' expected {param.annotation}, "
-                            f"got {type(value).__name__}"
-                        )
-                        raise TypeError(
-                            msg,
-                        )
+                if param.annotation != inspect.Parameter.empty and not type_check(value, param.annotation):
+                    msg = (
+                        f"Parameter '{param_name}' expected {param.annotation}, "
+                        f"got {type(value).__name__}"
+                    )
+                    raise TypeError(
+                        msg,
+                    )
 
         # Выполняем функцию
         result = func(*args, **kwargs)
 
         # Проверяем тип возвращаемого значения
-        if sig.return_annotation != inspect.Parameter.empty:
-            if not type_check(result, sig.return_annotation):
-                msg = (
-                    f"Return value expected {sig.return_annotation}, "
-                    f"got {type(result).__name__}"
-                )
-                raise TypeError(
-                    msg,
-                )
+        if sig.return_annotation != inspect.Parameter.empty and not type_check(result, sig.return_annotation):
+            msg = (
+                f"Return value expected {sig.return_annotation}, "
+                f"got {type(result).__name__}"
+            )
+            raise TypeError(
+                msg,
+            )
 
         return result
 

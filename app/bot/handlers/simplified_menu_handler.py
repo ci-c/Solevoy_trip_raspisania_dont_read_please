@@ -61,8 +61,9 @@ async def handle_menu_action(
                 reply_markup=get_main_menu_keyboard(user_profile),
             )
 
-    except Exception as e:
-        logger.error(f"Error handling menu action {action}: {e}")
+    except Exception:  # noqa: BLE001  - catch all for user-facing error handling
+        logger.error("Error in handler")
+
         await callback.message.edit_text(
             "❌ Ошибка при обработке запроса. Попробуйте позже.",
             reply_markup=get_main_menu_keyboard(),
@@ -124,8 +125,8 @@ async def show_group_selection(message: types.Message, state: FSMContext) -> Non
 
         await message.edit_text(text, reply_markup=keyboard)
 
-    except Exception as e:
-        logger.error(f"Error showing group selection: {e}")
+    except Exception:  # noqa: BLE001  - catch all for user-facing error handling
+        logger.error("Error in handler")
         await message.edit_text(
             "❌ Ошибка при загрузке списка групп.\n\n✍️ Введите номер группы вручную:",
             reply_markup=get_group_selection_keyboard(),
@@ -141,9 +142,9 @@ async def show_user_schedule(
         user_id = user_profile["user_id"]
 
         # Получаем расписание на текущую неделю
-        from datetime import date, timedelta
+        from datetime import UTC, datetime, timedelta
 
-        today = date.today()
+        today = datetime.now(UTC).date()
         week_start = today - timedelta(days=today.weekday())
         week_end = week_start + timedelta(days=6)
 
@@ -173,8 +174,8 @@ async def show_user_schedule(
             full_text, reply_markup=get_main_menu_keyboard(user_profile),
         )
 
-    except Exception as e:
-        logger.error(f"Error showing user schedule: {e}")
+    except Exception:  # noqa: BLE001  - catch all for user-facing error handling
+        logger.error("Error in handler")
         await message.edit_text(
             "❌ Ошибка при получении расписания.\n\n"
             "Попробуйте позже или обновите профиль.",
@@ -258,7 +259,7 @@ def format_user_schedule(schedule: list[dict], group_name: str) -> str:
                     room_info += f" ({lesson['building']})"
 
             teacher_name = lesson.get(
-                'teacher_name', 'Преподаватель не указан'
+                "teacher_name", "Преподаватель не указан"
             )
             text += (
                 f"{lesson['lesson_number']}.{time_info} "

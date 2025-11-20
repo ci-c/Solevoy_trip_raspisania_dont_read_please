@@ -152,10 +152,9 @@ def validate_user_input(input_type: str, value: str, required: bool = True) -> s
         return ""
 
     # Для поисковых запросов проверяем на подозрительные паттерны ДО санитизации
-    if input_type == "search_query":
-        if not InputValidator.validate_search_query(value):
-            msg = "Некорректный поисковый запрос"
-            raise ValidationError(msg)
+    if input_type == "search_query" and not InputValidator.validate_search_query(value):
+        msg = "Некорректный поисковый запрос"
+        raise ValidationError(msg)
 
     # Санитизация
     sanitized_value = InputValidator.sanitize_input(value)
@@ -181,10 +180,9 @@ def validate_user_input(input_type: str, value: str, required: bool = True) -> s
             msg = "Некорректный формат номера телефона"
             raise ValidationError(msg)
 
-    elif input_type == "name":
-        if not InputValidator.validate_name(sanitized_value):
-            msg = "Некорректный формат имени"
-            raise ValidationError(msg)
+    elif input_type == "name" and not InputValidator.validate_name(sanitized_value):
+        msg = "Некорректный формат имени"
+        raise ValidationError(msg)
 
     # search_query is already validated before sanitization
     # so we don't need to validate it again here

@@ -264,8 +264,8 @@ async def show_group_schedule_safe(
                     f"🔄 Попробуйте другую неделю или повторите поиск."
                 )
 
-        except Exception as e:
-            logger.error(f"Error formatting schedule: {e}")
+        except Exception as e:  # noqa: BLE001  - catch all for bot command error handling
+            logger.error(f" formatting schedule: {e}")
             schedule_text = (
                 f"📅 **Расписание группы {group_info.number}**\n\n"
                 f"❌ Ошибка при обработке данных расписания.\n\n"
@@ -296,7 +296,7 @@ async def show_group_schedule_safe(
             logger.info(
                 f"Successfully displayed schedule for group {group_info.number}",
             )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for database errors
             logger.error(f"Failed to edit message: {e}")
             await message.answer(full_text, reply_markup=keyboard)
 

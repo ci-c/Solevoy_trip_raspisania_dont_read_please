@@ -1,10 +1,11 @@
 """Comprehensive tests for GroupService."""
 
-import pytest
 from unittest.mock import AsyncMock, patch
 
-from app.services.group_service import GroupService
+import pytest
+
 from app.database.models import Group
+from app.services.group_service import GroupService
 
 
 @pytest.mark.asyncio
@@ -114,7 +115,7 @@ class TestGroupService:
         service = GroupService()
 
         # Create with one faculty
-        first_result = await service.find_or_create_group_with_faculty(
+        await service.find_or_create_group_with_faculty(
             group_name="202а",
             course=2,
             faculty_id=1,
@@ -256,7 +257,7 @@ class TestGroupService:
         service = GroupService()
 
         # Mock faculty service to return data
-        with patch('app.services.faculty_service.FacultyService') as MockFacultyService:
+        with patch("app.services.faculty_service.FacultyService") as MockFacultyService:
             mock_faculty_service = AsyncMock()
             mock_faculty_service.get_faculty_names.return_value = [
                 "Лечебный факультет",
@@ -264,7 +265,7 @@ class TestGroupService:
             ]
             MockFacultyService.return_value = mock_faculty_service
 
-            result = await service.get_available_faculties()
+            await service.get_available_faculties()
 
             # Should call faculty service
             mock_faculty_service.get_faculty_names.assert_called_once()
@@ -292,7 +293,7 @@ class TestGroupService:
         service = GroupService()
 
         # Test with mock that causes validation error
-        with patch('app.services.group_service.validate_group_data') as mock_validate:
+        with patch("app.services.group_service.validate_group_data") as mock_validate:
             from app.utils.validators import ValidationResult
 
             mock_validate.return_value = ValidationResult(
@@ -313,10 +314,11 @@ class TestGroupService:
         """Test exception handling in find_or_create_group."""
         service = GroupService()
 
-        with patch('app.services.group_service.get_session') as mock_get_session:
+        with patch("app.services.group_service.get_session") as mock_get_session:
             # Make the async generator raise an exception
             async def failing_generator():
-                raise Exception("Database error")
+                msg = "Database error"
+                raise Exception(msg)
                 yield None
 
             mock_get_session.return_value = failing_generator()

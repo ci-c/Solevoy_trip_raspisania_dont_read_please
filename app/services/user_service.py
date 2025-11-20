@@ -27,11 +27,14 @@ class UserService:
         """Создать нового пользователя."""
         # Validate input
         if telegram_id is None:
-            raise ValueError("telegram_id cannot be None")
+            msg = "telegram_id cannot be None"
+            raise ValueError(msg)
         if not isinstance(telegram_id, int):
-            raise TypeError("telegram_id must be an integer")
+            msg = "telegram_id must be an integer"
+            raise TypeError(msg)
         if telegram_id < 0:
-            raise ValueError("telegram_id cannot be negative")
+            msg = "telegram_id cannot be negative"
+            raise ValueError(msg)
 
         now = datetime.now(tz=UTC)
 
@@ -203,7 +206,8 @@ class UserService:
                 )
                 group = group_result.scalar_one_or_none()
                 if not group:
-                    raise ValueError(f"Group with ID {group_id} does not exist")
+                    msg = f"Group with ID {group_id} does not exist"
+                    raise ValueError(msg)
 
                 # Then update user
                 result = await session.execute(

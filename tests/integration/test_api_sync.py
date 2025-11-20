@@ -10,18 +10,14 @@ These tests verify that API failures are handled gracefully,
 partial syncs rollback correctly, and network errors don't corrupt database.
 """
 
-import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
-from datetime import date
-from sqlalchemy.ext.asyncio import AsyncSession
-import aiohttp
 import asyncio
 
+import aiohttp
+import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.database.models import Faculty, Group
 from app.services.schedule_service import ScheduleService
-from app.services.group_service import GroupService
-from app.database.models import Group
-from app.database.models import Faculty
-from app.database.models import Schedule
 
 
 @pytest.mark.integration
@@ -132,7 +128,7 @@ class TestAPISync:
             result = await schedule_service.sync_schedule_for_group(group.id)
             # Stub implementation returns True if group exists
             assert result is True
-        except asyncio.TimeoutError:
+        except TimeoutError:
             # Acceptable if propagated to be caught higher up
             pass
 

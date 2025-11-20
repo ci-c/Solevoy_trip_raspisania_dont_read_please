@@ -7,8 +7,9 @@ import asyncio
 import hashlib
 import os
 import sys
+from collections.abc import Coroutine
 from pathlib import Path
-from typing import Any, Coroutine, Dict, List, Optional
+from typing import Any
 
 from aiogram import Bot, Dispatcher, F, types
 from aiogram.client.default import DefaultBotProperties
@@ -21,22 +22,21 @@ from aiogram.types import FSInputFile, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from dotenv import load_dotenv
 from loguru import logger
-
 from schedule_processor.api import get_available_filters, search_schedules
-from schedule_processor.student_profile import StudentProfile, StudentProfileManager
-from schedule_processor.diary import StudentDiary
-from schedule_processor.yaml_config import get_config
 from schedule_processor.attestation_helper import AttestationHelper
-from schedule_processor.grade_calculator import GradeCalculator
+from schedule_processor.diary import StudentDiary
 from schedule_processor.disclaimer import DisclaimerManager
-from schedule_processor.semester_detector import SemesterDetector
+from schedule_processor.grade_calculator import GradeCalculator
 from schedule_processor.group_search import GroupSearchService
+from schedule_processor.semester_detector import SemesterDetector
+from schedule_processor.student_profile import StudentProfile, StudentProfileManager
+from schedule_processor.yaml_config import get_config
 
 # --- 1. Configuration ---
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent
-API_TOKEN: Optional[str] = os.getenv("BOT_API_KEY")
+API_TOKEN: str | None = os.getenv("BOT_API_KEY")
 if not API_TOKEN:
     logger.critical("Need to specify BOT_API_KEY in .env file. Exiting.")
     sys.exit(1)
@@ -194,11 +194,11 @@ class GroupSearchCallback(CallbackData, prefix="group"):
 
 # --- 6. Keyboard utilities ---
 def get_filters_keyboard(
-    available_filters: Dict[str, List[str]],
-    selected_filters: Dict[str, List[str]],
+    available_filters: dict[str, list[str]],
+    selected_filters: dict[str, list[str]],
 ) -> types.InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
-    for name in available_filters.keys():
+    for name in available_filters:
         selected_count = len(selected_filters.get(name, []))
         button_text = f"{name} ({selected_count}) {'✅' if selected_count > 0 else '➡️'}"
         builder.button(
@@ -212,8 +212,8 @@ def get_filters_keyboard(
 
 def get_options_keyboard(
     filter_name: str,
-    options: List[str],
-    selected_options: List[str],
+    options: list[str],
+    selected_options: list[str],
 ) -> types.InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     for i, option in enumerate(options):
@@ -232,7 +232,7 @@ def get_options_keyboard(
 
 
 def get_main_menu_keyboard(
-    user_profile: Optional[StudentProfile] = None,
+    user_profile: StudentProfile | None = None,
 ) -> types.InlineKeyboardMarkup:
     """Create main menu keyboard based on user profile status."""
     config = get_config()
@@ -291,7 +291,7 @@ def get_main_menu_keyboard(
 
 
 def get_profile_setup_keyboard(
-    step: str, options: List[str] = None
+    step: str, options: list[str] | None = None
 ) -> types.InlineKeyboardMarkup:
     """Create keyboard for profile setup steps."""
     builder = InlineKeyboardBuilder()
@@ -387,7 +387,7 @@ def get_attestation_keyboard() -> types.InlineKeyboardMarkup:
     return builder.as_markup()
 
 
-def get_grades_keyboard(subjects: List[str] = None) -> types.InlineKeyboardMarkup:
+def get_grades_keyboard(subjects: list[str] | None = None) -> types.InlineKeyboardMarkup:
     """Create grades management keyboard."""
     builder = InlineKeyboardBuilder()
 
@@ -485,7 +485,7 @@ def get_group_result_keyboard(group_number: str) -> types.InlineKeyboardMarkup:
 
 async def show_loading_spinner(
     message, text_prefix: str = "⏳ Загрузка", duration: int = 10
-):
+) -> None:
     """Показать спиннер во время загрузки."""
     spinner_frames = list("🕐🕑🕒🕓🕔🕕🕖🕗🕘🕙🕚🕛")
     steps = [
@@ -514,7 +514,7 @@ async def show_loading_spinner(
 
 # --- 7. File generation function ---
 async def generate_schedule_file(
-    search_result: Dict, format_type: str, subgroup_name: str
+    search_result: dict, format_type: str, subgroup_name: str
 ) -> Path:
     """
     Generate schedule file using the real schedule processor.
@@ -545,18 +545,20 @@ async def generate_schedule_file(
         v3_path = Path(__file__).parent / "legacy" / "v3"
         sys.path.insert(0, str(v3_path))
 
+        import datetime
+
+        from config import WEEK_DAYS
         from get_raw import process_lessons
+        from ical import gen_ical
         from processing import process_lessons_for_export
         from xlsx import gen_excel_file
-        from ical import gen_ical
-        from config import WEEK_DAYS
-        import datetime
 
         # Process lessons from the schedule data
         all_lessons = process_lessons(schedule_data)
 
         if not all_lessons:
-            raise Exception("No lessons found in schedule data")
+            msg = "No lessons found in schedule data"
+            raise Exception(msg)
 
         # Determine first schedule date (same logic as v3/main.py)
         earliest_lesson = min(
@@ -578,7 +580,8 @@ async def generate_schedule_file(
         )
 
         if not processed_lessons:
-            raise Exception(f"No lessons found for subgroup {subgroup_name}")
+            msg = f"No lessons found for subgroup {subgroup_name}"
+            raise Exception(msg)
 
         # Ensure output directory exists
         output_dir = Path("output")
@@ -598,8 +601,8 @@ async def generate_schedule_file(
         if file_path.exists():
             logger.info(f"Successfully generated {format_type} file: {file_path}")
             return file_path
-        else:
-            raise Exception(f"Generated file {file_path} does not exist")
+        msg = f"Generated file {file_path} does not exist"
+        raise Exception(msg)
 
     except Exception as e:
         logger.error(f"Error generating schedule file: {e}")
@@ -614,13 +617,13 @@ async def generate_schedule_file(
             f.write(f"Error generating {format_type} file\n")
             f.write(f"Schedule: {search_result['display_name']}\n")
             f.write(f"Subgroup: {subgroup_name}\n")
-            f.write(f"Error: {str(e)}\n")
+            f.write(f"Error: {e!s}\n")
             f.write("Generated by Schedule Processor Bot\n")
 
         return fallback_file
 
 
-def format_schedule_info(schedule_data: Dict) -> str:
+def format_schedule_info(schedule_data: dict) -> str:
     """
     Format schedule data into readable description for bot buttons.
 
@@ -1405,7 +1408,8 @@ async def select_format(
 
         # Проверяем, что файл существует
         if not file_path.exists():
-            raise FileNotFoundError(f"Generated file does not exist: {file_path}")
+            msg = f"Generated file does not exist: {file_path}"
+            raise FileNotFoundError(msg)
 
         # Send file to user with disclaimer
         disclaimer_manager = DisclaimerManager(BASE_DIR / "user_data" / "agreements")
@@ -1429,7 +1433,7 @@ async def select_format(
     except Exception as e:
         logger.error(f"Error in file generation: {e}")
         await callback.message.edit_text(
-            f"❌ Ошибка при генерации файла: {str(e)}\n\n"
+            f"❌ Ошибка при генерации файла: {e!s}\n\n"
             f"Попробуйте еще раз или выберите другой формат."
         )
         # Return to format selection
@@ -1625,7 +1629,7 @@ async def process_group_number(message: Message, state: FSMContext) -> None:
             groups = await asyncio.wait_for(search_task, timeout=30.0)
             spinner_task.cancel()  # Останавливаем спиннер
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             spinner_task.cancel()
             await loading_msg.edit_text(
                 f"⏱️ Поиск группы `{group_number}` занял слишком много времени.\n\n"
@@ -1638,7 +1642,7 @@ async def process_group_number(message: Message, state: FSMContext) -> None:
         except Exception as search_error:
             spinner_task.cancel()
             logger.error(f"Search task failed: {search_error}")
-            raise search_error
+            raise
 
         if not groups:
             await loading_msg.edit_text(

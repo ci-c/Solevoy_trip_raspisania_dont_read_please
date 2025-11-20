@@ -5,14 +5,13 @@ Provides isolated test databases and session management.
 """
 
 import asyncio
-import os
+from collections.abc import AsyncGenerator, Generator
 from pathlib import Path
-from typing import AsyncGenerator, Generator
 
 import pytest
 import pytest_asyncio
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 from app.database.models import Base
 
@@ -59,16 +58,15 @@ async def test_db_engine():
 
 
 @pytest_asyncio.fixture(scope="function")
-async def db_session() -> AsyncGenerator[AsyncSession, None]:
+async def db_session() -> AsyncGenerator[AsyncSession]:
     """
     Provide a clean database session for each test.
 
     Uses the main database so that services can see the test data.
     Cleans all tables after each test to ensure isolation.
     """
-    from app.database.session import get_session
     from app.database.models import Base
-    from sqlalchemy import text
+    from app.database.session import get_session
 
     async for session in get_session():
         yield session
@@ -99,5 +97,4 @@ def mock_env_vars(monkeypatch):
     monkeypatch.setenv("BOT_TOKEN", "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz123456789")
     monkeypatch.setenv("DATABASE_URL", "sqlite+aiosqlite:///./data/test_db_temp.db")
     monkeypatch.setenv("LOG_LEVEL", "DEBUG")
-    yield
     # Cleanup happens automatically with monkeypatch

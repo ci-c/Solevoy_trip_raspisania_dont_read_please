@@ -66,8 +66,9 @@ async def handle_invitation_main(
                 reply_markup=get_invitation_keyboard(),
             )
 
-    except Exception as e:
-        logger.error(f"Error in invitation main handler: {e}")
+    except Exception:  # noqa: BLE001  - catch all for user-facing error handling
+        logger.error("Error in handler")
+
         await callback.message.edit_text(
             "❌ Ошибка при загрузке системы инвайтов. Попробуйте позже.",
             reply_markup=get_main_menu_keyboard(),
@@ -110,9 +111,9 @@ async def handle_create_invitation(
             f"🔢 **Максимум использований:** {invitation.max_uses or 'Неограниченно'}\n"
         )
         expires_text = (
-            invitation.expires_at.strftime('%d.%m.%Y %H:%M')
+            invitation.expires_at.strftime("%d.%m.%Y %H:%M")
             if invitation.expires_at
-            else 'Бессрочно'
+            else "Бессрочно"
         )
         text += f"⏰ **Действует до:** {expires_text}\n\n"
         text += "Поделитесь этим кодом с пользователями для предоставления доступа."
@@ -141,8 +142,9 @@ async def handle_create_invitation(
             ),
         )
 
-    except Exception as e:
-        logger.error(f"Error in create invitation handler: {e}")
+    except Exception:  # noqa: BLE001  - catch all for user-facing error handling
+        logger.error("Error in handler")
+
         await callback.message.edit_text(
             "❌ Ошибка при создании инвайта. Попробуйте позже.",
             reply_markup=get_main_menu_keyboard(),
@@ -210,8 +212,9 @@ async def handle_list_invitations(
             ),
         )
 
-    except Exception as e:
-        logger.error(f"Error in list invitations handler: {e}")
+    except Exception:  # noqa: BLE001  - catch all for user-facing error handling
+        logger.error("Error in handler")
+
         await callback.message.edit_text(
             "❌ Ошибка при загрузке инвайтов. Попробуйте позже.",
             reply_markup=get_main_menu_keyboard(),
@@ -245,8 +248,9 @@ async def handle_use_invitation(
             ),
         )
 
-    except Exception as e:
-        logger.error(f"Error in use invitation handler: {e}")
+    except Exception:  # noqa: BLE001  - catch all for user-facing error handling
+        logger.error("Error in handler")
+
         await callback.message.edit_text(
             "❌ Ошибка при использовании инвайта. Попробуйте позже.",
             reply_markup=get_main_menu_keyboard(),
@@ -303,8 +307,9 @@ async def process_invitation_code(message: types.Message, state: FSMContext) -> 
 
         await state.clear()
 
-    except Exception as e:
-        logger.error(f"Error processing invitation code: {e}")
+    except Exception:  # noqa: BLE001  - catch all for user-facing error handling
+        logger.error("Error in handler")
+
         await message.answer(
             "❌ Ошибка при обработке кода инвайта. Попробуйте позже.",
             reply_markup=get_main_menu_keyboard(),

@@ -46,7 +46,7 @@ async def global_error_handler(event: types.ErrorEvent, state: FSMContext) -> No
                 user = await user_service.get_user_by_telegram_id(user_id)
                 if user:
                     access_level = AccessLevel(user.access_level)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001  - catch all errors to prevent error handler failure
                 logger.warning(f"Could not get user info for error handler: {e}")
 
         # Логируем событие безопасности для критических ошибок
@@ -83,7 +83,7 @@ async def global_error_handler(event: types.ErrorEvent, state: FSMContext) -> No
             await state.clear()
             logger.info(f"Cleared state for user {user_id} due to critical error")
 
-    except Exception as handler_error:
+    except Exception as handler_error:  # noqa: BLE001  - fallback error handler must catch everything
         logger.critical(f"Error in error handler: {handler_error}")
 
         # Последняя попытка отправить простое сообщение
@@ -96,7 +96,7 @@ async def global_error_handler(event: types.ErrorEvent, state: FSMContext) -> No
                     "Перезапустите бота командой /start"
                 ),
             )
-        except Exception:
+        except Exception:  # noqa: BLE001  - last resort error message attempt
             logger.critical("Could not send any error message to user")
 
 

@@ -5,7 +5,6 @@ from pathlib import Path
 
 from rich import print  # noqa: A004
 
-
 FILE_PATH: Path = Path("./бассейн.csv")
 
 
@@ -46,10 +45,9 @@ class GroupInterval:
     def __increment(gr: str) -> str:
         if gr.endswith("А"):
             return gr[:-1] + "Б"
-        elif gr.endswith("Б"):
+        if gr.endswith("Б"):
             return str(int(gr[:-1]) + 1) + "А"
-        else:
-            return gr + "А"
+        return gr + "А"
 
     def __iter__(self):
         current = self.start_g
@@ -59,7 +57,7 @@ class GroupInterval:
                 break
             current = self.__increment(current)
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.end_g:
             return f"{self.start_g}-{self.end_g}"
         return self.start_g
@@ -79,8 +77,7 @@ def time_correction(s: str) -> str:
             ss[i] = x
         elif not ss[i]:
             ss[i] = "00"
-    s = ":".join(ss)
-    return s
+    return ":".join(ss)
 
 
 def week_correction(s: str) -> int:

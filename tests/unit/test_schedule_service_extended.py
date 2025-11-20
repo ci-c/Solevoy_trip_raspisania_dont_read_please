@@ -1,13 +1,14 @@
 """Comprehensive tests for ScheduleService."""
 
-import pytest
-from datetime import date, datetime
-from unittest.mock import AsyncMock, patch, MagicMock
+from datetime import date
+from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
+from app.database.models import Faculty
+from app.services.group_service import GroupService
 from app.services.schedule_service import ScheduleService
 from app.services.user_service import UserService
-from app.services.group_service import GroupService
-from app.database.models import Group, User as UserModel, Faculty, Speciality
 
 
 @pytest.mark.asyncio
@@ -253,7 +254,6 @@ class TestScheduleService:
     async def test_get_available_faculties_with_data(self, db_session):
         """Test getting available faculties with data in database."""
         from app.database.session import get_session
-        from app.database.models import Faculty
 
         # Create test faculty
         async for session in get_session():
@@ -307,7 +307,7 @@ class TestScheduleService:
         service = ScheduleService()
 
         # Mock to fail first, then succeed
-        with patch.object(service, 'sync_schedule_for_group', wraps=service.sync_schedule_for_group) as mock_sync:
+        with patch.object(service, "sync_schedule_for_group", wraps=service.sync_schedule_for_group):
             group_service = GroupService()
             created = await group_service.find_or_create_group_with_faculty(
                 group_name="TestGroup8",
@@ -325,7 +325,7 @@ class TestScheduleService:
         service = ScheduleService()
 
         # Create a mock that raises an exception when executing queries
-        with patch('app.services.schedule_service.get_session') as mock_get_session:
+        with patch("app.services.schedule_service.get_session") as mock_get_session:
             mock_session = MagicMock()
             mock_session.execute = AsyncMock(side_effect=Exception("Database error"))
 
@@ -342,7 +342,7 @@ class TestScheduleService:
         service = ScheduleService()
 
         # Create a mock that raises an exception when executing queries
-        with patch('app.services.schedule_service.get_session') as mock_get_session:
+        with patch("app.services.schedule_service.get_session") as mock_get_session:
             mock_session = MagicMock()
             mock_session.execute = AsyncMock(side_effect=Exception("Database error"))
 

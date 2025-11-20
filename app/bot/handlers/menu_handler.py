@@ -136,8 +136,8 @@ async def handle_menu(
                 reply_markup=get_main_menu_keyboard(user),
             )
 
-    except Exception as e:
-        logger.error(f"Error in menu handler: {e}")
+    except Exception:  # noqa: BLE001  - catch all for user-facing error handling
+        logger.error("Error in menu handler")
         await callback.message.edit_text(
             "❌ Ошибка в обработке меню. Попробуйте /start для перезапуска.",
             reply_markup=get_main_menu_keyboard(None),

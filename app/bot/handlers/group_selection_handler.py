@@ -85,8 +85,8 @@ async def handle_group_selection(
                     reply_markup=get_group_selection_keyboard(),
                 )
 
-    except Exception as e:
-        logger.error(f"Error in group selection handler: {e}")
+    except Exception as e:  # noqa: BLE001  - catch all for bot command error handling
+        logger.error(f" in group selection handler: {e}")
         try:
             await callback.message.edit_text(
                 "❌ Ошибка при выборе группы. Попробуйте позже.",
@@ -143,8 +143,8 @@ async def process_manual_group_input(message: types.Message, state: FSMContext) 
                 reply_markup=get_group_selection_keyboard(),
             )
 
-    except Exception as e:
-        logger.error(f"Error processing manual group input: {e}")
+    except Exception as e:  # noqa: BLE001  - catch all for bot command error handling
+        logger.error(f" processing manual group input: {e}")
         try:
             await message.edit_text(
                 f"❌ Ошибка при обработке номера группы `{group_number}`.\n\n"
@@ -219,8 +219,8 @@ async def show_faculty_groups(
                 reply_markup=get_group_selection_keyboard(),
             )
 
-    except Exception as e:
-        logger.error(f"Error showing faculty groups: {e}")
+    except Exception:  # noqa: BLE001  - catch all for user-facing error handling
+        logger.error("Error in handler")
         await message.edit_text(
             "❌ Ошибка при загрузке групп факультета.\n\nПопробуйте ручной ввод:",
             reply_markup=get_group_selection_keyboard(),
@@ -268,8 +268,8 @@ async def show_group_confirmation(
             logger.error(f"Could not edit message: {edit_error}")
             await message.answer(text, reply_markup=keyboard)
 
-    except Exception as e:
-        logger.error(f"Error showing group confirmation: {e}")
+    except Exception as e:  # noqa: BLE001  - catch all for bot command error handling
+        logger.error(f" showing group confirmation: {e}")
         try:
             await message.edit_text(
                 "❌ Ошибка при подготовке подтверждения.\n\n"
@@ -337,8 +337,8 @@ async def confirm_group_selection(
                 reply_markup=get_group_selection_keyboard(),
             )
 
-    except Exception as e:
-        logger.error(f"Error confirming group selection: {e}")
+    except Exception:  # noqa: BLE001  - catch all for user-facing error handling
+        logger.error("Error in handler")
         await message.edit_text(
             "❌ Ошибка при подтверждении группы.\n\n"
             "Попробуйте позже или обратитесь к администратору.",

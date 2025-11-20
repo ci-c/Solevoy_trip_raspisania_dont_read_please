@@ -10,16 +10,15 @@ These tests verify that all error types are caught gracefully,
 logged properly, and users receive clear error messages.
 """
 
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
-from sqlalchemy.ext.asyncio import AsyncSession
-from aiogram.types import Message, User as TelegramUser, Chat
 from aiogram.exceptions import TelegramAPIError
+from aiogram.types import Chat, Message
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.bot.handlers.error_handler import global_error_handler
 from app.services.user_service import UserService
-from app.services.schedule_service import ScheduleService
-from app.models.user import User, AccessLevel
 
 
 @pytest.mark.integration
@@ -58,7 +57,7 @@ class TestErrorHandling:
         user_service = UserService()
 
         # Mock database to raise error
-        with patch('app.database.session.get_session', side_effect=Exception("Database connection lost")):
+        with patch("app.database.session.get_session", side_effect=Exception("Database connection lost")):
             # Act & Assert - Service should either raise exception or handle gracefully
             try:
                 result = await user_service.get_user(123456789)
@@ -106,7 +105,8 @@ class TestErrorHandling:
                 telegram_username="test",
                 full_name="Test"
             )
-            assert False, "Should have raised exception"
+            msg = "Should have raised exception"
+            raise AssertionError(msg)
         except (ValueError, TypeError, Exception) as e:
             # Error message should be informative
             error_msg = str(e).lower()
@@ -263,7 +263,7 @@ class TestBotHandlerErrors:
         user_service = UserService()
 
         # Mock database connection failure
-        with patch('app.database.session.get_session', side_effect=Exception("DB unavailable")):
+        with patch("app.database.session.get_session", side_effect=Exception("DB unavailable")):
             # Act & Assert - Service should either raise exception or handle gracefully
             try:
                 result = await user_service.get_user(sample_telegram_user["id"])

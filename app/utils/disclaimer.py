@@ -1,7 +1,7 @@
 """Модуль для работы с дисклеймерами и соглашениями."""
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 
@@ -51,7 +51,7 @@ class DisclaimerManager:
         self.agreements[user_id] = {
             "agreed": True,
             "version": version,
-            "agreed_at": datetime.now(tz=timezone.utc).isoformat(),
+            "agreed_at": datetime.now(tz=UTC).isoformat(),
         }
         self._save_agreements()
 

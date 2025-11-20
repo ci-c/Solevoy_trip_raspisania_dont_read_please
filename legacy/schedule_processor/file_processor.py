@@ -2,9 +2,10 @@
 
 import csv
 from pathlib import Path
+
 import openpyxl
 
-from .config import WEEK_DAYS, SCHEDULE_COLUMN_INDEX
+from .config import SCHEDULE_COLUMN_INDEX, WEEK_DAYS
 
 
 def expand_interval(interval: str) -> list[int]:

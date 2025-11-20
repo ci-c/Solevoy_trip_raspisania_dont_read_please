@@ -119,7 +119,7 @@ class FacultyService:
                 await session.commit()
                 logger.info(f"Saved {len(faculties_data)} faculties to database")
                 return True
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error saving faculties to database: {e}")
             return False
 
@@ -147,20 +147,17 @@ class FacultyService:
 
             async for session in get_session():
                 result = await session.execute(select(Faculty).order_by(Faculty.name))
-                faculties = []
+                return [
+                    {
+                        "id": faculty.id,
+                        "name": faculty.name,
+                        "short_name": faculty.short_name,
+                        "description": faculty.description,
+                    }
+                    for faculty in result.scalars()
+                ]
 
-                for faculty in result.scalars():
-                    faculties.append(
-                        {
-                            "id": faculty.id,
-                            "name": faculty.name,
-                            "short_name": faculty.short_name,
-                            "description": faculty.description,
-                        },
-                    )
-
-                return faculties
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error getting faculties from database: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
             return None
@@ -179,7 +176,7 @@ class FacultyService:
                     return True
 
             return False
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error syncing faculties: {e}")
             return False
 
@@ -193,7 +190,7 @@ class FacultyService:
                     select(Faculty.name).order_by(Faculty.name),
                 )
                 return [row[0] for row in result.fetchall()]
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error getting faculty names: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
             return None
@@ -218,7 +215,7 @@ class FacultyService:
                     }
 
                 return None
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error getting faculty by name: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
         return None
@@ -231,6 +228,6 @@ class FacultyService:
             async for session in get_session():
                 result = await session.execute(select(Faculty).order_by(Faculty.name))
                 return list(result.scalars().all())
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error getting all faculties: {e}")
             return []

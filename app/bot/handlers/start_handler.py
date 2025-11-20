@@ -131,8 +131,8 @@ async def cmd_clean(message: types.Message, state: FSMContext) -> None:
             reply_markup=get_main_menu_reply_keyboard(),
         )
 
-    except Exception as e:
-        logger.error(f"Error in cmd_clean: {e}")
+    except Exception as e:  # noqa: BLE001  - catch all for bot command error handling
+        logger.error(f" in cmd_clean: {e}")
         logger.error(f"Traceback: {e.__traceback__}")
         await message.answer("❌ Ошибка при очистке диалога")
 

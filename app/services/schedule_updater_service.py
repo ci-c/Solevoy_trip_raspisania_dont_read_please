@@ -1,6 +1,6 @@
 """Сервис автоматического обновления расписаний из внешних источников."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from loguru import logger
@@ -44,7 +44,7 @@ class ScheduleUpdaterService:
                 "message": "Schedule update completed (stub implementation)",
             }
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error updating schedules: {e}")
             return {
                 "status": "error",
@@ -70,7 +70,7 @@ class ScheduleUpdaterService:
             # TODO: Реализовать через SQLAlchemy ORM
             return True
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error updating group {group_id}: {e}")
             return False
 
@@ -99,13 +99,13 @@ class ScheduleUpdaterService:
         try:
             # TODO: Реализовать через SQLAlchemy ORM
             return {
-                "last_update": datetime.now(tz=timezone.utc).isoformat(),
+                "last_update": datetime.now(tz=UTC).isoformat(),
                 "total_groups": 0,
                 "active_schedules": 0,
                 "pending_updates": 0,
             }
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error getting statistics: {e}")
             return {
                 "last_update": None,

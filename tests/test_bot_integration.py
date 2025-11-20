@@ -3,13 +3,14 @@
 Интеграционные тесты для эмуляции пользователя.
 """
 
-import pytest
 import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
+import pytest
+
 from app.bot.main import create_bot_app
-from app.services.schedule_service import ScheduleService
 from app.services.group_service import GroupService
+from app.services.schedule_service import ScheduleService
 from app.services.user_service import UserService
 
 
@@ -54,9 +55,7 @@ async def test_bot_startup():
         assert app is not None
         assert app.bot is not None
         assert app.dp is not None
-        print("✅ Bot startup test passed")
-    except Exception as e:
-        print(f"❌ Bot startup test failed: {e}")
+    except Exception:
         raise
 
 
@@ -70,11 +69,10 @@ async def test_user_creation():
         )
 
         if user is None:
-            print("⚠️ User creation returned None (user might already exist)")
+            pass
         else:
-            print(f"✅ User creation test passed: {user}")
-    except Exception as e:
-        print(f"❌ User creation test failed: {e}")
+            pass
+    except Exception:
         raise
 
 
@@ -85,15 +83,11 @@ async def test_schedule_service_faculties():
         schedule_service = ScheduleService()
         faculties = await schedule_service.get_available_faculties()
 
-        if faculties is None:
-            print("⚠️ Faculties returned None (database might be empty)")
-        elif len(faculties) == 0:
-            print("⚠️ No faculties found in database")
+        if faculties is None or len(faculties) == 0:
+            pass
         else:
-            print(f"✅ Faculties test passed: {len(faculties)} faculties found")
-            print(f"First faculty: {faculties[0]}")
-    except Exception as e:
-        print(f"❌ Faculties test failed: {e}")
+            pass
+    except Exception:
         raise
 
 
@@ -107,11 +101,10 @@ async def test_group_service():
         group = await group_service.find_or_create_group("999")
 
         if group is None:
-            print("⚠️ Group creation returned None")
+            pass
         else:
-            print(f"✅ Group service test passed: {group}")
-    except Exception as e:
-        print(f"❌ Group service test failed: {e}")
+            pass
+    except Exception:
         raise
 
 
@@ -125,20 +118,15 @@ async def test_error_handling():
         result = await schedule_service.get_user_schedule(-1)  # Невалидный ID
 
         if result is None:
-            print(
-                "✅ Error handling test passed: service returned None for invalid input"
-            )
+            pass
         else:
-            print(f"⚠️ Error handling test: expected None, got {result}")
-    except Exception as e:
-        print(f"❌ Error handling test failed: {e}")
+            pass
+    except Exception:
         raise
 
 
 async def run_all_tests():
     """Запустить все тесты."""
-    print("🧪 Starting bot integration tests...")
-    print("=" * 50)
 
     tests = [
         test_bot_startup,
@@ -155,20 +143,11 @@ async def run_all_tests():
         try:
             await test()
             passed += 1
-        except Exception as e:
-            print(f"❌ Test {test.__name__} failed: {e}")
+        except Exception:
             failed += 1
-        print()
 
-    print("=" * 50)
-    print(f"📊 Test Results: {passed} passed, {failed} failed")
 
-    if failed > 0:
-        print("❌ Some tests failed!")
-        return False
-    else:
-        print("✅ All tests passed!")
-        return True
+    return not failed > 0
 
 
 if __name__ == "__main__":

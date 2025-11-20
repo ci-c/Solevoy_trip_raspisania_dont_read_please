@@ -11,17 +11,16 @@ that database operations work correctly, and that the full onboarding flow
 completes successfully.
 """
 
-import pytest
-from datetime import datetime
-from sqlalchemy.ext.asyncio import AsyncSession
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
-from app.services.user_service import UserService
+import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.database.models import Faculty, Group
+from app.models.user import AccessLevel, User
 from app.services.group_service import GroupService
 from app.services.schedule_service import ScheduleService
-from app.models.user import User, AccessLevel
-from app.database.models import Group
-from app.database.models import Faculty
+from app.services.user_service import UserService
 
 
 @pytest.mark.integration
@@ -243,7 +242,7 @@ class TestUserOnboarding:
         user_service = UserService()
 
         # Act & Assert - Simulate DB connection failure
-        with patch('app.database.session.get_session', side_effect=Exception("DB connection failed")):
+        with patch("app.database.session.get_session", side_effect=Exception("DB connection failed")):
             # Service should either raise exception or handle gracefully
             try:
                 result = await user_service.get_or_create_user(

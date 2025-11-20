@@ -1,8 +1,9 @@
 """Comprehensive tests for APISyncService."""
 
-import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
 from datetime import time as dt_time
+from unittest.mock import patch
+
+import pytest
 
 from app.services.api_sync_service import APISyncService
 
@@ -245,7 +246,7 @@ class TestAPISyncService:
         """Test getting schedules when API returns empty."""
         service = APISyncService()
 
-        with patch.object(service.api_client, 'find_schedule_ids', return_value=[]):
+        with patch.object(service.api_client, "find_schedule_ids", return_value=[]):
             result = await service._get_all_schedules()
             assert result == []
 
@@ -256,8 +257,8 @@ class TestAPISyncService:
         mock_ids = [1, 2, 3]
         mock_schedule = {"id": 1, "fileName": "test.xlsx"}
 
-        with patch.object(service.api_client, 'find_schedule_ids', return_value=mock_ids):
-            with patch.object(service.api_client, 'get_schedule_data', return_value=mock_schedule):
+        with patch.object(service.api_client, "find_schedule_ids", return_value=mock_ids):
+            with patch.object(service.api_client, "get_schedule_data", return_value=mock_schedule):
                 result = await service._get_all_schedules()
                 assert len(result) == 3
 
@@ -267,7 +268,7 @@ class TestAPISyncService:
 
         mock_data = {"id": 1, "scheduleLessonDtoList": []}
 
-        with patch.object(service.api_client, 'get_schedule_data', return_value=mock_data):
+        with patch.object(service.api_client, "get_schedule_data", return_value=mock_data):
             result = await service._get_schedule_details(1)
             assert result == mock_data
 
@@ -275,7 +276,7 @@ class TestAPISyncService:
         """Test getting schedule details with error."""
         service = APISyncService()
 
-        with patch.object(service.api_client, 'get_schedule_data', side_effect=Exception("API Error")):
+        with patch.object(service.api_client, "get_schedule_data", side_effect=Exception("API Error")):
             result = await service._get_schedule_details(1)
             assert result is None
 
@@ -330,7 +331,7 @@ class TestAPISyncService:
         """Test full sync with failure."""
         service = APISyncService()
 
-        with patch.object(service, '_get_all_schedules', side_effect=Exception("API Error")):
+        with patch.object(service, "_get_all_schedules", side_effect=Exception("API Error")):
             result = await service.full_sync()
             assert result is False
 
@@ -338,9 +339,9 @@ class TestAPISyncService:
         """Test successful full sync."""
         service = APISyncService()
 
-        with patch.object(service, '_get_all_schedules', return_value=[]):
-            with patch.object(service, '_sync_reference_data', return_value=None):
-                with patch.object(service, '_sync_schedules', return_value=None):
+        with patch.object(service, "_get_all_schedules", return_value=[]):
+            with patch.object(service, "_sync_reference_data", return_value=None):
+                with patch.object(service, "_sync_schedules", return_value=None):
                     result = await service.full_sync()
                     assert result is True
 

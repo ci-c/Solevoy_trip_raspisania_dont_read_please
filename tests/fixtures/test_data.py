@@ -5,12 +5,13 @@ Provides sample users, groups, schedules, and other test data.
 """
 
 from datetime import datetime, timedelta
-from typing import Dict, Any
+from typing import Any
+
 import pytest
 
 
 @pytest.fixture
-def sample_telegram_user() -> Dict[str, Any]:
+def sample_telegram_user() -> dict[str, Any]:
     """Sample Telegram user data."""
     return {
         "id": 123456789,
@@ -23,7 +24,7 @@ def sample_telegram_user() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def sample_user_data() -> Dict[str, Any]:
+def sample_user_data() -> dict[str, Any]:
     """Sample user data for database."""
     return {
         "telegram_id": 123456789,
@@ -34,7 +35,7 @@ def sample_user_data() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def sample_faculty() -> Dict[str, Any]:
+def sample_faculty() -> dict[str, Any]:
     """Sample faculty data for database."""
     return {
         "name": "Лечебный факультет",
@@ -44,7 +45,7 @@ def sample_faculty() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def sample_group() -> Dict[str, Any]:
+def sample_group() -> dict[str, Any]:
     """Sample group data for database."""
     return {
         "name": "103а",
@@ -55,7 +56,7 @@ def sample_group() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def sample_schedule_lesson() -> Dict[str, Any]:
+def sample_schedule_lesson() -> dict[str, Any]:
     """Sample schedule lesson data."""
     return {
         "date": datetime.now().date(),
@@ -72,7 +73,7 @@ def sample_schedule_lesson() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def multiple_lessons() -> list[Dict[str, Any]]:
+def multiple_lessons() -> list[dict[str, Any]]:
     """Multiple schedule lessons for testing."""
     base_date = datetime.now().date()
     lessons = []

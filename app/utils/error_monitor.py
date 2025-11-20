@@ -7,7 +7,7 @@ import traceback
 from collections import defaultdict, deque
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from functools import wraps
 from typing import Any, TypeVar
 
@@ -46,7 +46,7 @@ class ErrorMonitor:
     ) -> None:
         """Записать информацию об ошибке."""
         error_info = ErrorInfo(
-            timestamp=datetime.now(tz=timezone.utc),
+            timestamp=datetime.now(tz=UTC),
             function_name=function_name,
             error_type=type(error).__name__,
             error_message=str(error),
@@ -70,7 +70,7 @@ class ErrorMonitor:
 
     def get_recent_errors(self, function_name: str | None = None) -> list[ErrorInfo]:
         """Получить недавние ошибки."""
-        now = datetime.now(tz=timezone.utc)
+        now = datetime.now(tz=UTC)
         recent_errors = [
             error for error in self.errors if now - error.timestamp <= self.time_window
         ]

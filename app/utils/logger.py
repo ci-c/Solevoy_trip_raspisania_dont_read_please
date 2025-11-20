@@ -1,7 +1,7 @@
 """Система логирования с ротацией и уровнями доступа."""
 
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from loguru import logger
@@ -128,7 +128,7 @@ def get_error_details_for_user(error: Exception, user_access_level: AccessLevel)
             f"🔧 **Техническая информация:**\n"
             f"• Тип ошибки: `{error_type}`\n"
             f"• Сообщение: `{error_msg[:300]}{'...' if len(error_msg) > 300 else ''}`\n"
-            f"• Время: `{datetime.now(tz=timezone.utc).isoformat()}`\n\n"
+            f"• Время: `{datetime.now(tz=UTC).isoformat()}`\n\n"
             f"💡 Данная информация доступна только администраторам."
         )
 

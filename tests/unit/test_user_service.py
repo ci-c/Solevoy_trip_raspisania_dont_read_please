@@ -4,8 +4,8 @@
 
 import pytest
 
+from app.models.user import AccessLevel, User
 from app.services.user_service import UserService
-from app.models.user import User, AccessLevel
 
 
 @pytest.mark.asyncio

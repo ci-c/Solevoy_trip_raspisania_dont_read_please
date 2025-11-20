@@ -1,11 +1,12 @@
 """Comprehensive tests for FacultyService."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-import httpx
 
-from app.services.faculty_service import FacultyService
+import httpx
+import pytest
+
 from app.database.models import Faculty
+from app.services.faculty_service import FacultyService
 
 
 @pytest.mark.asyncio
@@ -33,7 +34,7 @@ class TestFacultyService:
             ]
         }
 
-        with patch('httpx.AsyncClient') as mock_client:
+        with patch("httpx.AsyncClient") as mock_client:
             mock_post = AsyncMock()
             mock_post.return_value.json = MagicMock(return_value=mock_response)
             mock_post.return_value.raise_for_status = MagicMock()
@@ -43,14 +44,14 @@ class TestFacultyService:
             result = await service.load_faculties_from_api()
 
             assert len(result) > 0
-            assert all('name' in faculty for faculty in result)
-            assert all('short_name' in faculty for faculty in result)
+            assert all("name" in faculty for faculty in result)
+            assert all("short_name" in faculty for faculty in result)
 
     async def test_load_faculties_from_api_http_error(self):
         """Test faculty loading with HTTP error."""
         service = FacultyService()
 
-        with patch('httpx.AsyncClient') as mock_client:
+        with patch("httpx.AsyncClient") as mock_client:
             mock_post = AsyncMock()
             mock_post.return_value.raise_for_status.side_effect = httpx.HTTPStatusError(
                 "404 Not Found",
@@ -68,7 +69,7 @@ class TestFacultyService:
         """Test faculty loading with request error."""
         service = FacultyService()
 
-        with patch('httpx.AsyncClient') as mock_client:
+        with patch("httpx.AsyncClient") as mock_client:
             mock_post = AsyncMock(side_effect=httpx.RequestError("Connection failed"))
 
             mock_client.return_value.__aenter__.return_value.post = mock_post
@@ -81,7 +82,7 @@ class TestFacultyService:
         """Test faculty loading when API response missing content."""
         service = FacultyService()
 
-        with patch('httpx.AsyncClient') as mock_client:
+        with patch("httpx.AsyncClient") as mock_client:
             mock_post = AsyncMock()
             mock_post.return_value.json.return_value = {}
             mock_post.return_value.raise_for_status = MagicMock()
@@ -200,7 +201,7 @@ class TestFacultyService:
             ]
         }
 
-        with patch('httpx.AsyncClient') as mock_client:
+        with patch("httpx.AsyncClient") as mock_client:
             mock_post = AsyncMock()
             mock_post.return_value.json = MagicMock(return_value=mock_response)
             mock_post.return_value.raise_for_status = MagicMock()
@@ -214,7 +215,7 @@ class TestFacultyService:
         """Test faculty sync when API fails."""
         service = FacultyService()
 
-        with patch('httpx.AsyncClient') as mock_client:
+        with patch("httpx.AsyncClient") as mock_client:
             mock_post = AsyncMock(side_effect=Exception("API Error"))
             mock_client.return_value.__aenter__.return_value.post = mock_post
 
@@ -295,7 +296,7 @@ class TestFacultyService:
             ]
         }
 
-        with patch('httpx.AsyncClient') as mock_client:
+        with patch("httpx.AsyncClient") as mock_client:
             mock_post = AsyncMock()
             mock_post.return_value.json = MagicMock(return_value=mock_response)
             mock_post.return_value.raise_for_status = MagicMock()

@@ -22,7 +22,7 @@ class GroupService:
             async for session in get_session():
                 result = await session.execute(select(Group).order_by(Group.name))
                 return list(result.scalars().all())
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error getting all groups: {e}")
             return []
 
@@ -34,7 +34,7 @@ class GroupService:
                     select(Group).where(Group.id == group_id),
                 )
                 return result.scalar_one_or_none()
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error getting group {group_id}: {e}")
             return None
 
@@ -78,7 +78,7 @@ class GroupService:
 
                 logger.info(f"Found {len(faculties)} faculties from groups")
                 return sorted(faculties)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error getting faculties from database: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
             return None
@@ -141,13 +141,13 @@ class GroupService:
                 session.add(new_group)
                 try:
                     await session.commit()
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001  - catch all for database errors
                     logger.error(f"Failed to commit new group: {e}")
                     return None
 
                 try:
                     await session.refresh(new_group)
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001  - catch all for database errors
                     logger.error(f"Failed to refresh new group after creation: {e}")
                     return None
 
@@ -255,7 +255,7 @@ class GroupService:
                 result = await session.execute(select(func.count(Group.id)))
                 count = result.scalar()
                 return count or 0
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error getting groups count: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
         return 0
@@ -280,7 +280,7 @@ class GroupService:
                     for group in groups
                 ]
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error getting groups by faculty {faculty_id}: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
         return []
@@ -304,7 +304,7 @@ class GroupService:
                     }
                 return None
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error getting group by id {group_id}: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
         return None

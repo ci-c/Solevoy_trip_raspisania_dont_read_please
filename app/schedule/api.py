@@ -108,15 +108,15 @@ def get_schedule_data(schedule_id: int) -> dict | None:
         # Log general schedule parameters
         logger.info("-" * 20)
         logger.info("General Schedule Information:")
-        logger.info("  File Name: %s", data.get('fileName'))
-        logger.debug("  xlsxHeaderDto: %s", data.get('xlsxHeaderDto'))
-        logger.info("  Form Type: %s", data.get('formType'))
-        logger.info("  updateTime: %s", data.get('updateTime'))
-        logger.info("  isUploadedFromExcel: %s", data.get('isUploadedFromExcel'))
-        logger.info("  Schedule Status: %s", data.get('statusId'))
+        logger.info("  File Name: %s", data.get("fileName"))
+        logger.debug("  xlsxHeaderDto: %s", data.get("xlsxHeaderDto"))
+        logger.info("  Form Type: %s", data.get("formType"))
+        logger.info("  updateTime: %s", data.get("updateTime"))
+        logger.info("  isUploadedFromExcel: %s", data.get("isUploadedFromExcel"))
+        logger.info("  Schedule Status: %s", data.get("statusId"))
         # logger.info(f"  Keys: {data.keys()}")
         if data.get("scheduleLessonDtoList"):
-            logger.info("  Sample Lesson: %s", data.get('scheduleLessonDtoList', [])[0])
+            logger.info("  Sample Lesson: %s", data.get("scheduleLessonDtoList", [])[0])
         logger.info("-" * 20)
 
         return data

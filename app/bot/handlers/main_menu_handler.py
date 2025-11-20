@@ -34,8 +34,8 @@ async def handle_schedule_command(message: types.Message) -> None:
 
         await message.answer(text, reply_markup=get_main_menu_reply_keyboard())
 
-    except Exception as e:
-        logger.error(f"Error handling schedule command: {e}")
+    except Exception as e:  # noqa: BLE001  - catch all for bot command error handling
+        logger.error(f" handling schedule command: {e}")
         logger.error(f"Traceback: {e.__traceback__}")
         await message.answer("❌ Ошибка при получении расписания")
 
@@ -54,8 +54,8 @@ async def handle_grades_command(message: types.Message) -> None:
 
         await message.answer(text, reply_markup=get_main_menu_reply_keyboard())
 
-    except Exception as e:
-        logger.error(f"Error handling grades command: {e}")
+    except Exception as e:  # noqa: BLE001  - catch all for bot command error handling
+        logger.error(f" handling grades command: {e}")
         logger.error(f"Traceback: {e.__traceback__}")
         await message.answer("❌ Ошибка при получении оценок")
 
@@ -73,8 +73,8 @@ async def handle_attendance_command(message: types.Message) -> None:
 
         await message.answer(text, reply_markup=get_main_menu_reply_keyboard())
 
-    except Exception as e:
-        logger.error(f"Error handling attendance command: {e}")
+    except Exception as e:  # noqa: BLE001  - catch all for bot command error handling
+        logger.error(f" handling attendance command: {e}")
         logger.error(f"Traceback: {e.__traceback__}")
         await message.answer("❌ Ошибка при работе с посещаемостью")
 
@@ -93,8 +93,8 @@ async def handle_settings_command(message: types.Message) -> None:
 
         await message.answer(text, reply_markup=get_main_menu_reply_keyboard())
 
-    except Exception as e:
-        logger.error(f"Error handling settings command: {e}")
+    except Exception as e:  # noqa: BLE001  - catch all for bot command error handling
+        logger.error(f" handling settings command: {e}")
         logger.error(f"Traceback: {e.__traceback__}")
         await message.answer("❌ Ошибка при открытии настроек")
 
@@ -108,8 +108,8 @@ async def handle_group_command_menu(message: types.Message) -> None:
 
         await message.answer(text, reply_markup=get_simple_group_keyboard())
 
-    except Exception as e:
-        logger.error(f"Error handling group command: {e}")
+    except Exception as e:  # noqa: BLE001  - catch all for bot command error handling
+        logger.error(f" handling group command: {e}")
         logger.error(f"Traceback: {e.__traceback__}")
         await message.answer("❌ Ошибка при работе с группой")
 
@@ -127,8 +127,8 @@ async def handle_notifications_command(message: types.Message) -> None:
 
         await message.answer(text, reply_markup=get_main_menu_reply_keyboard())
 
-    except Exception as e:
-        logger.error(f"Error handling notifications command: {e}")
+    except Exception as e:  # noqa: BLE001  - catch all for bot command error handling
+        logger.error(f" handling notifications command: {e}")
         logger.error(f"Traceback: {e.__traceback__}")
         await message.answer("❌ Ошибка при настройке уведомлений")
 
@@ -154,8 +154,8 @@ async def handle_help_command_menu(message: types.Message) -> None:
 
         await message.answer(text, reply_markup=get_main_menu_reply_keyboard())
 
-    except Exception as e:
-        logger.error(f"Error handling help command: {e}")
+    except Exception as e:  # noqa: BLE001  - catch all for bot command error handling
+        logger.error(f" handling help command: {e}")
         logger.error(f"Traceback: {e.__traceback__}")
         await message.answer("❌ Ошибка при получении справки")
 
@@ -175,8 +175,8 @@ async def handle_unknown_message(message: types.Message) -> None:
 
         await message.answer(text, reply_markup=get_main_menu_reply_keyboard())
 
-    except Exception as e:
-        logger.error(f"Error handling unknown message: {e}")
+    except Exception as e:  # noqa: BLE001  - catch all for bot command error handling
+        logger.error(f" handling unknown message: {e}")
         logger.error(f"Traceback: {e.__traceback__}")
         await message.answer("❌ Произошла ошибка. Попробуйте позже.")
 

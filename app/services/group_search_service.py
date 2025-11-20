@@ -1,7 +1,7 @@
 """Сервис поиска групп согласно UX дизайну."""
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from loguru import logger
 from sqlalchemy import and_, or_, select
@@ -44,7 +44,7 @@ class GroupSearchService:
 
     def detect_current_semester(self) -> tuple[str, str]:
         """Определить текущий семестр и учебный год."""
-        now = datetime.now(tz=timezone.utc)
+        now = datetime.now(tz=UTC)
         if 9 <= now.month <= 12:  # Осенний семестр
             return "осенний", f"{now.year}/{now.year + 1}"
         # Весенний семестр
@@ -287,7 +287,7 @@ class GroupSearchService:
                     for faculty in faculties
                 ]
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error getting faculties: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
         return []
@@ -317,7 +317,7 @@ class GroupSearchService:
                     for spec in specialities
                 ]
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error getting specialities: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
         return []
@@ -343,7 +343,7 @@ class GroupSearchService:
 
                 return sorted(courses)
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error getting courses: {e}")
             return [1, 2, 3, 4, 5, 6]  # По умолчанию
         return [1, 2, 3, 4, 5, 6]  # Fallback
@@ -368,7 +368,7 @@ class GroupSearchService:
 
                 return sorted(streams)
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error getting streams: {e}")
             return ["а", "б", "в", "г"]  # По умолчанию
         return ["а", "б", "в", "г"]  # Fallback

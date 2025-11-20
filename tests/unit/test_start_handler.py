@@ -1,11 +1,12 @@
 """Comprehensive tests for start_handler."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 from aiogram import types
 from aiogram.fsm.context import FSMContext
 
-from app.bot.handlers.start_handler import cmd_start, cmd_cancel, cmd_clean
+from app.bot.handlers.start_handler import cmd_cancel, cmd_clean, cmd_start
 
 
 @pytest.mark.asyncio
@@ -36,7 +37,7 @@ class TestStartHandler:
         state = MagicMock(spec=FSMContext)
         state.clear = AsyncMock()
 
-        with patch('app.utils.rate_limiter.check_rate_limit_manual') as mock_rate_limit:
+        with patch("app.utils.rate_limiter.check_rate_limit_manual") as mock_rate_limit:
             mock_rate_limit.return_value = (False, "Too many requests")
 
             await cmd_start(message, state)
@@ -57,7 +58,7 @@ class TestStartHandler:
         state.clear = AsyncMock()
         state.set_state = AsyncMock()
 
-        with patch('app.utils.rate_limiter.check_rate_limit_manual') as mock_rate_limit:
+        with patch("app.utils.rate_limiter.check_rate_limit_manual") as mock_rate_limit:
             mock_rate_limit.return_value = (True, "")
 
             await cmd_start(message, state)
@@ -89,7 +90,7 @@ class TestStartHandler:
         state.clear = AsyncMock()
         state.set_state = AsyncMock()
 
-        with patch('app.utils.rate_limiter.check_rate_limit_manual') as mock_rate_limit:
+        with patch("app.utils.rate_limiter.check_rate_limit_manual") as mock_rate_limit:
             mock_rate_limit.return_value = (True, "")
 
             await cmd_start(message, state)
@@ -110,7 +111,7 @@ class TestStartHandler:
         state.clear = AsyncMock()
         state.set_state = AsyncMock()
 
-        with patch('app.utils.rate_limiter.check_rate_limit_manual') as mock_rate_limit:
+        with patch("app.utils.rate_limiter.check_rate_limit_manual") as mock_rate_limit:
             mock_rate_limit.return_value = (True, "")
 
             await cmd_start(message, state)
@@ -130,10 +131,10 @@ class TestStartHandler:
         state = MagicMock(spec=FSMContext)
         state.clear = AsyncMock()
 
-        with patch('app.utils.rate_limiter.check_rate_limit_manual') as mock_rate_limit:
+        with patch("app.utils.rate_limiter.check_rate_limit_manual") as mock_rate_limit:
             mock_rate_limit.return_value = (True, "")
 
-            with patch('app.bot.handlers.start_handler.UserService') as mock_service:
+            with patch("app.bot.handlers.start_handler.UserService") as mock_service:
                 from app.utils.validation import ValidationError
                 mock_service.return_value.get_user_by_telegram_id = AsyncMock(
                     side_effect=ValidationError("Invalid data")
@@ -210,8 +211,8 @@ class TestStartHandler:
 
     async def test_cmd_start_with_profile(self, db_session):
         """Test start command for user with profile."""
-        from app.services.user_service import UserService
         from app.models.user import StudentProfile
+        from app.services.user_service import UserService
 
         # Create user with profile
         user_service = UserService()
@@ -235,10 +236,10 @@ class TestStartHandler:
         state.clear = AsyncMock()
         state.set_state = AsyncMock()
 
-        with patch('app.utils.rate_limiter.check_rate_limit_manual') as mock_rate_limit:
+        with patch("app.utils.rate_limiter.check_rate_limit_manual") as mock_rate_limit:
             mock_rate_limit.return_value = (True, "")
 
-            with patch('app.bot.handlers.start_handler.UserService') as MockUserService:
+            with patch("app.bot.handlers.start_handler.UserService") as MockUserService:
                 mock_service = AsyncMock()
                 mock_service.get_user_by_telegram_id.return_value = user
                 mock_service.update_user_activity.return_value = None
@@ -264,10 +265,10 @@ class TestStartHandler:
         state = MagicMock(spec=FSMContext)
         state.clear = AsyncMock()
 
-        with patch('app.utils.rate_limiter.check_rate_limit_manual') as mock_rate_limit:
+        with patch("app.utils.rate_limiter.check_rate_limit_manual") as mock_rate_limit:
             mock_rate_limit.return_value = (True, "")
 
-            with patch('app.bot.handlers.start_handler.UserService') as mock_service:
+            with patch("app.bot.handlers.start_handler.UserService") as mock_service:
                 from app.utils.error_handling import DatabaseError
                 mock_service.return_value.get_user_by_telegram_id = AsyncMock(
                     side_effect=DatabaseError("DB Error")
@@ -290,10 +291,10 @@ class TestStartHandler:
         state = MagicMock(spec=FSMContext)
         state.clear = AsyncMock()
 
-        with patch('app.utils.rate_limiter.check_rate_limit_manual') as mock_rate_limit:
+        with patch("app.utils.rate_limiter.check_rate_limit_manual") as mock_rate_limit:
             mock_rate_limit.return_value = (True, "")
 
-            with patch('app.bot.handlers.start_handler.UserService') as mock_service:
+            with patch("app.bot.handlers.start_handler.UserService") as mock_service:
                 mock_service.return_value.get_user_by_telegram_id = AsyncMock(
                     side_effect=Exception("Unknown error")
                 )

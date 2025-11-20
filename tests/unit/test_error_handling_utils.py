@@ -1,20 +1,21 @@
 """Comprehensive tests for error handling utilities."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock
 
+import pytest
+
 from app.utils.error_handling import (
+    APIError,
     BotError,
     DatabaseError,
-    APIError,
-    UserError,
-    SecurityError,
-    safe_async_execute,
-    handle_database_error,
-    handle_api_error,
-    format_error_for_user,
-    log_error_context,
     ErrorHandler,
+    SecurityError,
+    UserError,
+    format_error_for_user,
+    handle_api_error,
+    handle_database_error,
+    log_error_context,
+    safe_async_execute,
 )
 from app.utils.validation import ValidationError
 
@@ -72,7 +73,8 @@ class TestSafeAsyncExecute:
         """Test decorator with ValidationError."""
         @safe_async_execute()
         async def test_func():
-            raise ValidationError("Invalid data")
+            msg = "Invalid data"
+            raise ValidationError(msg)
 
         with pytest.raises(UserError):
             await test_func()
@@ -81,7 +83,8 @@ class TestSafeAsyncExecute:
         """Test decorator with DatabaseError."""
         @safe_async_execute()
         async def test_func():
-            raise DatabaseError("DB error")
+            msg = "DB error"
+            raise DatabaseError(msg)
 
         result = await test_func()
         assert result is None
@@ -90,7 +93,8 @@ class TestSafeAsyncExecute:
         """Test decorator with DatabaseError and reraise."""
         @safe_async_execute(reraise=True)
         async def test_func():
-            raise DatabaseError("DB error")
+            msg = "DB error"
+            raise DatabaseError(msg)
 
         with pytest.raises(DatabaseError):
             await test_func()
@@ -99,7 +103,8 @@ class TestSafeAsyncExecute:
         """Test decorator with APIError."""
         @safe_async_execute()
         async def test_func():
-            raise APIError("API error")
+            msg = "API error"
+            raise APIError(msg)
 
         result = await test_func()
         assert result is None
@@ -108,7 +113,8 @@ class TestSafeAsyncExecute:
         """Test decorator with APIError and reraise."""
         @safe_async_execute(reraise=True)
         async def test_func():
-            raise APIError("API error")
+            msg = "API error"
+            raise APIError(msg)
 
         with pytest.raises(APIError):
             await test_func()
@@ -117,7 +123,8 @@ class TestSafeAsyncExecute:
         """Test decorator with SecurityError."""
         @safe_async_execute()
         async def test_func():
-            raise SecurityError("Security error")
+            msg = "Security error"
+            raise SecurityError(msg)
 
         result = await test_func()
         assert result is None
@@ -126,7 +133,8 @@ class TestSafeAsyncExecute:
         """Test decorator with unknown error."""
         @safe_async_execute()
         async def test_func():
-            raise Exception("Unknown error")
+            msg = "Unknown error"
+            raise Exception(msg)
 
         result = await test_func()
         assert result is None
@@ -135,7 +143,8 @@ class TestSafeAsyncExecute:
         """Test decorator with logging disabled."""
         @safe_async_execute(log_error=False)
         async def test_func():
-            raise Exception("Error")
+            msg = "Error"
+            raise Exception(msg)
 
         result = await test_func()
         assert result is None
@@ -144,7 +153,8 @@ class TestSafeAsyncExecute:
         """Test decorator with custom error message."""
         @safe_async_execute(error_message="Custom error")
         async def test_func():
-            raise Exception("Error")
+            msg = "Error"
+            raise Exception(msg)
 
         result = await test_func()
         assert result is None
@@ -168,7 +178,8 @@ class TestHandleDatabaseError:
         """Test decorator with exception."""
         @handle_database_error
         async def test_func():
-            raise Exception("DB connection lost")
+            msg = "DB connection lost"
+            raise Exception(msg)
 
         with pytest.raises(DatabaseError):
             await test_func()
@@ -192,7 +203,8 @@ class TestHandleAPIError:
         """Test decorator with exception."""
         @handle_api_error
         async def test_func():
-            raise Exception("API timeout")
+            msg = "API timeout"
+            raise Exception(msg)
 
         with pytest.raises(APIError):
             await test_func()
@@ -352,7 +364,8 @@ class TestDecoratorChaining:
         """Test chained decorators with error."""
         @safe_async_execute()
         async def test_func():
-            raise DatabaseError("DB error")
+            msg = "DB error"
+            raise DatabaseError(msg)
 
         result = await test_func()
         assert result is None

@@ -75,8 +75,9 @@ async def confirm_profile_setup(
             reply_markup=get_main_menu_keyboard(updated_user),
         )
 
-    except Exception as e:
-        logger.error(f"Error confirming profile setup: {e}")
+    except Exception:  # noqa: BLE001  - catch all for user-facing error handling
+        logger.error("Error in handler")
+
         await callback.message.edit_text(
             "❌ Ошибка при сохранении профиля. Попробуйте еще раз.",
             reply_markup=get_main_menu_keyboard(None),

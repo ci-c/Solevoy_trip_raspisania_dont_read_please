@@ -1,14 +1,17 @@
-import openpyxl
 from pathlib import Path
-from typing import List
+from typing import TYPE_CHECKING
+
+import openpyxl
 import rich
-from openpyxl.styles import Alignment, Font, PatternFill, Border, Side
-from config import WIDTH_COLUMNS, RINGS, WEEK_DAYS_INVERTED
+from config import RINGS, WEEK_DAYS_INVERTED, WIDTH_COLUMNS
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from post_lesson import PostLesson
-from datetime import date
+
+if TYPE_CHECKING:
+    from datetime import date
 
 
-def gen_excel_file(schedule_data: List[PostLesson], subgroup_name: str) -> None:
+def gen_excel_file(schedule_data: list[PostLesson], subgroup_name: str) -> None:
     """
     Генерирует файл Excel из списка объектов PostLesson.
 
@@ -23,7 +26,8 @@ def gen_excel_file(schedule_data: List[PostLesson], subgroup_name: str) -> None:
     workbook = openpyxl.Workbook()
     worksheet = workbook.active
     if worksheet is None:
-        raise IndexError("Не удалось создать рабочий лист в Excel.")
+        msg = "Не удалось создать рабочий лист в Excel."
+        raise IndexError(msg)
     worksheet.title = "Расписание"
 
     # --- Заголовок ---

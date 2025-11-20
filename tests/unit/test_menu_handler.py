@@ -1,7 +1,8 @@
 """Comprehensive tests for menu_handler."""
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 from aiogram import types
 from aiogram.fsm.context import FSMContext
 
@@ -80,7 +81,7 @@ class TestMenuHandler:
         mock_user.profile = MagicMock()
         mock_user.profile.group_id = 1
 
-        with patch('app.bot.handlers.menu_handler.UserService') as MockUserService:
+        with patch("app.bot.handlers.menu_handler.UserService") as MockUserService:
             mock_service = AsyncMock()
             mock_service.get_user_by_telegram_id.return_value = mock_user
             MockUserService.return_value = mock_service
@@ -169,7 +170,7 @@ class TestMenuHandler:
         callback_data = MenuCallback(action="grades")
         state = MagicMock(spec=FSMContext)
 
-        with patch('app.bot.handlers.grade_handler.handle_grades_main') as mock_grades:
+        with patch("app.bot.handlers.grade_handler.handle_grades_main") as mock_grades:
             mock_grades.return_value = None
 
             await handle_menu(callback, callback_data, state)
@@ -241,7 +242,7 @@ class TestMenuHandler:
         callback_data = MenuCallback(action="home")
         state = MagicMock(spec=FSMContext)
 
-        with patch('app.bot.handlers.menu_handler.UserService') as mock_service:
+        with patch("app.bot.handlers.menu_handler.UserService") as mock_service:
             mock_service.return_value.get_user_by_telegram_id = AsyncMock(
                 side_effect=Exception("Test error")
             )
@@ -258,7 +259,7 @@ class TestMenuHandler:
         from app.services.user_service import UserService
 
         user_service = UserService()
-        user = await user_service.create_user(
+        await user_service.create_user(
             telegram_id=123456,
             telegram_username="testuser",
             full_name="Test User"

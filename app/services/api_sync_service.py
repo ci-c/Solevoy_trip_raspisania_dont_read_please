@@ -1,7 +1,7 @@
 """Асинхронный сервис для синхронизации данных с API СЗГМУ."""
 
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from datetime import time as dt_time
 from typing import Any
 
@@ -139,7 +139,7 @@ class APISyncService:
             logger.info("Retrieved %s schedules from API", len(schedules))
             return schedules
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error getting schedules from API: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
         return []
@@ -148,7 +148,7 @@ class APISyncService:
         """Получить детали расписания."""
         try:
             return await self.api_client.get_schedule_data(schedule_id)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error getting schedule details for {schedule_id}: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
         return None
@@ -546,7 +546,7 @@ class APISyncService:
                     existing.is_uploaded_from_excel = schedule_data.get(
                         "isUploadedFromExcel", False,
                     )
-                    existing.update_time = datetime.now(tz=timezone.utc)
+                    existing.update_time = datetime.now(tz=UTC)
                     self.sync_stats["schedules_updated"] += 1
                     schedule_id = existing.id
                 else:
@@ -559,7 +559,7 @@ class APISyncService:
                         is_uploaded_from_excel=schedule_data.get(
                             "isUploadedFromExcel", False,
                         ),
-                        update_time=datetime.now(tz=timezone.utc),
+                        update_time=datetime.now(tz=UTC),
                         academic_year_id=year.id,
                         semester_id=semester.id,
                         speciality_id=speciality.id,
@@ -572,7 +572,7 @@ class APISyncService:
                 await session.commit()
                 return schedule_id
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error saving schedule: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
         return None
@@ -796,7 +796,7 @@ class APISyncService:
                 await session.commit()
                 logger.info(f"Created {created_count} groups from lessons")
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error creating groups from lessons: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
 

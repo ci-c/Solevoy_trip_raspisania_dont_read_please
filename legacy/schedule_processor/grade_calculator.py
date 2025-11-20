@@ -3,10 +3,9 @@
 Расчет ОСБ, ТСБ, КНЛ, КНС согласно новым регламентам.
 """
 
-from typing import Dict, List, Optional
+import json
 from dataclasses import dataclass
 from datetime import date
-import json
 from pathlib import Path
 
 
@@ -36,9 +35,9 @@ class SubjectStats:
     """Статистика по предмету."""
 
     subject_name: str
-    grades: List[Grade]
-    lecture_attendance: List[Attendance]
-    seminar_attendance: List[Attendance]
+    grades: list[Grade]
+    lecture_attendance: list[Attendance]
+    seminar_attendance: list[Attendance]
     tsb: float  # Текущий средний балл
     knl: float  # Коэффициент непосещаемости лекций
     kns: float  # Коэффициент непосещаемости семинаров
@@ -60,13 +59,13 @@ class GradeCalculator:
 
     def _load_data(self) -> None:
         """Загрузка данных из файлов."""
-        self.grades: List[Grade] = []
-        self.attendance: List[Attendance] = []
+        self.grades: list[Grade] = []
+        self.attendance: list[Attendance] = []
 
         # Загрузка оценок
         if self.grades_file.exists():
             try:
-                with open(self.grades_file, "r", encoding="utf-8") as f:
+                with open(self.grades_file, encoding="utf-8") as f:
                     grades_data = json.load(f)
                     for grade_dict in grades_data:
                         grade = Grade(
@@ -82,7 +81,7 @@ class GradeCalculator:
         # Загрузка посещаемости
         if self.attendance_file.exists():
             try:
-                with open(self.attendance_file, "r", encoding="utf-8") as f:
+                with open(self.attendance_file, encoding="utf-8") as f:
                     attendance_data = json.load(f)
                     for att_dict in attendance_data:
                         attendance = Attendance(
@@ -134,7 +133,7 @@ class GradeCalculator:
         subject: str,
         grade: int,
         control_point_name: str,
-        grade_date: Optional[date] = None,
+        grade_date: date | None = None,
     ) -> None:
         """Добавить оценку."""
         if grade_date is None:
@@ -156,7 +155,7 @@ class GradeCalculator:
         lesson_type: str,
         is_present: bool,
         is_excused: bool = False,
-        attendance_date: Optional[date] = None,
+        attendance_date: date | None = None,
     ) -> None:
         """Добавить запись о посещаемости."""
         if attendance_date is None:
@@ -264,7 +263,7 @@ class GradeCalculator:
             osb=osb,
         )
 
-    def get_all_subjects(self) -> List[str]:
+    def get_all_subjects(self) -> list[str]:
         """Получить список всех предметов."""
         subjects = set()
 
@@ -274,9 +273,9 @@ class GradeCalculator:
         for att in self.attendance:
             subjects.add(att.subject)
 
-        return sorted(list(subjects))
+        return sorted(subjects)
 
-    def get_overall_stats(self) -> Dict[str, float]:
+    def get_overall_stats(self) -> dict[str, float]:
         """Получить общую статистику по всем предметам."""
         subjects = self.get_all_subjects()
 

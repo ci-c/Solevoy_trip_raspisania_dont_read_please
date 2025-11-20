@@ -4,14 +4,15 @@
 """
 
 import asyncio
+
 from sqlalchemy import select
+
+from app.database.models import Faculty, Group, Schedule, ScheduleLesson, Speciality
 from app.database.session import get_session
-from app.database.models import ScheduleLesson, Group, Faculty, Speciality, Schedule
 
 
-async def create_groups_from_lessons():
+async def create_groups_from_lessons() -> None:
     """Создать группы из занятий."""
-    print("Создание групп из занятий...")
 
     async for session in get_session():
         # Получаем уникальные группы из занятий
@@ -26,13 +27,11 @@ async def create_groups_from_lessons():
         )
 
         lessons = result.all()
-        print(f"Найдено {len(lessons)} уникальных групп в занятиях")
 
         groups_created = 0
 
         for lesson in lessons:
             study_group = lesson.study_group
-            subgroup = lesson.subgroup
             schedule_id = lesson.schedule_id
 
             # Проверяем, существует ли уже группа
@@ -50,7 +49,6 @@ async def create_groups_from_lessons():
             schedule = schedule_result.scalar_one_or_none()
 
             if not schedule:
-                print(f"Расписание {schedule_id} не найдено")
                 continue
 
             # Получаем специальность
@@ -60,7 +58,6 @@ async def create_groups_from_lessons():
             speciality = speciality_result.scalar_one_or_none()
 
             if not speciality:
-                print(f"Специальность для расписания {schedule_id} не найдена")
                 continue
 
             # Получаем факультет
@@ -70,7 +67,6 @@ async def create_groups_from_lessons():
             faculty = faculty_result.scalar_one_or_none()
 
             if not faculty:
-                print(f"Факультет для специальности {speciality.id} не найден")
                 continue
 
             # Извлекаем номер курса из названия группы
@@ -91,12 +87,8 @@ async def create_groups_from_lessons():
             session.add(group)
             groups_created += 1
 
-            print(
-                f"Создана группа: {study_group} (курс {course}, {faculty.name}, {speciality.name})"
-            )
 
         await session.commit()
-        print(f"Создано {groups_created} групп")
 
 
 if __name__ == "__main__":

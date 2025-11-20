@@ -2,7 +2,7 @@
 
 import asyncio
 import contextlib
-from datetime import datetime, time, timedelta, timezone
+from datetime import UTC, datetime, time, timedelta
 
 from loguru import logger
 
@@ -106,7 +106,7 @@ class BackgroundScheduler:
                 # Давно не было синхронизации
                 if stats["last_sync"]:
                     last_sync = datetime.fromisoformat(stats["last_sync"])
-                    if datetime.now(tz=timezone.utc) - last_sync > timedelta(days=2):
+                    if datetime.now(tz=UTC) - last_sync > timedelta(days=2):
                         issues.append("No sync for 2+ days")
 
                 # Мало синхронизированных групп
@@ -125,7 +125,7 @@ class BackgroundScheduler:
 
     async def _wait_until_time(self, target_time: time) -> None:
         """Ждать до определенного времени."""
-        now = datetime.now(tz=timezone.utc)
+        now = datetime.now(tz=UTC)
         target_dt = datetime.combine(now.date(), target_time)
 
         # Если время уже прошло сегодня, ждем до завтра
@@ -156,7 +156,7 @@ class BackgroundScheduler:
             result = await self.schedule_updater.update_group_schedule(group_id)
             logger.info(f"Group {group_id} updated: {result}")
             return result
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error updating group {group_id}: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
             return {"error": str(e), "group_id": group_id, "success": False}

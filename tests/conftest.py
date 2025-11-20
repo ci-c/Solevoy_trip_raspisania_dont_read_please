@@ -3,15 +3,14 @@
 """
 
 import asyncio
-from typing import Dict
 from unittest.mock import AsyncMock
 
 import pytest
 
-from app.services.user_service import UserService
-from app.services.schedule_service import ScheduleService
-from app.models.user import AccessLevel
 from app.database.session import DATABASE_PATH, init_db
+from app.models.user import AccessLevel
+from app.services.schedule_service import ScheduleService
+from app.services.user_service import UserService
 
 # Import new fixtures from fixtures modules
 pytest_plugins = [
@@ -33,7 +32,6 @@ def reset_database():
         loop.run_until_complete(init_db())
     finally:
         loop.close()
-    yield
 
 
 @pytest.fixture
@@ -89,7 +87,7 @@ def test_schedule_service() -> ScheduleService:
 
 
 @pytest.fixture
-def sample_user_data() -> Dict[str, str]:
+def sample_user_data() -> dict[str, str]:
     """Тестовые данные пользователя."""
     return {
         "telegram_id": 123456789,
@@ -100,7 +98,7 @@ def sample_user_data() -> Dict[str, str]:
 
 
 @pytest.fixture
-def sample_group_data() -> Dict[str, str]:
+def sample_group_data() -> dict[str, str]:
     """Тестовые данные группы."""
     return {
         "name": "101а",
@@ -113,7 +111,7 @@ def sample_group_data() -> Dict[str, str]:
 
 
 @pytest.fixture
-def sample_lesson_data() -> Dict[str, str]:
+def sample_lesson_data() -> dict[str, str]:
     """Тестовые данные занятия."""
     return {
         "subject_name": "Анатомия человека",

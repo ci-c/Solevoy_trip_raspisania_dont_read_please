@@ -315,7 +315,7 @@ class GradeCalculatorService:
                 # Пока возвращаем заглушку
                 return ["Анатомия", "Физиология", "Химия", "Биология"]
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error getting user subjects: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
         return None
@@ -355,7 +355,7 @@ class GradeCalculatorService:
                 "attendance_rate": round(attendance_rate, 1),
             }
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error getting user overall stats: {e}")
             return {
                 "total_subjects": 0,

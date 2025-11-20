@@ -5,8 +5,8 @@ import pytest
 from app.utils.validation import (
     InputValidator,
     ValidationError,
-    validate_user_input,
     validate_message,
+    validate_user_input,
 )
 
 
@@ -102,7 +102,7 @@ class TestInputValidator:
 
     def test_sanitize_input_removes_dangerous_chars(self):
         """Test sanitization removes dangerous characters."""
-        assert InputValidator.sanitize_input('<script>alert("xss")</script>') == 'scriptalert(xss)/script'
+        assert InputValidator.sanitize_input('<script>alert("xss")</script>') == "scriptalert(xss)/script"
         assert InputValidator.sanitize_input('Test "quotes"') == "Test quotes"
         assert InputValidator.sanitize_input("Test 'quotes'") == "Test quotes"
 

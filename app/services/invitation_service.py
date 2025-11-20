@@ -2,7 +2,7 @@
 
 import secrets
 import string
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from loguru import logger
 
@@ -43,11 +43,11 @@ class InvitationService:
             access_level=access_level,
             max_uses=max_uses,
             current_uses=0,
-            expires_at=datetime.now(tz=timezone.utc) + timedelta(days=expires_in_days or 30),
+            expires_at=datetime.now(tz=UTC) + timedelta(days=expires_in_days or 30),
             is_active=True,
             metadata=metadata,
-            created_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
 
     async def validate_invitation(self, code: str) -> Invitation | None:

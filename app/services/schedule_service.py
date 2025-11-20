@@ -1,6 +1,6 @@
 """Сервис для работы с расписаниями из базы данных."""
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
 from loguru import logger
 from sqlalchemy import and_, func, select
@@ -77,7 +77,7 @@ class ScheduleService:
 
                 result = await session.execute(
                     query.order_by(
-                        func.coalesce(ScheduleLesson.date, datetime.utcnow().date()),
+                        func.coalesce(ScheduleLesson.date, datetime.now(UTC).date()),
                         ScheduleLesson.week_number,
                         ScheduleLesson.day_name,
                         ScheduleLesson.start_time,
@@ -86,42 +86,40 @@ class ScheduleService:
 
                 lessons = result.scalars().all()
 
-                formatted_lessons = []
-                for lesson in lessons:
-                    formatted_lessons.append(
-                        {
-                            "id": lesson.id,
-                            "subject": lesson.subject.name,
-                            "type": lesson.lesson_type.name,
-                            "lecturer": lesson.lecturer.full_name
-                            if lesson.lecturer
-                            else None,
-                            "classroom": lesson.classroom.number
-                            if lesson.classroom
-                            else None,
-                            "building": lesson.classroom.building
-                            if lesson.classroom
-                            else None,
-                            "campus": lesson.classroom.campus
-                            if lesson.classroom
-                            else None,
-                            "day_name": lesson.day_name,
-                            "week_number": lesson.week_number,
-                            "pair_time": lesson.pair_time,
-                            "start_time": lesson.start_time,
-                            "end_time": lesson.end_time,
-                            "date": lesson.date,
-                            "subgroup": lesson.subgroup,
-                            "study_group": lesson.study_group,
-                            "department": lesson.department.name
-                            if lesson.department
-                            else None,
-                        },
-                    )
+                return [
+                    {
+                        "id": lesson.id,
+                        "subject": lesson.subject.name,
+                        "type": lesson.lesson_type.name,
+                        "lecturer": lesson.lecturer.full_name
+                        if lesson.lecturer
+                        else None,
+                        "classroom": lesson.classroom.number
+                        if lesson.classroom
+                        else None,
+                        "building": lesson.classroom.building
+                        if lesson.classroom
+                        else None,
+                        "campus": lesson.classroom.campus
+                        if lesson.classroom
+                        else None,
+                        "day_name": lesson.day_name,
+                        "week_number": lesson.week_number,
+                        "pair_time": lesson.pair_time,
+                        "start_time": lesson.start_time,
+                        "end_time": lesson.end_time,
+                        "date": lesson.date,
+                        "subgroup": lesson.subgroup,
+                        "study_group": lesson.study_group,
+                        "department": lesson.department.name
+                        if lesson.department
+                        else None,
+                    }
+                    for lesson in lessons
+                ]
 
-                return formatted_lessons
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error getting user schedule: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
             return None
@@ -166,48 +164,46 @@ class ScheduleService:
 
                 lessons = result.scalars().all()
 
-                formatted_lessons = []
-                for lesson in lessons:
-                    formatted_lessons.append(
-                        {
-                            "id": lesson.id,
-                            "subject": lesson.subject.name,
-                            "type": lesson.lesson_type.name,
-                            "lecturer": lesson.lecturer.full_name
-                            if lesson.lecturer
-                            else None,
-                            "classroom": lesson.classroom.number
-                            if lesson.classroom
-                            else None,
-                            "building": lesson.classroom.building
-                            if lesson.classroom
-                            else None,
-                            "campus": lesson.classroom.campus
-                            if lesson.classroom
-                            else None,
-                            "day_name": lesson.day_name,
-                            "week_number": lesson.week_number,
-                            "pair_time": lesson.pair_time,
-                            "start_time": lesson.start_time,
-                            "end_time": lesson.end_time,
-                            "date": lesson.date,
-                            "subgroup": lesson.subgroup,
-                            "study_group": lesson.study_group,
-                            "department": lesson.department.name
-                            if lesson.department
-                            else None,
-                            "faculty": group.faculty_obj.name
-                            if group.faculty_obj
-                            else None,
-                            "speciality": group.speciality_obj.name
-                            if group.speciality_obj
-                            else None,
-                        },
-                    )
+                return [
+                    {
+                        "id": lesson.id,
+                        "subject": lesson.subject.name,
+                        "type": lesson.lesson_type.name,
+                        "lecturer": lesson.lecturer.full_name
+                        if lesson.lecturer
+                        else None,
+                        "classroom": lesson.classroom.number
+                        if lesson.classroom
+                        else None,
+                        "building": lesson.classroom.building
+                        if lesson.classroom
+                        else None,
+                        "campus": lesson.classroom.campus
+                        if lesson.classroom
+                        else None,
+                        "day_name": lesson.day_name,
+                        "week_number": lesson.week_number,
+                        "pair_time": lesson.pair_time,
+                        "start_time": lesson.start_time,
+                        "end_time": lesson.end_time,
+                        "date": lesson.date,
+                        "subgroup": lesson.subgroup,
+                        "study_group": lesson.study_group,
+                        "department": lesson.department.name
+                        if lesson.department
+                        else None,
+                        "faculty": group.faculty_obj.name
+                        if group.faculty_obj
+                        else None,
+                        "speciality": group.speciality_obj.name
+                        if group.speciality_obj
+                        else None,
+                    }
+                    for lesson in lessons
+                ]
 
-                return formatted_lessons
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error getting group schedule: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
             return None
@@ -302,7 +298,7 @@ class ScheduleService:
                 logger.info(f"Found {len(faculty_list)} faculties")
                 return faculty_list
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error getting faculties: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
             return None  # Пробрасываем ошибку дальше!
@@ -332,7 +328,7 @@ class ScheduleService:
                     for spec in specialities
                 ]
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error getting specialities: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
             return None
@@ -358,7 +354,7 @@ class ScheduleService:
 
                 return None
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error getting current academic year: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
             return None
@@ -385,7 +381,7 @@ class ScheduleService:
 
                 return None
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error getting current semester: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
             return None
@@ -464,7 +460,7 @@ class ScheduleService:
 
                 return grouped_lessons
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error getting lessons by week: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
             return None
@@ -483,9 +479,8 @@ class ScheduleService:
                 if number >= 100:
                     # Трехзначное число - берем первую цифру (курс)
                     return int(str(number)[0])
-                else:
-                    # Однозначное или двузначное - возвращаем как есть
-                    return number
+                # Однозначное или двузначное - возвращаем как есть
+                return number
         except Exception as e:
             logger.error(f"Error extracting course number from '{group_name}': {e}")
             logger.error(f"Traceback: {e.__traceback__}")
@@ -516,10 +511,10 @@ class ScheduleService:
                     "total_schedules": total_schedules,
                     "total_faculties": total_faculties,
                     "total_specialities": total_specialities,
-                    "last_updated": datetime.now(tz=timezone.utc).isoformat(),
+                    "last_updated": datetime.now(tz=UTC).isoformat(),
                 }
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error getting schedule statistics: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
             return None
@@ -554,7 +549,7 @@ class ScheduleService:
 
                 # Используем get_group_schedule с именем группы
                 return await self.get_group_schedule(group.name) or []
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error getting schedule for group {group_id}: {e}")
             return []
 
@@ -588,7 +583,7 @@ class ScheduleService:
                 # Пока возвращаем True если группа найдена
                 logger.info(f"Sync schedule for group {group.name} (stub)")
                 return True
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error syncing schedule for group {group_id}: {e}")
             if retry:
                 logger.info("Retrying sync...")

@@ -10,15 +10,15 @@ These tests verify transaction safety, proper rollback on errors,
 and that concurrent operations don't corrupt data.
 """
 
-import pytest
 import asyncio
-from datetime import date
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.exc import IntegrityError
 
+import pytest
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.database.models import Faculty, Group, User
 from app.database.session import get_session
 from app.models.user import AccessLevel
-from app.database.models import User, Group, Faculty, ScheduleLesson
 
 
 @pytest.mark.unit

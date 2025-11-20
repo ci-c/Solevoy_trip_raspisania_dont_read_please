@@ -2,17 +2,18 @@
 """Скрипт для создания групп из занятий."""
 
 import asyncio
-import sys
 import os
+import sys
 
 # Добавляем корневую директорию в путь
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from app.services.api_sync_service import APISyncService
 from loguru import logger
 
+from app.services.api_sync_service import APISyncService
 
-async def main():
+
+async def main() -> None:
     """Создать группы из занятий."""
     try:
         logger.info("Starting group creation from lessons...")

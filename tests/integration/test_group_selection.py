@@ -13,11 +13,10 @@ and group assignment doesn't fail or corrupt data.
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.services.group_service import GroupService
+from app.database.models import Faculty, Group
 from app.services.faculty_service import FacultyService
+from app.services.group_service import GroupService
 from app.services.user_service import UserService
-from app.database.models import Group
-from app.database.models import Faculty
 
 
 @pytest.mark.integration

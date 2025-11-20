@@ -1,10 +1,11 @@
 """YAML configuration loader with type conversion and validation."""
 
-import yaml
+from dataclasses import dataclass
 from datetime import time
 from pathlib import Path
-from typing import Dict, List, Any, Tuple, Union
-from dataclasses import dataclass
+from typing import Any
+
+import yaml
 
 
 @dataclass
@@ -17,26 +18,29 @@ class ConfigError(Exception):
 class ConfigLoader:
     """Loads and processes YAML configuration with Python type conversion."""
 
-    def __init__(self, config_path: Union[str, Path] = None):
+    def __init__(self, config_path: str | Path | None = None) -> None:
         if config_path is None:
             config_path = Path(__file__).parent.parent / "config.yaml"
 
         self.config_path = Path(config_path)
-        self._config: Dict[str, Any] = {}
+        self._config: dict[str, Any] = {}
         self._load_config()
 
     def _load_config(self) -> None:
         """Load YAML configuration file."""
         if not self.config_path.exists():
-            raise ConfigError(f"Configuration file not found: {self.config_path}")
+            msg = f"Configuration file not found: {self.config_path}"
+            raise ConfigError(msg)
 
         try:
-            with open(self.config_path, "r", encoding="utf-8") as f:
+            with open(self.config_path, encoding="utf-8") as f:
                 self._config = yaml.safe_load(f)
         except yaml.YAMLError as e:
-            raise ConfigError(f"Error parsing YAML config: {e}")
+            msg = f"Error parsing YAML config: {e}"
+            raise ConfigError(msg)
         except Exception as e:
-            raise ConfigError(f"Error loading config: {e}")
+            msg = f"Error loading config: {e}"
+            raise ConfigError(msg)
 
     def get(self, key: str, default: Any = None) -> Any:
         """Get configuration value by dot notation key."""
@@ -51,7 +55,7 @@ class ConfigLoader:
 
         return value
 
-    def get_rings(self) -> Dict[str, List[Tuple[Tuple[time, time], Tuple[time, time]]]]:
+    def get_rings(self) -> dict[str, list[tuple[tuple[time, time], tuple[time, time]]]]:
         """Convert YAML schedule rings to Python time objects."""
         rings = {}
 
@@ -87,7 +91,7 @@ class ConfigLoader:
 
         return rings
 
-    def get_rings_v1(self) -> Dict[str, Dict[str, List]]:
+    def get_rings_v1(self) -> dict[str, dict[str, list]]:
         """Convert YAML schedule rings to v1 legacy format."""
         rings_v1 = {"s": {}, "l": {}}
 
@@ -132,43 +136,44 @@ class ConfigLoader:
             hour, minute = map(int, time_str.split(":"))
             return time(hour, minute)
         except Exception as e:
-            raise ConfigError(f"Invalid time format '{time_str}': {e}")
+            msg = f"Invalid time format '{time_str}': {e}"
+            raise ConfigError(msg)
 
-    def get_week_days(self) -> Dict[str, int]:
+    def get_week_days(self) -> dict[str, int]:
         """Get week days mapping."""
         return self.get("week_days", {})
 
-    def get_week_days_inverted(self) -> Dict[int, str]:
+    def get_week_days_inverted(self) -> dict[int, str]:
         """Get inverted week days mapping."""
         inverted = self.get("week_days_inverted", {})
         # Convert string keys to int
         return {int(k): v for k, v in inverted.items()}
 
-    def get_excel_config(self) -> Dict[str, Any]:
+    def get_excel_config(self) -> dict[str, Any]:
         """Get Excel configuration."""
         return self.get("excel", {})
 
-    def get_api_config(self) -> Dict[str, Any]:
+    def get_api_config(self) -> dict[str, Any]:
         """Get API configuration."""
         return self.get("api", {})
 
-    def get_bot_config(self) -> Dict[str, Any]:
+    def get_bot_config(self) -> dict[str, Any]:
         """Get bot configuration."""
         return self.get("bot", {})
 
-    def get_applications_config(self) -> Dict[str, Any]:
+    def get_applications_config(self) -> dict[str, Any]:
         """Get applications configuration."""
         return self.get("applications", {})
 
-    def get_academic_config(self) -> Dict[str, Any]:
+    def get_academic_config(self) -> dict[str, Any]:
         """Get academic configuration."""
         return self.get("academic", {})
 
-    def get_reminders_config(self) -> Dict[str, Any]:
+    def get_reminders_config(self) -> dict[str, Any]:
         """Get reminders configuration."""
         return self.get("reminders", {})
 
-    def get_paths_config(self) -> Dict[str, str]:
+    def get_paths_config(self) -> dict[str, str]:
         """Get paths configuration."""
         return self.get("paths", {})
 
@@ -185,7 +190,7 @@ def get_config() -> ConfigLoader:
     return _config_loader
 
 
-def reload_config(config_path: Union[str, Path] = None) -> ConfigLoader:
+def reload_config(config_path: str | Path | None = None) -> ConfigLoader:
     """Reload configuration from file."""
     global _config_loader
     _config_loader = ConfigLoader(config_path)

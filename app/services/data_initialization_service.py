@@ -40,7 +40,7 @@ class DataInitializationService:
             logger.warning("Please check API connection or configure fallback data")
             return False
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error creating default faculties: {e}")
             return False
 
@@ -98,7 +98,7 @@ class DataInitializationService:
 
                 await session.commit()
                 return True
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error saving groups: {e}")
             return False
 

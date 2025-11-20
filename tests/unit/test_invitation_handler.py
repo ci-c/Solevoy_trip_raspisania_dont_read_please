@@ -351,32 +351,31 @@ class TestProcessInvitationCode:
 
         with patch(
             "app.bot.handlers.invitation_handler.InvitationService"
-        ) as mock_inv_svc:
-            with patch(
-                "app.bot.handlers.invitation_handler.UserService"
-            ) as mock_user_svc:
-                inv_service_instance = AsyncMock()
-                inv_service_instance.validate_invitation = AsyncMock(
-                    return_value=mock_invitation
-                )
-                inv_service_instance.use_invitation = AsyncMock(return_value=True)
-                mock_inv_svc.return_value = inv_service_instance
+        ) as mock_inv_svc, patch(
+            "app.bot.handlers.invitation_handler.UserService"
+        ) as mock_user_svc:
+            inv_service_instance = AsyncMock()
+            inv_service_instance.validate_invitation = AsyncMock(
+                return_value=mock_invitation
+            )
+            inv_service_instance.use_invitation = AsyncMock(return_value=True)
+            mock_inv_svc.return_value = inv_service_instance
 
-                user_service_instance = AsyncMock()
-                user_service_instance.get_user_by_telegram_id = AsyncMock(
-                    return_value=mock_basic_user
-                )
-                user_service_instance.update_user = AsyncMock()
-                mock_user_svc.return_value = user_service_instance
+            user_service_instance = AsyncMock()
+            user_service_instance.get_user_by_telegram_id = AsyncMock(
+                return_value=mock_basic_user
+            )
+            user_service_instance.update_user = AsyncMock()
+            mock_user_svc.return_value = user_service_instance
 
-                await process_invitation_code(mock_message, mock_state)
+            await process_invitation_code(mock_message, mock_state)
 
-                inv_service_instance.use_invitation.assert_called_once_with(
-                    "ABC12345", 123456
-                )
-                mock_state.clear.assert_called_once()
-                call_args = str(mock_message.answer.call_args)
-                assert "успешно" in call_args.lower()
+            inv_service_instance.use_invitation.assert_called_once_with(
+                "ABC12345", 123456
+            )
+            mock_state.clear.assert_called_once()
+            call_args = str(mock_message.answer.call_args)
+            assert "успешно" in call_args.lower()
 
     async def test_process_invalid_code(self, mock_message, mock_state):
         """Test processing invalid invitation code."""
@@ -402,24 +401,23 @@ class TestProcessInvitationCode:
 
         with patch(
             "app.bot.handlers.invitation_handler.InvitationService"
-        ) as mock_inv_svc:
-            with patch(
-                "app.bot.handlers.invitation_handler.UserService"
-            ) as mock_user_svc:
-                inv_service_instance = AsyncMock()
-                inv_service_instance.validate_invitation = AsyncMock(
-                    return_value=mock_invitation
-                )
-                inv_service_instance.use_invitation = AsyncMock(return_value=False)
-                mock_inv_svc.return_value = inv_service_instance
+        ) as mock_inv_svc, patch(
+            "app.bot.handlers.invitation_handler.UserService"
+        ) as mock_user_svc:
+            inv_service_instance = AsyncMock()
+            inv_service_instance.validate_invitation = AsyncMock(
+                return_value=mock_invitation
+            )
+            inv_service_instance.use_invitation = AsyncMock(return_value=False)
+            mock_inv_svc.return_value = inv_service_instance
 
-                user_service_instance = AsyncMock()
-                mock_user_svc.return_value = user_service_instance
+            user_service_instance = AsyncMock()
+            mock_user_svc.return_value = user_service_instance
 
-                await process_invitation_code(mock_message, mock_state)
+            await process_invitation_code(mock_message, mock_state)
 
-                call_args = str(mock_message.answer.call_args)
-                assert "Ошибка" in call_args or "использован" in call_args.lower()
+            call_args = str(mock_message.answer.call_args)
+            assert "Ошибка" in call_args or "использован" in call_args.lower()
 
     async def test_process_code_error(self, mock_message, mock_state):
         """Test processing invitation code with error."""

@@ -10,7 +10,7 @@
 """
 
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
 
 @dataclass
@@ -29,7 +29,7 @@ class SemesterDetector:
 
     def get_current_semester_info(self) -> SemesterInfo:
         """Получить информацию о текущем семестре."""
-        now = datetime.now(tz=timezone.utc)
+        now = datetime.now(tz=UTC)
 
         # Осенний семестр: сентябрь-январь
         if 9 <= now.month <= 12:
@@ -103,7 +103,7 @@ class SemesterDetector:
 
     def _calculate_current_week(self, semester_start: date) -> int:
         """Вычислить номер текущей учебной недели."""
-        today = date.today()
+        today = datetime.now(UTC).date()
 
         if today < semester_start:
             return 1
