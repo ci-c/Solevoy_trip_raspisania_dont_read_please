@@ -41,7 +41,7 @@ class TestGroupSelection:
 
         # Create multiple faculties
         faculty1 = Faculty(**sample_faculty)
-        faculty2_data = {**sample_faculty, "name": "Педиатрический факультет", "code": "02"}
+        faculty2_data = {**sample_faculty, "name": "Педиатрический факультет", "short_name": "ПФ"}
         faculty2 = Faculty(**faculty2_data)
 
         db_session.add(faculty1)
@@ -54,7 +54,7 @@ class TestGroupSelection:
         # Assert
         assert len(faculties) >= 2
         assert any(f.name == sample_faculty["name"] for f in faculties)
-        assert any(f.code == sample_faculty["code"] for f in faculties)
+        assert any(f.name == "Педиатрический факультет" for f in faculties)
 
     async def test_empty_faculty_list_handling(
         self,
@@ -97,8 +97,8 @@ class TestGroupSelection:
         await db_session.refresh(faculty)
 
         # Create groups for this faculty
-        group1_data = {**sample_group, "faculty_id": faculty.id, "number": "101а"}
-        group2_data = {**sample_group, "faculty_id": faculty.id, "number": "101б"}
+        group1_data = {**sample_group, "faculty_id": faculty.id, "name": "101а"}
+        group2_data = {**sample_group, "faculty_id": faculty.id, "name": "101б"}
         group1 = Group(**group1_data)
         group2 = Group(**group2_data)
 
@@ -111,9 +111,9 @@ class TestGroupSelection:
 
         # Assert
         assert len(groups) >= 2
-        assert all(g.faculty_id == faculty.id for g in groups)
-        assert any(g.number == "101а" for g in groups)
-        assert any(g.number == "101б" for g in groups)
+        assert all(g["faculty_id"] == faculty.id for g in groups)
+        assert any(g["name"] == "101а" for g in groups)
+        assert any(g["name"] == "101б" for g in groups)
 
     async def test_empty_group_list_for_faculty(
         self,
@@ -162,8 +162,8 @@ class TestGroupSelection:
         await db_session.commit()
         await db_session.refresh(faculty)
 
-        group1_data = {**sample_group, "faculty_id": faculty.id, "number": "101а"}
-        group2_data = {**sample_group, "faculty_id": faculty.id, "number": "202б"}
+        group1_data = {**sample_group, "faculty_id": faculty.id, "name": "101а"}
+        group2_data = {**sample_group, "faculty_id": faculty.id, "name": "202б"}
         group1 = Group(**group1_data)
         group2 = Group(**group2_data)
 
@@ -176,9 +176,9 @@ class TestGroupSelection:
 
         # Assert
         assert len(results) >= 1
-        assert any(g.number == "101а" for g in results)
+        assert any(g.name == "101а" for g in results)
         # Should not include unrelated groups
-        assert not any(g.number == "202б" for g in results)
+        assert not any(g.name == "202б" for g in results)
 
     async def test_group_assignment_to_user(
         self,
@@ -256,8 +256,8 @@ class TestGroupSelection:
         await db_session.commit()
         await db_session.refresh(faculty)
 
-        group1_data = {**sample_group, "faculty_id": faculty.id, "number": "101а"}
-        group2_data = {**sample_group, "faculty_id": faculty.id, "number": "102а"}
+        group1_data = {**sample_group, "faculty_id": faculty.id, "name": "101а"}
+        group2_data = {**sample_group, "faculty_id": faculty.id, "name": "102а"}
         group1 = Group(**group1_data)
         group2 = Group(**group2_data)
 

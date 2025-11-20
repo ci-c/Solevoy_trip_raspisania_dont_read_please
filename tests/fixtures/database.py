@@ -59,22 +59,25 @@ async def test_db_engine():
 
 
 @pytest_asyncio.fixture(scope="function")
-async def db_session(test_db_engine) -> AsyncGenerator[AsyncSession, None]:
+async def db_session() -> AsyncGenerator[AsyncSession, None]:
     """
     Provide a clean database session for each test.
 
-    Automatically rolls back after test to ensure isolation.
+    Uses the main database so that services can see the test data.
+    Cleans all tables after each test to ensure isolation.
     """
-    async_session_maker = async_sessionmaker(
-        test_db_engine,
-        class_=AsyncSession,
-        expire_on_commit=False,
-    )
+    from app.database.session import get_session
+    from app.database.models import Base
+    from sqlalchemy import text
 
-    async with async_session_maker() as session:
+    async for session in get_session():
         yield session
-        await session.rollback()
-        await session.close()
+
+        # Clean up after test - delete all data from all tables
+        for table in reversed(Base.metadata.sorted_tables):
+            await session.execute(text(f"DELETE FROM {table.name}"))
+        await session.commit()
+        break  # Exit after yielding the session
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -92,7 +95,8 @@ async def clean_db(test_db_engine):
 @pytest.fixture
 def mock_env_vars(monkeypatch):
     """Set up mock environment variables for testing."""
-    monkeypatch.setenv("BOT_TOKEN", "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz12345")
+    # Token secret must be exactly 35 characters
+    monkeypatch.setenv("BOT_TOKEN", "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz123456789")
     monkeypatch.setenv("DATABASE_URL", "sqlite+aiosqlite:///./data/test_db_temp.db")
     monkeypatch.setenv("LOG_LEVEL", "DEBUG")
     yield

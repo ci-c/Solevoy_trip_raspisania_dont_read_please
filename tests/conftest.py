@@ -103,7 +103,7 @@ def sample_user_data() -> Dict[str, str]:
 def sample_group_data() -> Dict[str, str]:
     """Тестовые данные группы."""
     return {
-        "number": "101а",
+        "name": "101а",
         "course": 1,
         "stream": "а",
         "speciality": "31.05.01 лечебное дело",

@@ -25,6 +25,14 @@ class UserService:
         full_name: str | None = None,
     ) -> User:
         """Создать нового пользователя."""
+        # Validate input
+        if telegram_id is None:
+            raise ValueError("telegram_id cannot be None")
+        if not isinstance(telegram_id, int):
+            raise TypeError("telegram_id must be an integer")
+        if telegram_id < 0:
+            raise ValueError("telegram_id cannot be negative")
+
         now = datetime.now(tz=UTC)
 
         stored_now = now.replace(tzinfo=None)
@@ -187,6 +195,17 @@ class UserService:
         """Обновить группу пользователя."""
         try:
             async for session in get_session():
+                # First, check if group exists
+                from app.database.models import Group
+
+                group_result = await session.execute(
+                    select(Group).where(Group.id == group_id),
+                )
+                group = group_result.scalar_one_or_none()
+                if not group:
+                    raise ValueError(f"Group with ID {group_id} does not exist")
+
+                # Then update user
                 result = await session.execute(
                     select(UserModel).where(UserModel.telegram_id == telegram_id),
                 )
@@ -203,7 +222,7 @@ class UserService:
         except Exception as e:
             logger.error(f"Error updating user group: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
-        return False
+            raise  # Re-raise to let test catch it
 
     async def get_all_users(
         self, limit: int = 100, offset: int = 0,

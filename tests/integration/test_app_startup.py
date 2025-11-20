@@ -32,33 +32,41 @@ class TestApplicationStartup:
         assert hasattr(main, 'main')
         assert hasattr(main, 'setup_app')
 
-    def test_environment_validation_with_valid_token(self):
+    def test_environment_validation_with_valid_token(self, monkeypatch):
         """Test environment validation succeeds with valid BOT_TOKEN."""
-        from app.utils.secrets import validate_environment
+        from app.utils.secrets import validate_environment, secrets_manager
 
-        # Set valid test token
-        os.environ['BOT_TOKEN'] = '1234567890:ABCdefGHIjklMNOpqrsTUVwxyz12345'
+        # Clear secrets cache to ensure fresh read
+        secrets_manager._cache.clear()
+
+        # Set valid test token (secret must be exactly 35 characters)
+        monkeypatch.setenv('BOT_TOKEN', '1234567890:ABCdefGHIjklMNOpqrsTUVwxyz123456789')
 
         result = validate_environment()
         assert result is True
 
-    def test_environment_validation_with_invalid_token_format(self):
+    def test_environment_validation_with_invalid_token_format(self, monkeypatch):
         """Test environment validation fails with invalid token format."""
-        from app.utils.secrets import validate_environment
+        from app.utils.secrets import validate_environment, secrets_manager
+
+        # Clear secrets cache to ensure fresh read
+        secrets_manager._cache.clear()
 
         # Set invalid token format
-        os.environ['BOT_TOKEN'] = 'invalid_token_format'
+        monkeypatch.setenv('BOT_TOKEN', 'invalid_token_format')
 
         result = validate_environment()
         assert result is False
 
-    def test_environment_validation_without_token(self):
+    def test_environment_validation_without_token(self, monkeypatch):
         """Test environment validation fails without BOT_TOKEN."""
-        from app.utils.secrets import validate_environment
+        from app.utils.secrets import validate_environment, secrets_manager
+
+        # Clear secrets cache to ensure fresh read
+        secrets_manager._cache.clear()
 
         # Remove token from environment
-        if 'BOT_TOKEN' in os.environ:
-            del os.environ['BOT_TOKEN']
+        monkeypatch.delenv('BOT_TOKEN', raising=False)
 
         result = validate_environment()
         assert result is False
