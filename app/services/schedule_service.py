@@ -1,32 +1,29 @@
-"""
-Сервис для работы с расписаниями из базы данных.
-"""
+"""Сервис для работы с расписаниями из базы данных."""
 
-from datetime import date, datetime
-from typing import List, Dict
+from datetime import date, datetime, timezone
+
 from loguru import logger
+from sqlalchemy import and_, func, select
 
-from app.database.session import get_session
 from app.database.models import (
+    AcademicYear,
+    Faculty,
+    Group,
     Schedule,
     ScheduleLesson,
-    Faculty,
-    Speciality,
-    AcademicYear,
     Semester,
-    Group,
+    Speciality,
 )
-from sqlalchemy import select, and_, func
+from app.database.session import get_session
 
 
 class ScheduleService:
     """Сервис для работы с расписаниями."""
 
     async def get_user_schedule(
-        self, user_id: int, start_date: date | None = None, end_date: date | None = None
-    ) -> List[Dict[str, str]] | None:
-        """
-        Получить расписание пользователя.
+        self, user_id: int, start_date: date | None = None, end_date: date | None = None,
+    ) -> list[dict[str, str]] | None:
+        """Получить расписание пользователя.
 
         Args:
             user_id: ID пользователя
@@ -35,6 +32,7 @@ class ScheduleService:
 
         Returns:
             Список занятий пользователя
+
         """
         try:
             # Получаем пользователя и его группу из профиля
@@ -42,7 +40,7 @@ class ScheduleService:
                 from app.database.models import User as UserModel
 
                 result = await session.execute(
-                    select(UserModel).filter(UserModel.telegram_id == user_id)
+                    select(UserModel).filter(UserModel.telegram_id == user_id),
                 )
                 user = result.scalar_one_or_none()
 
@@ -63,7 +61,7 @@ class ScheduleService:
             # Получаем занятия группы из нормализованной таблицы
             async for session in get_session():
                 query = select(ScheduleLesson).where(
-                    ScheduleLesson.group_id == group_id
+                    ScheduleLesson.group_id == group_id,
                 )
 
                 if start_date:
@@ -83,7 +81,7 @@ class ScheduleService:
                         ScheduleLesson.week_number,
                         ScheduleLesson.day_name,
                         ScheduleLesson.start_time,
-                    )
+                    ),
                 )
 
                 lessons = result.scalars().all()
@@ -118,7 +116,7 @@ class ScheduleService:
                             "department": lesson.department.name
                             if lesson.department
                             else None,
-                        }
+                        },
                     )
 
                 return formatted_lessons
@@ -129,10 +127,9 @@ class ScheduleService:
             return None
 
     async def get_group_schedule(
-        self, group_name: str, week_number: int | None = None
-    ) -> List[Dict[str, str]] | None:
-        """
-        Получить расписание группы.
+        self, group_name: str, week_number: int | None = None,
+    ) -> list[dict[str, str]] | None:
+        """Получить расписание группы.
 
         Args:
             group_name: Название группы (например, "105а")
@@ -140,11 +137,12 @@ class ScheduleService:
 
         Returns:
             Список занятий группы
+
         """
         try:
             async for session in get_session():
                 group_result = await session.execute(
-                    select(Group).where(Group.name == group_name)
+                    select(Group).where(Group.name == group_name),
                 )
                 group = group_result.scalar_one_or_none()
                 if not group:
@@ -152,7 +150,7 @@ class ScheduleService:
                     return None
 
                 query = select(ScheduleLesson).where(
-                    ScheduleLesson.group_id == group.id
+                    ScheduleLesson.group_id == group.id,
                 )
 
                 if week_number:
@@ -163,7 +161,7 @@ class ScheduleService:
                         ScheduleLesson.week_number,
                         ScheduleLesson.day_name,
                         ScheduleLesson.start_time,
-                    )
+                    ),
                 )
 
                 lessons = result.scalars().all()
@@ -204,7 +202,7 @@ class ScheduleService:
                             "speciality": group.speciality_obj.name
                             if group.speciality_obj
                             else None,
-                        }
+                        },
                     )
 
                 return formatted_lessons
@@ -219,9 +217,8 @@ class ScheduleService:
         faculty_name: str | None = None,
         speciality_name: str | None = None,
         course_number: int | None = None,
-    ) -> List[Dict[str, str]]:
-        """
-        Поиск групп по критериям.
+    ) -> list[dict[str, str]]:
+        """Поиск групп по критериям.
 
         Args:
             faculty_name: Название факультета
@@ -230,6 +227,7 @@ class ScheduleService:
 
         Returns:
             Список найденных групп
+
         """
         try:
             async for session in get_session():
@@ -274,12 +272,12 @@ class ScheduleService:
             logger.error(f"Traceback: {e.__traceback__}")
             return None
 
-    async def get_available_faculties(self) -> List[Dict[str, str]]:
+    async def get_available_faculties(self) -> list[dict[str, str]]:
         """Получить список доступных факультетов."""
         try:
             async for session in get_session():
                 result = await session.execute(
-                    select(Faculty).distinct().order_by(Faculty.name)
+                    select(Faculty).distinct().order_by(Faculty.name),
                 )
 
                 faculties = result.scalars().all()
@@ -307,8 +305,8 @@ class ScheduleService:
             return None  # Пробрасываем ошибку дальше!
 
     async def get_available_specialities(
-        self, faculty_id: int | None = None
-    ) -> List[Dict[str, str]]:
+        self, faculty_id: int | None = None,
+    ) -> list[dict[str, str]]:
         """Получить список доступных специальностей."""
         try:
             async for session in get_session():
@@ -336,14 +334,14 @@ class ScheduleService:
             logger.error(f"Traceback: {e.__traceback__}")
             return None
 
-    async def get_current_academic_year(self) -> Dict[str, str] | None:
+    async def get_current_academic_year(self) -> dict[str, str] | None:
         """Получить текущий учебный год."""
         try:
             async for session in get_session():
                 result = await session.execute(
                     select(AcademicYear)
                     .where(AcademicYear.is_current)
-                    .order_by(AcademicYear.created_at.desc())
+                    .order_by(AcademicYear.created_at.desc()),
                 )
 
                 year = result.scalar_one_or_none()
@@ -362,14 +360,14 @@ class ScheduleService:
             logger.error(f"Traceback: {e.__traceback__}")
             return None
 
-    async def get_current_semester(self) -> Dict[str, str] | None:
+    async def get_current_semester(self) -> dict[str, str] | None:
         """Получить текущий семестр."""
         try:
             async for session in get_session():
                 result = await session.execute(
                     select(Semester)
                     .where(Semester.is_current)
-                    .order_by(Semester.created_at.desc())
+                    .order_by(Semester.created_at.desc()),
                 )
 
                 semester = result.scalar_one_or_none()
@@ -390,10 +388,9 @@ class ScheduleService:
             return None
 
     async def get_lessons_by_week(
-        self, group_name: str, week_number: int
-    ) -> List[Dict[str, str]]:
-        """
-        Получить занятия группы за определенную неделю.
+        self, group_name: str, week_number: int,
+    ) -> list[dict[str, str]]:
+        """Получить занятия группы за определенную неделю.
 
         Args:
             group_name: Название группы
@@ -401,11 +398,12 @@ class ScheduleService:
 
         Returns:
             Список занятий, отсортированный по дням и времени
+
         """
         try:
             async for session in get_session():
                 group_result = await session.execute(
-                    select(Group).where(Group.name == group_name)
+                    select(Group).where(Group.name == group_name),
                 )
                 group = group_result.scalar_one_or_none()
                 if not group:
@@ -418,12 +416,12 @@ class ScheduleService:
                         and_(
                             ScheduleLesson.group_id == group.id,
                             ScheduleLesson.week_number == week_number,
-                        )
+                        ),
                     )
                     .order_by(
                         ScheduleLesson.day_name,
                         ScheduleLesson.start_time,
-                    )
+                    ),
                 )
 
                 lessons = result.scalars().all()
@@ -457,7 +455,7 @@ class ScheduleService:
                             "department": lesson.department.name
                             if lesson.department
                             else None,
-                        }
+                        },
                     )
                     grouped_lessons[lesson.day_name] = day_lessons
 
@@ -482,7 +480,7 @@ class ScheduleService:
             logger.error(f"Traceback: {e.__traceback__}")
         return None
 
-    async def get_schedule_statistics(self) -> Dict[str, str] | None:
+    async def get_schedule_statistics(self) -> dict[str, str] | None:
         """Получить статистику по расписаниям."""
         try:
             async for session in get_session():
@@ -507,7 +505,7 @@ class ScheduleService:
                     "total_schedules": total_schedules,
                     "total_faculties": total_faculties,
                     "total_specialities": total_specialities,
-                    "last_updated": datetime.now().isoformat(),
+                    "last_updated": datetime.now(tz=timezone.utc).isoformat(),
                 }
 
         except Exception as e:
@@ -516,63 +514,65 @@ class ScheduleService:
             return None
 
     async def get_schedule_for_group(
-        self, group_id: int, date: date | None = None
-    ) -> List[Dict[str, str]]:
-        """
-        Получить расписание для группы по ID (для тестов).
-        
+        self, group_id: int, date: date | None = None,
+    ) -> list[dict[str, str]]:
+        """Получить расписание для группы по ID (для тестов).
+
         Args:
             group_id: ID группы
             date: Дата для фильтрации (опционально)
-            
+
         Returns:
             Список занятий группы
+
         """
         try:
             from sqlalchemy import select
-            from app.database.models import Group, ScheduleLesson
-            
+
+            from app.database.models import Group
+
             async for session in get_session():
                 # Получаем группу по ID
                 group_result = await session.execute(
-                    select(Group).where(Group.id == group_id)
+                    select(Group).where(Group.id == group_id),
                 )
                 group = group_result.scalar_one_or_none()
                 if not group:
                     logger.warning(f"Group with ID {group_id} not found")
                     return []
-                
+
                 # Используем get_group_schedule с именем группы
                 return await self.get_group_schedule(group.name) or []
         except Exception as e:
             logger.error(f"Error getting schedule for group {group_id}: {e}")
             return []
-    
+
     async def sync_schedule_for_group(self, group_id: int, retry: bool = False) -> bool:
-        """
-        Синхронизировать расписание для группы из API (для тестов).
-        
+        """Синхронизировать расписание для группы из API (для тестов).
+
         Args:
             group_id: ID группы
             retry: Повторить при ошибке
-            
+
         Returns:
             True если успешно, False иначе
+
         """
         try:
             from sqlalchemy import select
+
             from app.database.models import Group
-            
+
             async for session in get_session():
                 # Получаем группу по ID
                 group_result = await session.execute(
-                    select(Group).where(Group.id == group_id)
+                    select(Group).where(Group.id == group_id),
                 )
                 group = group_result.scalar_one_or_none()
                 if not group:
                     logger.warning(f"Group with ID {group_id} not found for sync")
                     return False
-                
+
                 # TODO: Реализовать синхронизацию с API
                 # Пока возвращаем True если группа найдена
                 logger.info(f"Sync schedule for group {group.name} (stub)")

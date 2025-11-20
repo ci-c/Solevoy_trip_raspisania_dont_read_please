@@ -1,28 +1,26 @@
-"""
-Сервис для инициализации системы при запуске.
-"""
+"""Сервис для инициализации системы при запуске."""
 
 from loguru import logger
 
 from app.services.api_sync_service import APISyncService
-from app.services.schedule_service import ScheduleService
 from app.services.faculty_service import FacultyService
+from app.services.schedule_service import ScheduleService
 
 
 class StartupService:
     """Сервис для инициализации системы."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.api_sync_service = APISyncService()
         self.schedule_service = ScheduleService()
         self.faculty_service = FacultyService()
 
     async def initialize_system(self) -> dict[str, object] | None:
-        """
-        Инициализация системы при запуске.
+        """Инициализация системы при запуске.
 
         Returns:
             Словарь с результатами инициализации
+
         """
         logger.info("Starting system initialization...")
 
@@ -86,7 +84,7 @@ class StartupService:
 
             if results["errors"]:
                 logger.warning(
-                    f"Initialization completed with errors: {results['errors']}"
+                    f"Initialization completed with errors: {results['errors']}",
                 )
             else:
                 logger.info("System initialization completed successfully")
@@ -112,11 +110,11 @@ class StartupService:
             logger.error(f"Traceback: {e.__traceback__}")
 
     async def check_system_health(self) -> dict[str, object] | None:
-        """
-        Проверка состояния системы.
+        """Проверка состояния системы.
 
         Returns:
             Словарь с информацией о состоянии системы
+
         """
         health = {"status": "healthy", "components": {}, "issues": []}
 
@@ -191,11 +189,11 @@ class StartupService:
             logger.error(f"Error warming up cache: {e}")
 
     async def run_startup_checks(self) -> bool:
-        """
-        Запуск проверок при старте системы.
+        """Запуск проверок при старте системы.
 
         Returns:
             True если все проверки прошли успешно
+
         """
         try:
             logger.info("Running startup checks...")
@@ -212,7 +210,7 @@ class StartupService:
             # Логируем результаты
             if init_results["errors"]:
                 logger.warning(
-                    f"Initialization completed with errors: {init_results['errors']}"
+                    f"Initialization completed with errors: {init_results['errors']}",
                 )
 
             if health["status"] != "healthy":

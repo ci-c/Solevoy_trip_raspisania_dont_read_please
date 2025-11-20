@@ -3,7 +3,8 @@
 
 """Base repository class and interfaces."""
 
-from typing import Any, Generic, TypeVar
+from typing import Any, TypeVar
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,7 +13,7 @@ from app.database.models import Base
 T = TypeVar("T", bound=Base)
 
 
-class BaseRepository(Generic[T]):
+class BaseRepository[T: Base]:
     """Base repository class for database operations."""
 
     def __init__(self, model: type[T], session: AsyncSession) -> None:
@@ -21,6 +22,7 @@ class BaseRepository(Generic[T]):
         Args:
             model: SQLAlchemy model class.
             session: Database session.
+
         """
         self._model = model
         self._session = session
@@ -33,6 +35,7 @@ class BaseRepository(Generic[T]):
 
         Returns:
             Entity if found, None otherwise.
+
         """
         stmt = select(self._model).where(self._model.id == id_)
         result = await self._session.execute(stmt)
@@ -43,6 +46,7 @@ class BaseRepository(Generic[T]):
 
         Returns:
             List of all entities.
+
         """
         stmt = select(self._model)
         result = await self._session.execute(stmt)
@@ -56,6 +60,7 @@ class BaseRepository(Generic[T]):
 
         Returns:
             Created entity.
+
         """
         entity = self._model(**kwargs)
         self._session.add(entity)
@@ -72,6 +77,7 @@ class BaseRepository(Generic[T]):
 
         Returns:
             Updated entity if found, None otherwise.
+
         """
         entity = await self.get_by_id(id_)
         if entity:
@@ -89,6 +95,7 @@ class BaseRepository(Generic[T]):
 
         Returns:
             True if entity was deleted, False otherwise.
+
         """
         entity = await self.get_by_id(id_)
         if entity:

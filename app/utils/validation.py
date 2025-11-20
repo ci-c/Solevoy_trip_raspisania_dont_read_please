@@ -1,16 +1,13 @@
-"""
-Утилиты для валидации пользовательского ввода.
-"""
+"""Утилиты для валидации пользовательского ввода."""
 
 import re
-from typing import Dict
+
 from loguru import logger
 
 
 class ValidationError(Exception):
     """Ошибка валидации."""
 
-    pass
 
 
 class InputValidator:
@@ -107,7 +104,7 @@ class InputValidator:
         return True
 
     @classmethod
-    def validate_filters(cls, filters: Dict[str, str]) -> bool:
+    def validate_filters(cls, filters: dict[str, str]) -> bool:
         """Валидация фильтров поиска."""
         if not isinstance(filters, dict):
             return False
@@ -124,7 +121,7 @@ class InputValidator:
             "room",
         }
 
-        for key in filters.keys():
+        for key in filters:
             if key not in allowed_keys:
                 logger.warning(f"Unknown filter key: {key}")
                 return False
@@ -133,8 +130,7 @@ class InputValidator:
 
 
 def validate_user_input(input_type: str, value: str, required: bool = True) -> str:
-    """
-    Валидация пользовательского ввода.
+    """Валидация пользовательского ввода.
 
     Args:
         input_type: Тип ввода (username, group_number, etc.)
@@ -146,9 +142,11 @@ def validate_user_input(input_type: str, value: str, required: bool = True) -> s
 
     Raises:
         ValidationError: При ошибке валидации
+
     """
     if not value and required:
-        raise ValidationError(f"Поле {input_type} обязательно для заполнения")
+        msg = f"Поле {input_type} обязательно для заполнения"
+        raise ValidationError(msg)
 
     if not value and not required:
         return ""
@@ -159,27 +157,33 @@ def validate_user_input(input_type: str, value: str, required: bool = True) -> s
     # Валидация по типу
     if input_type == "username":
         if not InputValidator.validate_telegram_username(sanitized_value):
-            raise ValidationError("Некорректный формат username")
+            msg = "Некорректный формат username"
+            raise ValidationError(msg)
 
     elif input_type == "group_number":
         if not InputValidator.validate_group_number(sanitized_value):
-            raise ValidationError("Некорректный формат номера группы")
+            msg = "Некорректный формат номера группы"
+            raise ValidationError(msg)
 
     elif input_type == "student_id":
         if not InputValidator.validate_student_id(sanitized_value):
-            raise ValidationError("Некорректный формат студенческого билета")
+            msg = "Некорректный формат студенческого билета"
+            raise ValidationError(msg)
 
     elif input_type == "phone":
         if not InputValidator.validate_phone(sanitized_value):
-            raise ValidationError("Некорректный формат номера телефона")
+            msg = "Некорректный формат номера телефона"
+            raise ValidationError(msg)
 
     elif input_type == "name":
         if not InputValidator.validate_name(sanitized_value):
-            raise ValidationError("Некорректный формат имени")
+            msg = "Некорректный формат имени"
+            raise ValidationError(msg)
 
     elif input_type == "search_query":
         if not InputValidator.validate_search_query(sanitized_value):
-            raise ValidationError("Некорректный поисковый запрос")
+            msg = "Некорректный поисковый запрос"
+            raise ValidationError(msg)
 
     return sanitized_value
 
@@ -187,9 +191,11 @@ def validate_user_input(input_type: str, value: str, required: bool = True) -> s
 def validate_message(message: str) -> str:
     """Валидация сообщения пользователя."""
     if not message:
-        raise ValidationError("Сообщение не может быть пустым")
+        msg = "Сообщение не может быть пустым"
+        raise ValidationError(msg)
 
     if not InputValidator.validate_message_length(message):
-        raise ValidationError("Сообщение слишком длинное")
+        msg = "Сообщение слишком длинное"
+        raise ValidationError(msg)
 
     return InputValidator.sanitize_input(message)

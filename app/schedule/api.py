@@ -1,5 +1,4 @@
-"""
-API client for SZGMU schedule data.
+"""API client for SZGMU schedule data.
 
 Зона ответственности:
 - Взаимодействие с внешним API СЗГМУ для получения данных расписания
@@ -11,7 +10,7 @@ API client for SZGMU schedule data.
 
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import httpx
 
@@ -22,15 +21,14 @@ logger = logging.getLogger(__name__)
 
 
 def find_schedule_ids(
-    group_stream: List[str] | None = None,
-    speciality: List[str] | None = None,
-    course_number: List[str] | None = None,
-    academic_year: List[str] | None = None,
-    lesson_type: Optional[List[str]] = None,
-    semester: Optional[List[str]] = None,
-) -> List[int]:
-    """
-    Searches for schedule IDs by sending a POST request to the API with specified parameters.
+    group_stream: list[str] | None = None,
+    speciality: list[str] | None = None,
+    course_number: list[str] | None = None,
+    academic_year: list[str] | None = None,
+    lesson_type: list[str] | None = None,
+    semester: list[str] | None = None,
+) -> list[int]:
+    """Searches for schedule IDs by sending a POST request to the API with specified parameters.
 
     Args:
         group_stream: List of group streams (e.g., ['в']).
@@ -42,6 +40,7 @@ def find_schedule_ids(
 
     Returns:
         A list of found schedule IDs or an empty list if an error occurs.
+
     """
     url = "https://frsview.szgmu.ru/api/xlsxSchedule/findAll/0"
 
@@ -68,37 +67,35 @@ def find_schedule_ids(
             data = response.json()
 
         if "content" in data:
-            found_ids = [item["id"] for item in data["content"]]
-            return found_ids
-        else:
-            logger.error("API response is missing the 'content' key.")
-            return []
+            return [item["id"] for item in data["content"]]
+        logger.error("API response is missing the 'content' key.")
+        return []
 
     except httpx.HTTPStatusError as e:
-        logger.error(
-            "Schedule ID request failed with status %s", e.response.status_code
+        logger.exception(
+            "Schedule ID request failed with status %s", e.response.status_code,
         )
         return []
     except httpx.RequestError as e:
-        logger.error(f"HTTP request error occurred: {e}")
+        logger.exception("HTTP request error occurred: %s", e)
         return []
     except Exception as e:
-        logger.error(f"Unexpected error searching schedule IDs: {e}")
+        logger.exception("Unexpected error searching schedule IDs: %s", e)
         return []
     except json.JSONDecodeError:
-        logger.error("JSON decoding error: The response is not valid JSON.")
+        logger.exception("JSON decoding error: The response is not valid JSON.")
         return []
 
 
 def get_schedule_data(schedule_id: int) -> dict | None:
-    """
-    Fetches schedule data from the API by its ID.
+    """Fetches schedule data from the API by its ID.
 
     Args:
         schedule_id: The ID of the schedule to fetch.
 
     Returns:
         A dictionary with the schedule data or None if an error occurs.
+
     """
     api_url = f"https://frsview.szgmu.ru/api/xlsxSchedule/findById?xlsxScheduleId={schedule_id}"
 
@@ -111,38 +108,37 @@ def get_schedule_data(schedule_id: int) -> dict | None:
         # Log general schedule parameters
         logger.info("-" * 20)
         logger.info("General Schedule Information:")
-        logger.info(f"  File Name: {data.get('fileName')}")
-        logger.debug(f"  xlsxHeaderDto: {data.get('xlsxHeaderDto')}")
-        logger.info(f"  Form Type: {data.get('formType')}")
-        logger.info(f"  updateTime: {data.get('updateTime')}")
-        logger.info(f"  isUploadedFromExcel: {data.get('isUploadedFromExcel')}")
-        logger.info(f"  Schedule Status: {data.get('statusId')}")
+        logger.info("  File Name: %s", data.get('fileName'))
+        logger.debug("  xlsxHeaderDto: %s", data.get('xlsxHeaderDto'))
+        logger.info("  Form Type: %s", data.get('formType'))
+        logger.info("  updateTime: %s", data.get('updateTime'))
+        logger.info("  isUploadedFromExcel: %s", data.get('isUploadedFromExcel'))
+        logger.info("  Schedule Status: %s", data.get('statusId'))
         # logger.info(f"  Keys: {data.keys()}")
         if data.get("scheduleLessonDtoList"):
-            logger.info(f"  Sample Lesson: {data.get('scheduleLessonDtoList', [])[0]}")
+            logger.info("  Sample Lesson: %s", data.get('scheduleLessonDtoList', [])[0])
         logger.info("-" * 20)
 
         return data
     except httpx.HTTPStatusError as e:
-        logger.error(
+        logger.exception(
             "Schedule data request failed with status %s",
             e.response.status_code,
         )
         return None
     except httpx.RequestError as e:
-        logger.error(f"HTTP request error occurred: {e}")
+        logger.exception("HTTP request error occurred: %s", e)
         return None
     except Exception as e:
-        logger.error(f"Unexpected error fetching schedule data: {e}")
+        logger.exception("Unexpected error fetching schedule data: %s", e)
         return None
     except json.JSONDecodeError:
-        logger.error("JSON decoding error: The response is not valid JSON.")
+        logger.exception("JSON decoding error: The response is not valid JSON.")
         return None
 
 
-def process_lessons(schedule_data: Dict) -> list[Lesson]:
-    """
-    Processes a list of lesson dictionaries, converts them to Lesson objects,
+def process_lessons(schedule_data: dict) -> list[Lesson]:
+    """Processes a list of lesson dictionaries, converts them to Lesson objects,
     and returns a list of all lessons.
 
     Args:
@@ -150,24 +146,25 @@ def process_lessons(schedule_data: Dict) -> list[Lesson]:
 
     Returns:
         A list of Lesson objects.
+
     """
-    lessons: List[Lesson] = []
+    lessons: list[Lesson] = []
     if "scheduleLessonDtoList" in schedule_data:
         for lesson_dict in schedule_data["scheduleLessonDtoList"]:
             try:
                 lesson_obj = Lesson(**lesson_dict)
                 lessons.append(lesson_obj)
             except TypeError as e:
-                logger.error(f"Error creating Lesson object due to missing fields: {e}")
-                logger.error(
-                    f"Skipping this lesson entry with keys: {list(lesson_dict.keys())}"
+                logger.exception("Error creating Lesson object due to missing fields: %s", e)
+                logger.exception(
+                    "Skipping this lesson entry with keys: %s", list(lesson_dict.keys()),
                 )
                 continue
-    logger.info(f"Processed {len(lessons)} lessons")
+    logger.info("Processed %s lessons", len(lessons))
     return lessons
 
 
-async def get_available_filters() -> Dict[str, List[str]]:
+async def get_available_filters() -> dict[str, list[str]]:
     """Get available filters for the bot interface."""
     # Return static options to avoid API timeout issues
     # TODO Implement dynamic loading with timeout protection
@@ -190,7 +187,7 @@ async def get_available_filters() -> Dict[str, List[str]]:
             "Учебный год": ["2024/2025", "2025/2026"],
         }
     except Exception as e:
-        logger.error(f"Error loading filters: {e}")
+        logger.exception("Error loading filters: %s", e)
         # Fallback to minimal filters
         return {
             "Курс": ["1", "2", "3", "4", "5", "6"],
@@ -199,12 +196,12 @@ async def get_available_filters() -> Dict[str, List[str]]:
         }
 
 
-async def search_schedules(selected_filters: Dict[str, List[str]]) -> List[Dict]:
+async def search_schedules(selected_filters: dict[str, list[str]]) -> list[dict]:
     """Search schedules based on selected filters."""
     import asyncio
     from concurrent.futures import ThreadPoolExecutor
 
-    logger.info(f"Starting schedule search with filters: {selected_filters}")
+    logger.info("Starting schedule search with filters: %s", selected_filters)
 
     try:
         # Map bot filters to API parameters
@@ -224,11 +221,12 @@ async def search_schedules(selected_filters: Dict[str, List[str]]) -> List[Dict]
                     break
 
         logger.info(
-            f"API parameters: course={course_number}, speciality={speciality}, stream={group_stream}"
+            "API parameters: course=%s, speciality=%s, stream=%s",
+            course_number, speciality, group_stream,
         )
 
         loop = asyncio.get_event_loop()
-        results: List[Dict[str, Any]] = []
+        results: list[dict[str, Any]] = []
 
         with ThreadPoolExecutor() as executor:
             # Find schedule IDs с защитой от блокировки
@@ -246,11 +244,11 @@ async def search_schedules(selected_filters: Dict[str, List[str]]) -> List[Dict]
                     loop.run_in_executor(executor, _find_schedule_ids_sync),
                     timeout=20.0,
                 )
-            except asyncio.TimeoutError:
-                logger.error("Schedule IDs search timed out")
+            except TimeoutError:
+                logger.exception("Schedule IDs search timed out")
                 return []
 
-            logger.info(f"Found {len(schedule_ids)} schedule IDs")
+            logger.info("Found %s schedule IDs", len(schedule_ids))
 
             if not schedule_ids:
                 logger.warning("No schedule IDs found")
@@ -260,7 +258,8 @@ async def search_schedules(selected_filters: Dict[str, List[str]]) -> List[Dict]
 
             for i, schedule_id in enumerate(schedule_ids[:max_schedules]):
                 logger.info(
-                    f"Processing schedule {i + 1}/{max_schedules}: ID {schedule_id}"
+                    "Processing schedule %s/%s: ID %s",
+                    i + 1, max_schedules, schedule_id,
                 )
 
                 def _get_schedule_data_sync():
@@ -304,7 +303,7 @@ async def search_schedules(selected_filters: Dict[str, List[str]]) -> List[Dict]
                                     continue
                         else:
                             display_name = schedule_data.get(
-                                "fileName", f"Schedule {schedule_id}"
+                                "fileName", f"Schedule {schedule_id}",
                             )
 
                         results.append(
@@ -312,25 +311,25 @@ async def search_schedules(selected_filters: Dict[str, List[str]]) -> List[Dict]
                                 "id": schedule_id,
                                 "display_name": display_name,
                                 "data": schedule_data,
-                            }
+                            },
                         )
                         logger.info(
-                            "Successfully processed schedule %s", schedule_id
+                            "Successfully processed schedule %s", schedule_id,
                         )
                     else:
                         logger.warning("No data for schedule %s", schedule_id)
 
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     logger.warning("Timeout getting data for schedule %s", schedule_id)
                     continue
                 except Exception as e:
-                    logger.error(f"Error processing schedule {schedule_id}: {e}")
+                    logger.exception("Error processing schedule %s: %s", schedule_id, e)
                     continue
 
-        logger.info(f"Returning {len(results)} processed schedules")
+        logger.info("Returning %s processed schedules", len(results))
         return results
 
     except Exception as e:
-        logger.error(f"Critical error in search_schedules: {e}")
-        logger.error(f"Traceback: {e.__traceback__}")
+        logger.exception("Critical error in search_schedules: %s", e)
+        logger.exception("Traceback: %s", e.__traceback__)
         return []

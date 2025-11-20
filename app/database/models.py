@@ -1,6 +1,6 @@
 """SQLAlchemy models for the database."""
 
-from datetime import datetime, date, time
+from datetime import date, datetime, time
 from enum import Enum
 from typing import Optional
 
@@ -56,21 +56,21 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     telegram_id: Mapped[int] = mapped_column(Integer, unique=True)
-    username: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    username: Mapped[str | None] = mapped_column(String(32), nullable=True)
     first_name: Mapped[str] = mapped_column(String(64))
-    last_name: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    last_name: Mapped[str | None] = mapped_column(String(64), nullable=True)
     access_level: Mapped[str] = mapped_column(String(16), default="guest")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    last_seen: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    last_seen: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow,
     )
 
     # Relationships
     group: Mapped["Group"] = relationship(back_populates="users")
-    group_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("groups.id"), nullable=True
+    group_id: Mapped[int | None] = mapped_column(
+        ForeignKey("groups.id"), nullable=True,
     )
     profile: Mapped[Optional["UserProfile"]] = relationship(
         back_populates="user",
@@ -86,8 +86,8 @@ class Faculty(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(128), unique=True)
-    short_name: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
-    description: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    short_name: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    description: Mapped[str | None] = mapped_column(String(512), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     # Relationships
@@ -109,19 +109,19 @@ class Group(Base):
 
     # Relationships
     users: Mapped[list[User]] = relationship(back_populates="group")
-    faculty_obj: Mapped[Optional[Faculty]] = relationship(back_populates="groups")
-    faculty_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("faculties.id"), nullable=True
+    faculty_obj: Mapped[Faculty | None] = relationship(back_populates="groups")
+    faculty_id: Mapped[int | None] = mapped_column(
+        ForeignKey("faculties.id"), nullable=True,
     )
     speciality_obj: Mapped[Optional["Speciality"]] = relationship(
-        back_populates="groups"
+        back_populates="groups",
     )
-    speciality_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("specialities.id"), nullable=True
+    speciality_id: Mapped[int | None] = mapped_column(
+        ForeignKey("specialities.id"), nullable=True,
     )
     profiles: Mapped[list["UserProfile"]] = relationship(back_populates="group")
     schedule_lessons: Mapped[list["ScheduleLesson"]] = relationship(
-        back_populates="group"
+        back_populates="group",
     )
 
 
@@ -131,15 +131,15 @@ class UserProfile(Base):
     __tablename__ = "user_profiles"
 
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
-    group_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("groups.id"), nullable=True
+    group_id: Mapped[int | None] = mapped_column(
+        ForeignKey("groups.id"), nullable=True,
     )
     preferred_export_format: Mapped[str] = mapped_column(String(8), default="excel")
     notifications_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
-    quiet_hours_start: Mapped[Optional[time]] = mapped_column(Time, nullable=True)
-    quiet_hours_end: Mapped[Optional[time]] = mapped_column(Time, nullable=True)
+    quiet_hours_start: Mapped[time | None] = mapped_column(Time, nullable=True)
+    quiet_hours_end: Mapped[time | None] = mapped_column(Time, nullable=True)
     timezone: Mapped[str] = mapped_column(String(64), default="Europe/Moscow")
-    student_id: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    student_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
@@ -179,8 +179,8 @@ class Semester(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(32))  # "осенний", "весенний"
     academic_year_id: Mapped[int] = mapped_column(ForeignKey("academic_years.id"))
-    start_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
-    end_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    start_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     is_current: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
@@ -213,7 +213,7 @@ class LessonType(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(
-        String(64), unique=True
+        String(64), unique=True,
     )  # "лекционного", "семинарского"
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
@@ -228,7 +228,7 @@ class Department(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(128), unique=True)
-    short_name: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    short_name: Mapped[str | None] = mapped_column(String(32), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     # Relationships
@@ -243,19 +243,19 @@ class Lecturer(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     full_name: Mapped[str] = mapped_column(String(128))
-    department_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("departments.id"), nullable=True
+    department_id: Mapped[int | None] = mapped_column(
+        ForeignKey("departments.id"), nullable=True,
     )
-    email: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
-    phone: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    email: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    phone: Mapped[str | None] = mapped_column(String(32), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow,
     )
 
     # Relationships
     department: Mapped[Optional["Department"]] = relationship(
-        back_populates="lecturers"
+        back_populates="lecturers",
     )
     lessons: Mapped[list["ScheduleLesson"]] = relationship(back_populates="lecturer")
 
@@ -269,11 +269,11 @@ class Room(Base):
     __tablename__ = "classrooms"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    campus: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
-    building: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    campus: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    building: Mapped[str | None] = mapped_column(String(64), nullable=True)
     room_number: Mapped[str] = mapped_column("number", String(32))
-    capacity: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    address: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
+    capacity: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    address: Mapped[str | None] = mapped_column(String(256), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     # Backwards compatibility aliases
@@ -291,7 +291,7 @@ class Subject(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(256))
-    short_name: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    short_name: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     # Relationships
@@ -314,7 +314,7 @@ class Schedule(Base):
     form_type: Mapped[int] = mapped_column(Integer)  # 1=лекции, 2=практики, 3=смешанные
     status: Mapped[str] = mapped_column(String(32))  # "APPROVED", "DRAFT"
     is_uploaded_from_excel: Mapped[bool] = mapped_column(Boolean, default=False)
-    update_time: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    update_time: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     # Связи с справочниками
     academic_year_id: Mapped[int] = mapped_column(ForeignKey("academic_years.id"))
@@ -350,40 +350,40 @@ class ScheduleLesson(Base):
     external_id: Mapped[int] = mapped_column(Integer, unique=True)  # ID из API
 
     # Основная информация
-    group_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("groups.id"), nullable=True
+    group_id: Mapped[int | None] = mapped_column(
+        ForeignKey("groups.id"), nullable=True,
     )
-    day_name: Mapped[Optional[str]] = mapped_column(
-        String(8), nullable=True
+    day_name: Mapped[str | None] = mapped_column(
+        String(8), nullable=True,
     )  # "пн", "вт"
-    week_number: Mapped[Optional[int]] = mapped_column(
-        Integer, nullable=True
+    week_number: Mapped[int | None] = mapped_column(
+        Integer, nullable=True,
     )  # 1, 2, 3...
-    pair_time: Mapped[Optional[str]] = mapped_column(
-        String(16), nullable=True
+    pair_time: Mapped[str | None] = mapped_column(
+        String(16), nullable=True,
     )  # "9:00-10:30"
-    date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
-    start_time: Mapped[Optional[time]] = mapped_column(Time, nullable=True)
-    end_time: Mapped[Optional[time]] = mapped_column(Time, nullable=True)
+    date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    start_time: Mapped[time | None] = mapped_column(Time, nullable=True)
+    end_time: Mapped[time | None] = mapped_column(Time, nullable=True)
 
     # Связи с справочниками
     schedule_id: Mapped[int] = mapped_column(ForeignKey("schedules.id"))
     subject_id: Mapped[int] = mapped_column(ForeignKey("subjects.id"))
     lesson_type_id: Mapped[int] = mapped_column(ForeignKey("lesson_types.id"))
-    lecturer_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("lecturers.id"), nullable=True
+    lecturer_id: Mapped[int | None] = mapped_column(
+        ForeignKey("lecturers.id"), nullable=True,
     )
-    classroom_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("classrooms.id"), nullable=True
+    classroom_id: Mapped[int | None] = mapped_column(
+        ForeignKey("classrooms.id"), nullable=True,
     )
-    department_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("departments.id"), nullable=True
+    department_id: Mapped[int | None] = mapped_column(
+        ForeignKey("departments.id"), nullable=True,
     )
 
     # Дополнительная информация
-    subgroup: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)  # "241б"
-    study_group: Mapped[Optional[str]] = mapped_column(
-        String(32), nullable=True
+    subgroup: Mapped[str | None] = mapped_column(String(32), nullable=True)  # "241б"
+    study_group: Mapped[str | None] = mapped_column(
+        String(32), nullable=True,
     )  # "МПФ"
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
@@ -422,11 +422,11 @@ class ScheduleImportJob(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     source: Mapped[str] = mapped_column(String(32))
     status: Mapped[str] = mapped_column(
-        String(16), default=ScheduleImportStatus.PENDING.value
+        String(16), default=ScheduleImportStatus.PENDING.value,
     )
     started_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
@@ -438,13 +438,13 @@ class ExportRequest(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     group_id: Mapped[int] = mapped_column(ForeignKey("groups.id"))
-    from_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
-    to_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    from_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    to_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     format: Mapped[str] = mapped_column(String(8), default=ExportFormat.EXCEL.value)
     status: Mapped[str] = mapped_column(String(16), default=ExportStatus.QUEUED.value)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
-    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     user: Mapped["User"] = relationship()
     group: Mapped["Group"] = relationship()
@@ -460,13 +460,13 @@ class NotificationJob(Base):
     lesson_id: Mapped[int] = mapped_column(ForeignKey("lessons.id"))
     scheduled_for: Mapped[datetime] = mapped_column(DateTime)
     status: Mapped[str] = mapped_column(
-        String(16), default=NotificationStatus.PENDING.value
+        String(16), default=NotificationStatus.PENDING.value,
     )
     attempts: Mapped[int] = mapped_column(Integer, default=0)
-    last_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow,
     )
 
     user: Mapped["User"] = relationship()
@@ -483,7 +483,7 @@ class Settings(Base):
     value: Mapped[str] = mapped_column(String(256))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow,
     )
 
 
@@ -494,14 +494,14 @@ class APISyncLog(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     sync_type: Mapped[str] = mapped_column(
-        String(32)
+        String(32),
     )  # "schedules", "faculties", "full"
     status: Mapped[str] = mapped_column(String(16))  # "success", "error", "partial"
     records_processed: Mapped[int] = mapped_column(Integer, default=0)
     records_created: Mapped[int] = mapped_column(Integer, default=0)
     records_updated: Mapped[int] = mapped_column(Integer, default=0)
-    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    duration_seconds: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    duration_seconds: Mapped[float | None] = mapped_column(Float, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 

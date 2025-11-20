@@ -11,8 +11,8 @@ from loguru import logger
 
 from app.bot.callbacks import GradeCallback, MenuCallback
 from app.bot.keyboards import (
-    get_main_menu_keyboard,
     get_grades_keyboard,
+    get_main_menu_keyboard,
     get_subject_grades_keyboard,
 )
 from app.bot.states import GradeStates
@@ -21,7 +21,7 @@ from app.services.user_service import UserService
 
 
 async def handle_grades_main(
-    callback: types.CallbackQuery, callback_data: GradeCallback, state: FSMContext
+    callback: types.CallbackQuery, callback_data: GradeCallback, state: FSMContext,
 ) -> None:
     """Главное меню оценок."""
     await callback.answer()
@@ -79,7 +79,7 @@ async def handle_grades_main(
 
 
 async def handle_subject_selection(
-    callback: types.CallbackQuery, callback_data: GradeCallback, state: FSMContext
+    callback: types.CallbackQuery, callback_data: GradeCallback, state: FSMContext,
 ) -> None:
     """Выбор предмета для просмотра/редактирования."""
     await callback.answer()
@@ -121,7 +121,7 @@ async def handle_subject_selection(
 
 
 async def handle_add_grade(
-    callback: types.CallbackQuery, callback_data: GradeCallback, state: FSMContext
+    callback: types.CallbackQuery, callback_data: GradeCallback, state: FSMContext,
 ) -> None:
     """Добавление новой оценки."""
     await callback.answer()
@@ -140,13 +140,13 @@ async def handle_add_grade(
                     types.InlineKeyboardButton(
                         text="📝 Контрольная",
                         callback_data=GradeCallback(
-                            action="grade_type", subject=subject, data="контрольная"
+                            action="grade_type", subject=subject, data="контрольная",
                         ).pack(),
                     ),
                     types.InlineKeyboardButton(
                         text="🧪 Лабораторная",
                         callback_data=GradeCallback(
-                            action="grade_type", subject=subject, data="лабораторная"
+                            action="grade_type", subject=subject, data="лабораторная",
                         ).pack(),
                     ),
                 ],
@@ -154,13 +154,13 @@ async def handle_add_grade(
                     types.InlineKeyboardButton(
                         text="📖 Устный ответ",
                         callback_data=GradeCallback(
-                            action="grade_type", subject=subject, data="устный"
+                            action="grade_type", subject=subject, data="устный",
                         ).pack(),
                     ),
                     types.InlineKeyboardButton(
                         text="📄 Реферат",
                         callback_data=GradeCallback(
-                            action="grade_type", subject=subject, data="реферат"
+                            action="grade_type", subject=subject, data="реферат",
                         ).pack(),
                     ),
                 ],
@@ -168,13 +168,13 @@ async def handle_add_grade(
                     types.InlineKeyboardButton(
                         text="📊 Зачет",
                         callback_data=GradeCallback(
-                            action="grade_type", subject=subject, data="зачет"
+                            action="grade_type", subject=subject, data="зачет",
                         ).pack(),
                     ),
                     types.InlineKeyboardButton(
                         text="✍️ Свой вариант",
                         callback_data=GradeCallback(
-                            action="grade_type", subject=subject, data="другое"
+                            action="grade_type", subject=subject, data="другое",
                         ).pack(),
                     ),
                 ],
@@ -182,11 +182,11 @@ async def handle_add_grade(
                     types.InlineKeyboardButton(
                         text="⬅️ Назад",
                         callback_data=GradeCallback(
-                            action="view_subject", subject=subject
+                            action="view_subject", subject=subject,
                         ).pack(),
                     ),
                 ],
-            ]
+            ],
         )
 
         await callback.message.edit_text(text, reply_markup=keyboard)
@@ -200,7 +200,7 @@ async def handle_add_grade(
 
 
 async def handle_grade_type_selection(
-    callback: types.CallbackQuery, callback_data: GradeCallback, state: FSMContext
+    callback: types.CallbackQuery, callback_data: GradeCallback, state: FSMContext,
 ) -> None:
     """Выбор типа оценки."""
     await callback.answer()
@@ -220,13 +220,13 @@ async def handle_grade_type_selection(
                     types.InlineKeyboardButton(
                         text="5️⃣",
                         callback_data=GradeCallback(
-                            action="grade_value", subject=subject, data="5"
+                            action="grade_value", subject=subject, data="5",
                         ).pack(),
                     ),
                     types.InlineKeyboardButton(
                         text="4️⃣",
                         callback_data=GradeCallback(
-                            action="grade_value", subject=subject, data="4"
+                            action="grade_value", subject=subject, data="4",
                         ).pack(),
                     ),
                 ],
@@ -234,13 +234,13 @@ async def handle_grade_type_selection(
                     types.InlineKeyboardButton(
                         text="3️⃣",
                         callback_data=GradeCallback(
-                            action="grade_value", subject=subject, data="3"
+                            action="grade_value", subject=subject, data="3",
                         ).pack(),
                     ),
                     types.InlineKeyboardButton(
                         text="2️⃣",
                         callback_data=GradeCallback(
-                            action="grade_value", subject=subject, data="2"
+                            action="grade_value", subject=subject, data="2",
                         ).pack(),
                     ),
                 ],
@@ -248,11 +248,11 @@ async def handle_grade_type_selection(
                     types.InlineKeyboardButton(
                         text="⬅️ Назад",
                         callback_data=GradeCallback(
-                            action="add_grade", subject=subject
+                            action="add_grade", subject=subject,
                         ).pack(),
                     ),
                 ],
-            ]
+            ],
         )
 
         await callback.message.edit_text(text, reply_markup=keyboard)
@@ -266,7 +266,7 @@ async def handle_grade_type_selection(
 
 
 async def handle_grade_value_selection(
-    callback: types.CallbackQuery, callback_data: GradeCallback, state: FSMContext
+    callback: types.CallbackQuery, callback_data: GradeCallback, state: FSMContext,
 ) -> None:
     """Сохранение выбранной оценки."""
     await callback.answer()
@@ -304,15 +304,15 @@ async def handle_grade_value_selection(
                             types.InlineKeyboardButton(
                                 text="📚 К предмету",
                                 callback_data=GradeCallback(
-                                    action="view_subject", subject=subject
+                                    action="view_subject", subject=subject,
                                 ).pack(),
                             ),
                             types.InlineKeyboardButton(
                                 text="🏠 В меню",
                                 callback_data=MenuCallback(action="grades").pack(),
                             ),
-                        ]
-                    ]
+                        ],
+                    ],
                 ),
             )
         else:
@@ -332,7 +332,7 @@ async def handle_grade_value_selection(
 
 
 async def handle_add_attendance(
-    callback: types.CallbackQuery, callback_data: GradeCallback, state: FSMContext
+    callback: types.CallbackQuery, callback_data: GradeCallback, state: FSMContext,
 ) -> None:
     """Добавление записи о посещаемости."""
     await callback.answer()
@@ -351,13 +351,13 @@ async def handle_add_attendance(
                     types.InlineKeyboardButton(
                         text="📚 Лекция",
                         callback_data=GradeCallback(
-                            action="attendance_type", subject=subject, data="лекция"
+                            action="attendance_type", subject=subject, data="лекция",
                         ).pack(),
                     ),
                     types.InlineKeyboardButton(
                         text="🧪 Семинар",
                         callback_data=GradeCallback(
-                            action="attendance_type", subject=subject, data="семинар"
+                            action="attendance_type", subject=subject, data="семинар",
                         ).pack(),
                     ),
                 ],
@@ -365,11 +365,11 @@ async def handle_add_attendance(
                     types.InlineKeyboardButton(
                         text="⬅️ Назад",
                         callback_data=GradeCallback(
-                            action="view_subject", subject=subject
+                            action="view_subject", subject=subject,
                         ).pack(),
                     ),
                 ],
-            ]
+            ],
         )
 
         await callback.message.edit_text(text, reply_markup=keyboard)
@@ -383,7 +383,7 @@ async def handle_add_attendance(
 
 
 async def handle_attendance_type_selection(
-    callback: types.CallbackQuery, callback_data: GradeCallback, state: FSMContext
+    callback: types.CallbackQuery, callback_data: GradeCallback, state: FSMContext,
 ) -> None:
     """Выбор типа занятия для посещаемости."""
     await callback.answer()
@@ -402,13 +402,13 @@ async def handle_attendance_type_selection(
                     types.InlineKeyboardButton(
                         text="✅ Присутствовал",
                         callback_data=GradeCallback(
-                            action="attendance_status", subject=subject, data="present"
+                            action="attendance_status", subject=subject, data="present",
                         ).pack(),
                     ),
                     types.InlineKeyboardButton(
                         text="❌ Отсутствовал",
                         callback_data=GradeCallback(
-                            action="attendance_status", subject=subject, data="absent"
+                            action="attendance_status", subject=subject, data="absent",
                         ).pack(),
                     ),
                 ],
@@ -416,7 +416,7 @@ async def handle_attendance_type_selection(
                     types.InlineKeyboardButton(
                         text="🏥 По уважительной причине",
                         callback_data=GradeCallback(
-                            action="attendance_status", subject=subject, data="excused"
+                            action="attendance_status", subject=subject, data="excused",
                         ).pack(),
                     ),
                 ],
@@ -424,11 +424,11 @@ async def handle_attendance_type_selection(
                     types.InlineKeyboardButton(
                         text="⬅️ Назад",
                         callback_data=GradeCallback(
-                            action="add_attendance", subject=subject
+                            action="add_attendance", subject=subject,
                         ).pack(),
                     ),
                 ],
-            ]
+            ],
         )
 
         await callback.message.edit_text(text, reply_markup=keyboard)
@@ -442,7 +442,7 @@ async def handle_attendance_type_selection(
 
 
 async def handle_attendance_status_selection(
-    callback: types.CallbackQuery, callback_data: GradeCallback, state: FSMContext
+    callback: types.CallbackQuery, callback_data: GradeCallback, state: FSMContext,
 ) -> None:
     """Сохранение статуса посещаемости."""
     await callback.answer()
@@ -490,15 +490,15 @@ async def handle_attendance_status_selection(
                             types.InlineKeyboardButton(
                                 text="📚 К предмету",
                                 callback_data=GradeCallback(
-                                    action="view_subject", subject=subject
+                                    action="view_subject", subject=subject,
                                 ).pack(),
                             ),
                             types.InlineKeyboardButton(
                                 text="🏠 В меню",
                                 callback_data=MenuCallback(action="grades").pack(),
                             ),
-                        ]
-                    ]
+                        ],
+                    ],
                 ),
             )
         else:
@@ -528,5 +528,5 @@ async def register_grade_handlers(dp: Dispatcher) -> None:
     dp.callback_query.register(handle_add_attendance, GradeCallback.filter())
     dp.callback_query.register(handle_attendance_type_selection, GradeCallback.filter())
     dp.callback_query.register(
-        handle_attendance_status_selection, GradeCallback.filter()
+        handle_attendance_status_selection, GradeCallback.filter(),
     )

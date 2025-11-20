@@ -1,10 +1,8 @@
-"""
-Система rate limiting для защиты от спама.
-"""
+"""Система rate limiting для защиты от спама."""
 
 import time
-from typing import Dict, Optional, Tuple
 from dataclasses import dataclass
+
 from loguru import logger
 
 
@@ -25,16 +23,16 @@ class RateLimiter:
         "message": RateLimitConfig(max_requests=10, time_window=60, block_duration=300),
         "search": RateLimitConfig(max_requests=5, time_window=60, block_duration=300),
         "callback": RateLimitConfig(
-            max_requests=20, time_window=60, block_duration=300
+            max_requests=20, time_window=60, block_duration=300,
         ),
         "start": RateLimitConfig(max_requests=3, time_window=60, block_duration=300),
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         # user_id -> {action_type -> [timestamps]}
-        self._requests: Dict[int, Dict[str, list]] = {}
+        self._requests: dict[int, dict[str, list]] = {}
         # user_id -> {action_type -> block_until}
-        self._blocks: Dict[int, Dict[str, float]] = {}
+        self._blocks: dict[int, dict[str, float]] = {}
 
     def _cleanup_old_requests(self, user_id: int, action_type: str) -> None:
         """Очистка старых запросов."""
@@ -96,10 +94,9 @@ class RateLimiter:
         logger.warning(f"User {user_id} blocked for {action_type} until {block_until}")
 
     def check_rate_limit(
-        self, user_id: int, action_type: str
-    ) -> Tuple[bool, Optional[str]]:
-        """
-        Проверка rate limit.
+        self, user_id: int, action_type: str,
+    ) -> tuple[bool, str | None]:
+        """Проверка rate limit.
 
         Args:
             user_id: ID пользователя
@@ -107,6 +104,7 @@ class RateLimiter:
 
         Returns:
             (is_allowed, error_message)
+
         """
         config = self.CONFIGS.get(action_type)
         if not config:
@@ -170,11 +168,11 @@ rate_limiter = RateLimiter()
 
 
 def rate_limit(action_type: str):
-    """
-    Декоратор для rate limiting.
+    """Декоратор для rate limiting.
 
     Args:
         action_type: Тип действия для rate limiting
+
     """
 
     def decorator(func):
@@ -185,19 +183,19 @@ def rate_limit(action_type: str):
                 if hasattr(arg, "from_user") and arg.from_user:
                     user_id = arg.from_user.id
                     break
-                elif hasattr(arg, "user_id"):
+                if hasattr(arg, "user_id"):
                     user_id = arg.user_id
                     break
 
             if user_id is None:
                 logger.warning(
-                    f"Could not extract user_id for rate limiting in {func.__name__}"
+                    f"Could not extract user_id for rate limiting in {func.__name__}",
                 )
                 return await func(*args, **kwargs)
 
             # Проверяем rate limit
             is_allowed, error_message = rate_limiter.check_rate_limit(
-                user_id, action_type
+                user_id, action_type,
             )
 
             if not is_allowed:
@@ -205,15 +203,15 @@ def rate_limit(action_type: str):
                 for arg in args:
                     if hasattr(arg, "answer"):
                         await arg.answer(f"⏱️ {error_message}")
-                        return
-                    elif hasattr(arg, "edit_text"):
+                        return None
+                    if hasattr(arg, "edit_text"):
                         await arg.edit_text(f"⏱️ {error_message}")
-                        return
+                        return None
 
                 logger.warning(
-                    f"Rate limit exceeded for user {user_id}, action {action_type}"
+                    f"Rate limit exceeded for user {user_id}, action {action_type}",
                 )
-                return
+                return None
 
             return await func(*args, **kwargs)
 
@@ -223,10 +221,9 @@ def rate_limit(action_type: str):
 
 
 def check_rate_limit_manual(
-    user_id: int, action_type: str
-) -> Tuple[bool, Optional[str]]:
-    """
-    Ручная проверка rate limit.
+    user_id: int, action_type: str,
+) -> tuple[bool, str | None]:
+    """Ручная проверка rate limit.
 
     Args:
         user_id: ID пользователя
@@ -234,5 +231,6 @@ def check_rate_limit_manual(
 
     Returns:
         (is_allowed, error_message)
+
     """
     return rate_limiter.check_rate_limit(user_id, action_type)

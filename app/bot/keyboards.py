@@ -30,6 +30,7 @@ def get_main_menu_reply_keyboard() -> ReplyKeyboardMarkup:
 
     Returns:
         ReplyKeyboardMarkup: Клавиатура главного меню.
+
     """
     builder = ReplyKeyboardBuilder()
 

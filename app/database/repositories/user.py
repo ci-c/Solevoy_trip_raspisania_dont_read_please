@@ -31,6 +31,7 @@ class UserRepository(BaseRepository[User]):
 
         Returns:
             User if found, None otherwise.
+
         """
         stmt = select(User).where(User.telegram_id == telegram_id)
         result = await self._session.execute(stmt)

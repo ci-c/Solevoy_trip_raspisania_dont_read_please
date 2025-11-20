@@ -3,7 +3,9 @@
 """Middleware для глобальной обработки ошибок в боте."""
 
 import traceback
-from typing import Callable, Dict, Any, Awaitable
+from collections.abc import Awaitable, Callable
+from typing import Any
+
 from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject
 from loguru import logger
@@ -16,9 +18,9 @@ class ErrorHandlerMiddleware(BaseMiddleware):
 
     async def __call__(
         self,
-        handler: Callable[[TelegramObject, Dict[str, Any]], Awaitable[Any]],
+        handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
         event: TelegramObject,
-        data: Dict[str, Any],
+        data: dict[str, Any],
     ) -> Any:
         """Обработать событие с глобальной обработкой ошибок."""
         try:
@@ -29,7 +31,7 @@ class ErrorHandlerMiddleware(BaseMiddleware):
 
             # Записываем ошибку в монитор
             error_monitor.record_error(
-                function_name=f"handler_{handler.__name__}", error=e, context=event_info
+                function_name=f"handler_{handler.__name__}", error=e, context=event_info,
             )
 
             # Логируем ошибку с полным traceback
@@ -43,7 +45,7 @@ class ErrorHandlerMiddleware(BaseMiddleware):
             # НЕ пробрасываем ошибку дальше - бот должен продолжать работать
             return None
 
-    def _get_event_info(self, event: TelegramObject) -> Dict[str, Any]:
+    def _get_event_info(self, event: TelegramObject) -> dict[str, Any]:
         """Получить информацию о событии для контекста."""
         info = {
             "event_type": type(event).__name__,
@@ -61,7 +63,7 @@ class ErrorHandlerMiddleware(BaseMiddleware):
                     "message_text": event.message.text[:100]
                     if event.message.text
                     else None,
-                }
+                },
             )
 
         # Для callback'ов
@@ -77,7 +79,7 @@ class ErrorHandlerMiddleware(BaseMiddleware):
                     "callback_data": event.callback_query.data[:100]
                     if event.callback_query.data
                     else None,
-                }
+                },
             )
 
         return info
@@ -89,13 +91,13 @@ class ErrorHandlerMiddleware(BaseMiddleware):
             if hasattr(event, "message") and event.message:
                 await event.message.answer(
                     "❌ Произошла ошибка при обработке запроса.\n\n"
-                    "Попробуйте позже или обратитесь к администратору."
+                    "Попробуйте позже или обратитесь к администратору.",
                 )
 
             # Для callback'ов
             elif hasattr(event, "callback_query") and event.callback_query:
                 await event.callback_query.answer(
-                    "❌ Ошибка при обработке запроса", show_alert=True
+                    "❌ Ошибка при обработке запроса", show_alert=True,
                 )
 
                 # Пытаемся отредактировать сообщение
@@ -103,13 +105,13 @@ class ErrorHandlerMiddleware(BaseMiddleware):
                     try:
                         await event.callback_query.message.edit_text(
                             "❌ Произошла ошибка при обработке запроса.\n\n"
-                            "Попробуйте позже или обратитесь к администратору."
+                            "Попробуйте позже или обратитесь к администратору.",
                         )
                     except Exception:
                         # Если не можем отредактировать, отправляем новое
                         await event.callback_query.message.answer(
                             "❌ Произошла ошибка при обработке запроса.\n\n"
-                            "Попробуйте позже или обратитесь к администратору."
+                            "Попробуйте позже или обратитесь к администратору.",
                         )
 
         except Exception as user_error:

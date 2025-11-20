@@ -1,10 +1,10 @@
-"""
-Утилиты для правильной обработки ошибок.
-"""
+"""Утилиты для правильной обработки ошибок."""
 
 import traceback
-from typing import Optional, Dict, Any, Callable
+from collections.abc import Callable
 from functools import wraps
+from typing import Any
+
 from loguru import logger
 
 from app.utils.validation import ValidationError
@@ -13,31 +13,26 @@ from app.utils.validation import ValidationError
 class BotError(Exception):
     """Базовый класс для ошибок бота."""
 
-    pass
 
 
 class DatabaseError(BotError):
     """Ошибка базы данных."""
 
-    pass
 
 
 class APIError(BotError):
     """Ошибка внешнего API."""
 
-    pass
 
 
 class UserError(BotError):
     """Ошибка пользователя (неправильный ввод и т.д.)."""
 
-    pass
 
 
 class SecurityError(BotError):
     """Ошибка безопасности."""
 
-    pass
 
 
 def safe_async_execute(
@@ -45,13 +40,13 @@ def safe_async_execute(
     log_error: bool = True,
     reraise: bool = False,
 ):
-    """
-    Декоратор для безопасного выполнения асинхронных функций.
+    """Декоратор для безопасного выполнения асинхронных функций.
 
     Args:
         error_message: Сообщение об ошибке для пользователя
         log_error: Логировать ли ошибку
         reraise: Пробрасывать ли ошибку дальше
+
     """
 
     def decorator(func: Callable) -> Callable:
@@ -103,7 +98,8 @@ def handle_database_error(func: Callable) -> Callable:
             return await func(*args, **kwargs)
         except Exception as e:
             logger.error(f"Database error in {func.__name__}: {e}")
-            raise DatabaseError(f"Ошибка базы данных: {str(e)}")
+            msg = f"Ошибка базы данных: {e!s}"
+            raise DatabaseError(msg)
 
     return wrapper
 
@@ -117,45 +113,45 @@ def handle_api_error(func: Callable) -> Callable:
             return await func(*args, **kwargs)
         except Exception as e:
             logger.error(f"API error in {func.__name__}: {e}")
-            raise APIError(f"Ошибка API: {str(e)}")
+            msg = f"Ошибка API: {e!s}"
+            raise APIError(msg)
 
     return wrapper
 
 
 def format_error_for_user(error: Exception) -> str:
-    """
-    Форматирование ошибки для показа пользователю.
+    """Форматирование ошибки для показа пользователю.
 
     Args:
         error: Исключение
 
     Returns:
         Отформатированное сообщение об ошибке
+
     """
     if isinstance(error, UserError):
-        return f"❌ {str(error)}"
-    elif isinstance(error, DatabaseError):
+        return f"❌ {error!s}"
+    if isinstance(error, DatabaseError):
         return "❌ Ошибка базы данных. Попробуйте позже."
-    elif isinstance(error, APIError):
+    if isinstance(error, APIError):
         return "❌ Ошибка внешнего сервиса. Попробуйте позже."
-    elif isinstance(error, SecurityError):
+    if isinstance(error, SecurityError):
         return "❌ Ошибка безопасности. Обратитесь к администратору."
-    else:
-        return "❌ Произошла неожиданная ошибка. Попробуйте позже."
+    return "❌ Произошла неожиданная ошибка. Попробуйте позже."
 
 
 def log_error_context(
     func_name: str,
-    user_id: Optional[int] = None,
-    additional_data: Optional[Dict[str, Any]] = None,
+    user_id: int | None = None,
+    additional_data: dict[str, Any] | None = None,
 ) -> None:
-    """
-    Логирование контекста ошибки.
+    """Логирование контекста ошибки.
 
     Args:
         func_name: Название функции
         user_id: ID пользователя
         additional_data: Дополнительные данные
+
     """
     context = {
         "function": func_name,
@@ -174,14 +170,14 @@ class ErrorHandler:
     @staticmethod
     async def handle_validation_error(error: ValidationError, message) -> None:
         """Обработка ошибки валидации."""
-        await message.answer(f"❌ {str(error)}")
+        await message.answer(f"❌ {error!s}")
 
     @staticmethod
     async def handle_database_error(error: DatabaseError, message) -> None:
         """Обработка ошибки базы данных."""
         logger.error(f"Database error: {error}")
         await message.answer(
-            "❌ Ошибка базы данных. Попробуйте позже или обратитесь к администратору."
+            "❌ Ошибка базы данных. Попробуйте позже или обратитесь к администратору.",
         )
 
     @staticmethod
@@ -202,5 +198,5 @@ class ErrorHandler:
         logger.error(f"Unknown error: {error}")
         logger.error(f"Traceback: {traceback.format_exc()}")
         await message.answer(
-            "❌ Произошла неожиданная ошибка. Попробуйте позже или обратитесь к администратору."
+            "❌ Произошла неожиданная ошибка. Попробуйте позже или обратитесь к администратору.",
         )

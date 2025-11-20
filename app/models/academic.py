@@ -2,6 +2,7 @@
 
 from datetime import date, datetime
 from enum import Enum
+
 from pydantic import Field
 
 from .base import BaseModel
@@ -57,7 +58,7 @@ class Grade(BaseModel):
     grade_type: GradeType = Field(GradeType.CURRENT, description="Тип оценки")
     control_point: str | None = Field(None, description="Контрольная точка")
     date_received: date = Field(
-        default_factory=date.today, description="Дата получения"
+        default_factory=date.today, description="Дата получения",
     )
     teacher_id: int | None = Field(None, description="ID преподавателя")
     notes: str | None = Field(None, description="Примечания")
@@ -72,7 +73,7 @@ class Attendance(BaseModel):
     is_excused: bool = Field(False, description="Уважительная причина")
     excuse_reason: str | None = Field(None, description="Причина отсутствия")
     excuse_document: str | None = Field(
-        None, description="Документ об уважительной причине"
+        None, description="Документ об уважительной причине",
     )
     date_marked: date = Field(default_factory=date.today, description="Дата отметки")
 

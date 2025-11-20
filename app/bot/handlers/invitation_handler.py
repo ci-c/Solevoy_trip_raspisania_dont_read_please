@@ -9,20 +9,20 @@ from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from loguru import logger
 
-from app.bot.callbacks import MenuCallback, InvitationCallback
+from app.bot.callbacks import InvitationCallback, MenuCallback
 from app.bot.keyboards import (
-    get_main_menu_keyboard,
-    get_invitation_keyboard,
     get_admin_invitation_keyboard,
+    get_invitation_keyboard,
+    get_main_menu_keyboard,
 )
 from app.bot.states import InvitationStates
+from app.models.user import AccessLevel
 from app.services.invitation_service import InvitationService
 from app.services.user_service import UserService
-from app.models.user import AccessLevel
 
 
 async def handle_invitation_main(
-    callback: types.CallbackQuery, callback_data: InvitationCallback, state: FSMContext
+    callback: types.CallbackQuery, callback_data: InvitationCallback, state: FSMContext,
 ) -> None:
     """Главное меню системы инвайтов."""
     await callback.answer()
@@ -75,7 +75,7 @@ async def handle_invitation_main(
 
 
 async def handle_create_invitation(
-    callback: types.CallbackQuery, callback_data: InvitationCallback, state: FSMContext
+    callback: types.CallbackQuery, callback_data: InvitationCallback, state: FSMContext,
 ) -> None:
     """Создание нового инвайта."""
     await callback.answer()
@@ -109,7 +109,12 @@ async def handle_create_invitation(
         text += (
             f"🔢 **Максимум использований:** {invitation.max_uses or 'Неограниченно'}\n"
         )
-        text += f"⏰ **Действует до:** {invitation.expires_at.strftime('%d.%m.%Y %H:%M') if invitation.expires_at else 'Бессрочно'}\n\n"
+        expires_text = (
+            invitation.expires_at.strftime('%d.%m.%Y %H:%M')
+            if invitation.expires_at
+            else 'Бессрочно'
+        )
+        text += f"⏰ **Действует до:** {expires_text}\n\n"
         text += "Поделитесь этим кодом с пользователями для предоставления доступа."
 
         await callback.message.edit_text(
@@ -132,7 +137,7 @@ async def handle_create_invitation(
                             callback_data=MenuCallback(action="home").pack(),
                         ),
                     ],
-                ]
+                ],
             ),
         )
 
@@ -145,7 +150,7 @@ async def handle_create_invitation(
 
 
 async def handle_list_invitations(
-    callback: types.CallbackQuery, callback_data: InvitationCallback, state: FSMContext
+    callback: types.CallbackQuery, callback_data: InvitationCallback, state: FSMContext,
 ) -> None:
     """Список инвайтов пользователя."""
     await callback.answer()
@@ -201,7 +206,7 @@ async def handle_list_invitations(
                             callback_data=InvitationCallback(action="main").pack(),
                         ),
                     ],
-                ]
+                ],
             ),
         )
 
@@ -214,7 +219,7 @@ async def handle_list_invitations(
 
 
 async def handle_use_invitation(
-    callback: types.CallbackQuery, callback_data: InvitationCallback, state: FSMContext
+    callback: types.CallbackQuery, callback_data: InvitationCallback, state: FSMContext,
 ) -> None:
     """Использование инвайта."""
     await callback.answer()
@@ -235,8 +240,8 @@ async def handle_use_invitation(
                             text="❌ Отмена",
                             callback_data=InvitationCallback(action="main").pack(),
                         ),
-                    ]
-                ]
+                    ],
+                ],
             ),
         )
 
@@ -316,5 +321,5 @@ async def register_invitation_handlers(dp: Dispatcher) -> None:
 
     # Обработка ввода кода инвайта
     dp.message.register(
-        process_invitation_code, StateFilter(InvitationStates.entering_code)
+        process_invitation_code, StateFilter(InvitationStates.entering_code),
     )

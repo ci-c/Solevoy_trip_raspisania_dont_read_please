@@ -1,33 +1,31 @@
-"""
-Модели данных для СЗГМУ Schedule Bot.
-"""
+"""Модели данных для СЗГМУ Schedule Bot."""
 
+from .academic import Attendance, Grade, Homework
 from .base import BaseModel
-from .user import User, StudentProfile, Subscription
+from .education import Room, Speciality, StudyGroup, Subject, Teacher
 from .invitation import Invitation, InvitationUsage
-from .education import Speciality, StudyGroup, Subject, Teacher, Room
-from .schedule import Schedule, Lesson
-from .academic import Grade, Attendance, Homework
-from .system import Setting, ActivityLog, SearchCache
+from .schedule import Lesson, Schedule
+from .system import ActivityLog, SearchCache, Setting
+from .user import StudentProfile, Subscription, User
 
 __all__ = [
+    "ActivityLog",
+    "Attendance",
     "BaseModel",
-    "User",
-    "StudentProfile",
-    "Subscription",
+    "Grade",
+    "Homework",
     "Invitation",
     "InvitationUsage",
-    "Speciality",
-    "StudyGroup",
-    "Subject",
-    "Teacher",
+    "Lesson",
     "Room",
     "Schedule",
-    "Lesson",
-    "Grade",
-    "Attendance",
-    "Homework",
-    "Setting",
-    "ActivityLog",
     "SearchCache",
+    "Setting",
+    "Speciality",
+    "StudentProfile",
+    "StudyGroup",
+    "Subject",
+    "Subscription",
+    "Teacher",
+    "User",
 ]

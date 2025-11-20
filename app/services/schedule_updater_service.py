@@ -1,37 +1,35 @@
-"""
-Сервис автоматического обновления расписаний из внешних источников.
-"""
+"""Сервис автоматического обновления расписаний из внешних источников."""
 
-from datetime import datetime
-from typing import Dict, Any
+from datetime import datetime, timezone
+from typing import Any
+
 from loguru import logger
 
-from app.services.schedule_service import ScheduleService
-from app.services.group_service import GroupService
 from app.schedule.group_search import GroupSearchService
 from app.schedule.semester_detector import SemesterDetector
+from app.services.group_service import GroupService
+from app.services.schedule_service import ScheduleService
 
 
 class ScheduleUpdaterService:
     """Сервис для автоматического обновления расписаний в БД."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         # self.db removed - using get_session()
-        pass
         self.schedule_service = ScheduleService()
         self.group_service = GroupService()
         self.group_search_service = GroupSearchService()
         self.semester_detector = SemesterDetector()
 
-    async def update_all_schedules(self, force: bool = False) -> Dict[str, Any] | None:
-        """
-        Обновить расписания всех активных групп.
+    async def update_all_schedules(self, force: bool = False) -> dict[str, Any] | None:
+        """Обновить расписания всех активных групп.
 
         Args:
             force: Принудительное обновление даже если данные свежие
 
         Returns:
             Статистика обновления
+
         """
         logger.info("Starting schedule update process")
 
@@ -57,14 +55,14 @@ class ScheduleUpdaterService:
             }
 
     async def update_group_schedule(self, group_id: int) -> bool:
-        """
-        Обновить расписание конкретной группы.
+        """Обновить расписание конкретной группы.
 
         Args:
             group_id: ID группы для обновления
 
         Returns:
             True если обновление успешно
+
         """
         logger.info(f"Updating schedule for group {group_id}")
 
@@ -77,14 +75,14 @@ class ScheduleUpdaterService:
             return False
 
     async def cleanup_old_schedules(self, days_old: int = 30) -> int:
-        """
-        Удалить устаревшие расписания.
+        """Удалить устаревшие расписания.
 
         Args:
             days_old: Возраст расписаний в днях
 
         Returns:
             Количество удаленных записей
+
         """
         logger.info(f"Cleaning up schedules older than {days_old} days")
 
@@ -96,12 +94,12 @@ class ScheduleUpdaterService:
             logger.error(f"Error cleaning up schedules: {e}")
             return 0
 
-    async def get_update_statistics(self) -> Dict[str, Any] | None:
+    async def get_update_statistics(self) -> dict[str, Any] | None:
         """Получить статистику обновлений."""
         try:
             # TODO: Реализовать через SQLAlchemy ORM
             return {
-                "last_update": datetime.now().isoformat(),
+                "last_update": datetime.now(tz=timezone.utc).isoformat(),
                 "total_groups": 0,
                 "active_schedules": 0,
                 "pending_updates": 0,

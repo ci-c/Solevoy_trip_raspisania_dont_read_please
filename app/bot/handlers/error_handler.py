@@ -1,16 +1,14 @@
-"""
-Обработчик ошибок с уровнями доступа.
-"""
+"""Обработчик ошибок с уровнями доступа."""
 
 from aiogram import Dispatcher, types
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from loguru import logger
 
-from ...services.user_service import UserService
-from ...utils.logger import get_error_details_for_user, log_security_event
-from ...models.user import AccessLevel
-from ..keyboards import get_error_keyboard
+from app.bot.keyboards import get_error_keyboard
+from app.models.user import AccessLevel
+from app.services.user_service import UserService
+from app.utils.logger import get_error_details_for_user, log_security_event
 
 
 async def global_error_handler(event: types.ErrorEvent, state: FSMContext) -> None:
@@ -31,7 +29,7 @@ async def global_error_handler(event: types.ErrorEvent, state: FSMContext) -> No
 
     # Логируем ошибку
     logger.error(
-        f"Global error for user {user_id}: {type(exception).__name__}: {exception}"
+        f"Global error for user {user_id}: {type(exception).__name__}: {exception}",
     )
 
     if not chat_id:
@@ -93,13 +91,16 @@ async def global_error_handler(event: types.ErrorEvent, state: FSMContext) -> No
             bot = event.bot
             await bot.send_message(
                 chat_id=chat_id,
-                text="❌ Произошла критическая ошибка. Перезапустите бота командой /start",
+                text=(
+                    "❌ Произошла критическая ошибка. "
+                    "Перезапустите бота командой /start"
+                ),
             )
         except Exception:
             logger.critical("Could not send any error message to user")
 
 
-async def handle_timeout_error(message: types.Message, error: Exception):
+async def handle_timeout_error(message: types.Message, error: Exception) -> None:
     """Обработка ошибок тайм-аута."""
     logger.warning(f"Timeout error for user {message.from_user.id}: {error}")
 
@@ -114,7 +115,7 @@ async def handle_timeout_error(message: types.Message, error: Exception):
     )
 
 
-async def handle_api_error(message: types.Message, error: Exception):
+async def handle_api_error(message: types.Message, error: Exception) -> None:
     """Обработка ошибок API."""
     logger.error(f"API error for user {message.from_user.id}: {error}")
 
@@ -130,7 +131,7 @@ async def handle_api_error(message: types.Message, error: Exception):
     )
 
 
-async def handle_database_error(message: types.Message, error: Exception):
+async def handle_database_error(message: types.Message, error: Exception) -> None:
     """Обработка ошибок базы данных."""
     logger.error(f"Database error for user {message.from_user.id}: {error}")
 
@@ -142,6 +143,6 @@ async def handle_database_error(message: types.Message, error: Exception):
     )
 
 
-async def register_error_handler(dp: Dispatcher):
+async def register_error_handler(dp: Dispatcher) -> None:
     """Регистрация обработчика ошибок."""
     dp.error.register(global_error_handler, StateFilter("*"))

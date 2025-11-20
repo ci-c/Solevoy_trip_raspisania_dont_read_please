@@ -1,9 +1,8 @@
-"""
-Упрощенный обработчик выбора группы без поиска расписаний.
+"""Упрощенный обработчик выбора группы без поиска расписаний.
 Группа выбирается один раз, расписание берется из БД.
 """
 
-from typing import Dict
+
 from aiogram import Dispatcher, types
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
@@ -11,17 +10,17 @@ from loguru import logger
 
 from app.bot.callbacks import GroupSearchCallback
 from app.bot.keyboards import (
-    get_group_selection_keyboard,
     get_group_confirmation_keyboard,
+    get_group_selection_keyboard,
     get_main_menu_keyboard,
 )
 from app.bot.states import GroupSearchStates
 from app.bot.utils import validate_group_number
-from app.services.user_service import UserService
 from app.services.group_service import GroupService
+from app.services.user_service import UserService
 
 
-def detect_group_info(group_number: str) -> Dict[str, str]:
+def detect_group_info(group_number: str) -> dict[str, str]:
     """Автоматическое определение информации о группе по номеру."""
     # Простая логика определения факультета по номеру
     if group_number.startswith(("1", "2")):
@@ -48,7 +47,7 @@ def detect_group_info(group_number: str) -> Dict[str, str]:
 
 
 async def handle_group_selection(
-    callback: types.CallbackQuery, callback_data: GroupSearchCallback, state: FSMContext
+    callback: types.CallbackQuery, callback_data: GroupSearchCallback, state: FSMContext,
 ) -> None:
     """Обработчик выбора группы."""
     await callback.answer()
@@ -78,7 +77,7 @@ async def handle_group_selection(
             group_id = callback_data.group_id
             if group_id:
                 await confirm_group_selection(
-                    callback.message, int(group_id), user_id, state
+                    callback.message, int(group_id), user_id, state,
                 )
             else:
                 await callback.message.edit_text(
@@ -121,7 +120,7 @@ async def process_manual_group_input(message: types.Message, state: FSMContext) 
         # Ищем или создаем группу в БД
         group_service = GroupService()
         group_info = await group_service.find_or_create_group(
-            {"number": normalized_group}
+            {"number": normalized_group},
         )
 
         if group_info:
@@ -162,7 +161,7 @@ async def process_manual_group_input(message: types.Message, state: FSMContext) 
 
 
 async def show_faculty_groups(
-    message: types.Message, faculty: str, state: FSMContext
+    message: types.Message, faculty: str, state: FSMContext,
 ) -> None:
     """Показать группы выбранного факультета."""
     try:
@@ -202,12 +201,12 @@ async def show_faculty_groups(
             if text != current_text:
                 try:
                     await message.edit_text(
-                        text, reply_markup=get_group_selection_keyboard()
+                        text, reply_markup=get_group_selection_keyboard(),
                     )
                 except Exception as edit_error:
                     logger.error(f"Could not edit message: {edit_error}")
                     await message.answer(
-                        text, reply_markup=get_group_selection_keyboard()
+                        text, reply_markup=get_group_selection_keyboard(),
                     )
             else:
                 # Сообщение не изменилось, ничего не делаем
@@ -230,8 +229,8 @@ async def show_faculty_groups(
 
 async def show_group_confirmation(
     message: types.Message,
-    group_info: Dict[str, str],
-    detected_info: Dict[str, str],
+    group_info: dict[str, str],
+    detected_info: dict[str, str],
     state: FSMContext,
 ) -> None:
     """Показать подтверждение выбора группы."""
@@ -287,7 +286,7 @@ async def show_group_confirmation(
 
 
 async def confirm_group_selection(
-    message: types.Message, group_id: int, user_id: int, state: FSMContext
+    message: types.Message, group_id: int, user_id: int, state: FSMContext,
 ) -> None:
     """Подтвердить выбор группы и создать/обновить профиль пользователя."""
     try:
@@ -347,10 +346,10 @@ async def confirm_group_selection(
         )
 
 
-async def register_group_selection_handlers(dp: Dispatcher):
+async def register_group_selection_handlers(dp: Dispatcher) -> None:
     """Регистрация обработчиков выбора группы."""
     dp.callback_query.register(handle_group_selection, GroupSearchCallback.filter())
 
     dp.message.register(
-        process_manual_group_input, StateFilter(GroupSearchStates.entering_group_number)
+        process_manual_group_input, StateFilter(GroupSearchStates.entering_group_number),
     )

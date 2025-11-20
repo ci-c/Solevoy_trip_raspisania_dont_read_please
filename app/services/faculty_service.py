@@ -1,29 +1,26 @@
-"""
-Сервис для работы с факультетами через реальный SZGMU API.
-"""
+"""Сервис для работы с факультетами через реальный SZGMU API."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import httpx
 from loguru import logger
 
-from app.database.session import get_session
 from app.database.models import Faculty
+from app.database.session import get_session
 
 
 class FacultyService:
     """Сервис для работы с факультетами."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize Faculty Service."""
-        pass
 
-    async def load_faculties_from_api(self) -> List[Dict[str, Any]]:
+    async def load_faculties_from_api(self) -> list[dict[str, Any]]:
         """Загрузить факультеты из реального SZGMU API."""
         try:
 
             url = "https://frsview.szgmu.ru/api/xlsxSchedule/findAll/0"
-            payload: Dict[str, Any] = {}
+            payload: dict[str, Any] = {}
             headers = {"Content-Type": "application/json"}
 
             async with httpx.AsyncClient(verify=False, timeout=15.0) as client:
@@ -56,15 +53,14 @@ class FacultyService:
                         "name": faculty_name,
                         "short_name": self._generate_short_name(faculty_name),
                         "description": f"Факультет {faculty_name}",
-                    }
+                    },
                 )
 
             if faculties_data:
                 logger.info(f"Extracted {len(faculties_data)} faculties from SZGMU API")
                 return faculties_data
-            else:
-                logger.warning("No faculties extracted from API")
-                return []
+            logger.warning("No faculties extracted from API")
+            return []
 
         except httpx.HTTPStatusError as e:
             logger.error(
@@ -86,25 +82,24 @@ class FacultyService:
         # Маппинг специальностей на факультеты
         if "лечебное дело" in speciality.lower():
             return "Лечебный факультет"
-        elif "педиатрия" in speciality.lower():
+        if "педиатрия" in speciality.lower():
             return "Педиатрический факультет"
-        elif "медико-профилактическое дело" in speciality.lower():
+        if "медико-профилактическое дело" in speciality.lower():
             return "Медико-профилактический факультет"
-        elif "стоматология" in speciality.lower():
+        if "стоматология" in speciality.lower():
             return "Стоматологический факультет"
-        elif "фармация" in speciality.lower():
+        if "фармация" in speciality.lower():
             return "Фармацевтический факультет"
-        elif "сестринское дело" in speciality.lower():
+        if "сестринское дело" in speciality.lower():
             return "Факультет сестринского дела"
-        elif "медицинская кибернетика" in speciality.lower():
+        if "медицинская кибернетика" in speciality.lower():
             return "Факультет медицинской кибернетики"
-        elif "управление сестринской деятельностью" in speciality.lower():
+        if "управление сестринской деятельностью" in speciality.lower():
             return "Факультет управления сестринской деятельностью"
-        else:
-            # Если не удалось определить, возвращаем общее название
-            return "Неизвестный факультет"
+        # Если не удалось определить, возвращаем общее название
+        return "Неизвестный факультет"
 
-    async def save_faculties_to_db(self, faculties_data: List[Dict[str, Any]]) -> bool:
+    async def save_faculties_to_db(self, faculties_data: list[dict[str, Any]]) -> bool:
         """Сохранить факультеты в базу данных."""
         try:
             async for session in get_session():
@@ -113,7 +108,7 @@ class FacultyService:
                     faculty = Faculty(
                         name=faculty_data.get("name", ""),
                         short_name=self._generate_short_name(
-                            faculty_data.get("name", "")
+                            faculty_data.get("name", ""),
                         ),
                         description=f"Факультет {faculty_data.get('name', '')}",
                     )
@@ -133,20 +128,19 @@ class FacultyService:
         # Простая логика для сокращения названий
         if "лечебный" in full_name.lower():
             return "ЛФ"
-        elif "педиатрический" in full_name.lower():
+        if "педиатрический" in full_name.lower():
             return "ПФ"
-        elif "медико-профилактический" in full_name.lower():
+        if "медико-профилактический" in full_name.lower():
             return "МПФ"
-        elif "стоматологический" in full_name.lower():
+        if "стоматологический" in full_name.lower():
             return "СФ"
-        elif "фармацевтический" in full_name.lower():
+        if "фармацевтический" in full_name.lower():
             return "ФФ"
-        else:
-            # Берем первые буквы слов
-            words = full_name.split()
-            return "".join([word[0].upper() for word in words[:2]])
+        # Берем первые буквы слов
+        words = full_name.split()
+        return "".join([word[0].upper() for word in words[:2]])
 
-    async def get_faculties_from_db(self) -> List[Dict[str, Any]]:
+    async def get_faculties_from_db(self) -> list[dict[str, Any]]:
         """Получить факультеты из базы данных."""
         try:
             from sqlalchemy import select
@@ -162,7 +156,7 @@ class FacultyService:
                             "name": faculty.name,
                             "short_name": faculty.short_name,
                             "description": faculty.description,
-                        }
+                        },
                     )
 
                 return faculties
@@ -189,14 +183,14 @@ class FacultyService:
             logger.error(f"Error syncing faculties: {e}")
             return False
 
-    async def get_faculty_names(self) -> List[str] | None:
+    async def get_faculty_names(self) -> list[str] | None:
         """Получить только названия факультетов."""
         try:
             from sqlalchemy import select
 
             async for session in get_session():
                 result = await session.execute(
-                    select(Faculty.name).order_by(Faculty.name)
+                    select(Faculty.name).order_by(Faculty.name),
                 )
                 return [row[0] for row in result.fetchall()]
         except Exception as e:
@@ -204,14 +198,14 @@ class FacultyService:
             logger.error(f"Traceback: {e.__traceback__}")
             return None
 
-    async def get_faculty_by_name(self, name: str) -> Optional[Dict[str, Any]]:
+    async def get_faculty_by_name(self, name: str) -> dict[str, Any] | None:
         """Получить факультет по названию."""
         try:
             from sqlalchemy import select
 
             async for session in get_session():
                 result = await session.execute(
-                    select(Faculty).filter(Faculty.name == name)
+                    select(Faculty).filter(Faculty.name == name),
                 )
                 faculty = result.scalar_one_or_none()
 
@@ -229,7 +223,7 @@ class FacultyService:
             logger.error(f"Traceback: {e.__traceback__}")
         return None
 
-    async def get_all_faculties(self) -> List[Faculty]:
+    async def get_all_faculties(self) -> list[Faculty]:
         """Получить все факультеты (для тестов и общего использования)."""
         try:
             from sqlalchemy import select

@@ -1,16 +1,14 @@
-"""
-Модуль для работы с дисклеймерами и соглашениями.
-"""
+"""Модуль для работы с дисклеймерами и соглашениями."""
 
-from datetime import datetime
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 
 class DisclaimerManager:
     """Менеджер дисклеймеров и пользовательских соглашений."""
 
-    def __init__(self, storage_path: Path):
+    def __init__(self, storage_path: Path) -> None:
         self.storage_path = Path(storage_path)
         self.storage_path.mkdir(parents=True, exist_ok=True)
         self.agreements_file = self.storage_path / "user_agreements.json"
@@ -20,7 +18,7 @@ class DisclaimerManager:
         """Загрузить соглашения пользователей."""
         if self.agreements_file.exists():
             try:
-                with open(self.agreements_file, "r", encoding="utf-8") as f:
+                with open(self.agreements_file, encoding="utf-8") as f:
                     self.agreements = json.load(f)
             except Exception:
                 self.agreements = {}
@@ -45,7 +43,7 @@ class DisclaimerManager:
             return False
 
         return user_agreement.get("version") == version and user_agreement.get(
-            "agreed", False
+            "agreed", False,
         )
 
     def record_user_agreement(self, user_id: str, version: str = "1.0") -> None:
@@ -53,7 +51,7 @@ class DisclaimerManager:
         self.agreements[user_id] = {
             "agreed": True,
             "version": version,
-            "agreed_at": datetime.now().isoformat(),
+            "agreed_at": datetime.now(tz=timezone.utc).isoformat(),
         }
         self._save_agreements()
 
@@ -65,7 +63,7 @@ class DisclaimerManager:
 Данные получены из публичных источников СЗГМУ.
 При важных решениях проверяйте информацию в деканате.
 
-📚 **О регламентах**  
+📚 **О регламентах**
 Информация актуальна на момент добавления.
 Официальные изменения отслеживайте на сайте университета.
 

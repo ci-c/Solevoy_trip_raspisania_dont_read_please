@@ -1,20 +1,18 @@
-"""
-Упрощенный обработчик главного меню без поиска расписаний.
-"""
+"""Упрощенный обработчик главного меню без поиска расписаний."""
 
-from typing import List, Optional
+
 from aiogram import Dispatcher, types
 from aiogram.fsm.context import FSMContext
 from loguru import logger
 
 from app.bot.callbacks import MenuCallback
-from app.bot.keyboards import get_main_menu_keyboard, get_group_selection_keyboard
-from app.services.user_service import UserService
+from app.bot.keyboards import get_group_selection_keyboard, get_main_menu_keyboard
 from app.services.schedule_service import ScheduleService
+from app.services.user_service import UserService
 
 
 async def handle_menu_action(
-    callback: types.CallbackQuery, callback_data: MenuCallback, state: FSMContext
+    callback: types.CallbackQuery, callback_data: MenuCallback, state: FSMContext,
 ) -> None:
     """Обработчик действий главного меню."""
     await callback.answer()
@@ -72,7 +70,7 @@ async def handle_menu_action(
 
 
 async def show_main_menu(
-    message: types.Message, user_profile: Optional[dict] = None
+    message: types.Message, user_profile: dict | None = None,
 ) -> None:
     """Показать главное меню."""
     if user_profile:
@@ -135,7 +133,7 @@ async def show_group_selection(message: types.Message, state: FSMContext) -> Non
 
 
 async def show_user_schedule(
-    message: types.Message, user_profile: dict, state: FSMContext
+    message: types.Message, user_profile: dict, state: FSMContext,
 ) -> None:
     """Показать расписание пользователя из БД."""
     try:
@@ -150,7 +148,7 @@ async def show_user_schedule(
         week_end = week_start + timedelta(days=6)
 
         schedule = await schedule_service.get_user_schedule(
-            user_id, week_start, week_end
+            user_id, week_start, week_end,
         )
 
         if schedule:
@@ -165,11 +163,14 @@ async def show_user_schedule(
             )
 
         # Добавляем дисклеймер
-        disclaimer = "⚠️ Информация может быть неактуальной. Уточняйте расписание в официальных источниках."
+        disclaimer = (
+            "⚠️ Информация может быть неактуальной. "
+            "Уточняйте расписание в официальных источниках."
+        )
         full_text = f"{schedule_text}\n\n{disclaimer}"
 
         await message.edit_text(
-            full_text, reply_markup=get_main_menu_keyboard(user_profile)
+            full_text, reply_markup=get_main_menu_keyboard(user_profile),
         )
 
     except Exception as e:
@@ -182,7 +183,7 @@ async def show_user_schedule(
 
 
 async def handle_export_schedule(
-    message: types.Message, user_profile: dict, state: FSMContext
+    message: types.Message, user_profile: dict, state: FSMContext,
 ) -> None:
     """Обработка экспорта расписания."""
     await message.edit_text(
@@ -198,7 +199,7 @@ async def handle_export_schedule(
 
 
 async def show_settings_menu(
-    message: types.Message, user_profile: Optional[dict]
+    message: types.Message, user_profile: dict | None,
 ) -> None:
     """Показать меню настроек."""
     if user_profile:
@@ -215,7 +216,7 @@ async def show_settings_menu(
     await message.edit_text(text, reply_markup=get_main_menu_keyboard(user_profile))
 
 
-def format_user_schedule(schedule: List[dict], group_name: str) -> str:
+def format_user_schedule(schedule: list[dict], group_name: str) -> str:
     """Форматировать расписание пользователя."""
     if not schedule:
         return f"📅 **Расписание группы {group_name}**\n\nНет занятий на эту неделю."
@@ -256,9 +257,14 @@ def format_user_schedule(schedule: List[dict], group_name: str) -> str:
                 if lesson.get("building"):
                     room_info += f" ({lesson['building']})"
 
+            teacher_name = lesson.get(
+                'teacher_name', 'Преподаватель не указан'
+            )
             text += (
-                f"{lesson['lesson_number']}.{time_info} **{lesson['subject_name']}**\n"
-                f"   {lesson.get('lesson_type', 'Занятие')} • {lesson.get('teacher_name', 'Преподаватель не указан')}{room_info}\n"
+                f"{lesson['lesson_number']}.{time_info} "
+                f"**{lesson['subject_name']}**\n"
+                f"   {lesson.get('lesson_type', 'Занятие')} • "
+                f"{teacher_name}{room_info}\n"
             )
 
         text += "\n"
@@ -266,6 +272,6 @@ def format_user_schedule(schedule: List[dict], group_name: str) -> str:
     return text.strip()
 
 
-async def register_simplified_menu_handlers(dp: Dispatcher):
+async def register_simplified_menu_handlers(dp: Dispatcher) -> None:
     """Регистрация обработчиков упрощенного меню."""
     dp.callback_query.register(handle_menu_action, MenuCallback.filter())

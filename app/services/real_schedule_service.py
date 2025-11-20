@@ -1,7 +1,7 @@
 """Реальный сервис для работы с расписанием через SZGMU API."""
 
-from datetime import datetime
-from typing import Any, Dict, List, Optional
+from datetime import datetime, timezone
+from typing import Any
 
 import httpx
 from loguru import logger
@@ -16,7 +16,7 @@ class RealScheduleService:
 
     def __init__(self) -> None:
         self.api_base_url = get_api_base_url()
-        self._client: Optional[httpx.AsyncClient] = None
+        self._client: httpx.AsyncClient | None = None
 
     async def __aenter__(self) -> "RealScheduleService":
         """Инициализирует HTTP‑клиент при входе в async‑контекст."""
@@ -37,10 +37,11 @@ class RealScheduleService:
 
     def _require_client(self) -> httpx.AsyncClient:
         if not self._client:
-            raise RuntimeError("Service not initialized. Use async with RealScheduleService.")
+            msg = "Service not initialized. Use async with RealScheduleService."
+            raise RuntimeError(msg)
         return self._client
 
-    async def search_groups(self, query: str) -> List[Dict[str, Any]]:
+    async def search_groups(self, query: str) -> list[dict[str, Any]]:
         """Поиск групп через API."""
         client = self._require_client()
         try:
@@ -67,8 +68,8 @@ class RealScheduleService:
         return []
 
     async def get_group_schedule(
-        self, group_id: str, week: int = None
-    ) -> List[Dict[str, Any]]:
+        self, group_id: str, week: int | None = None,
+    ) -> list[dict[str, Any]]:
         """Получить расписание группы."""
         client = self._require_client()
         try:
@@ -97,8 +98,8 @@ class RealScheduleService:
         return []
 
     async def get_teacher_schedule(
-        self, teacher_id: str, week: int = None
-    ) -> List[Dict[str, Any]]:
+        self, teacher_id: str, week: int | None = None,
+    ) -> list[dict[str, Any]]:
         """Получить расписание преподавателя."""
         client = self._require_client()
         try:
@@ -127,8 +128,8 @@ class RealScheduleService:
         return []
 
     async def get_room_schedule(
-        self, room_id: str, week: int = None
-    ) -> List[Dict[str, Any]]:
+        self, room_id: str, week: int | None = None,
+    ) -> list[dict[str, Any]]:
         """Получить расписание аудитории."""
         client = self._require_client()
         try:
@@ -157,7 +158,7 @@ class RealScheduleService:
         return []
 
     async def save_schedule_to_db(
-        self, group_id: str, schedule_data: List[Dict[str, Any]]
+        self, group_id: str, schedule_data: list[dict[str, Any]],
     ) -> bool:
         """Сохранить расписание в базу данных."""
         try:
@@ -187,7 +188,7 @@ class RealScheduleService:
                         day_of_week=lesson_data.get("day", 1),
                         week_number=lesson_data.get("week", 1),
                         lesson_type=lesson_data.get("type", "lecture"),
-                        date=lesson_data.get("date", datetime.now().date()),
+                        date=lesson_data.get("date", datetime.now(tz=timezone.utc).date()),
                     )
                     session.add(schedule)
 
@@ -198,8 +199,8 @@ class RealScheduleService:
             return False
 
     async def get_schedule_from_db(
-        self, group_id: str, week: int = None
-    ) -> List[Dict[str, Any]]:
+        self, group_id: str, week: int | None = None,
+    ) -> list[dict[str, Any]]:
         """Получить расписание из базы данных."""
         try:
             async for session in get_session():
@@ -225,7 +226,7 @@ class RealScheduleService:
                             "date": schedule.date.isoformat()
                             if schedule.date
                             else None,
-                        }
+                        },
                     )
 
                 return results
@@ -246,7 +247,7 @@ class RealScheduleService:
                     success = await service.save_schedule_to_db(group_id, api_schedule)
                     if success:
                         logger.info(
-                            f"Successfully synced schedule for group {group_id}"
+                            f"Successfully synced schedule for group {group_id}",
                         )
                         return True
 
@@ -255,7 +256,7 @@ class RealScheduleService:
             logger.error(f"Error syncing schedule for group {group_id}: {e}")
             return False
 
-    def format_schedule_for_display(self, schedule_data: List[Dict[str, Any]]) -> str:
+    def format_schedule_for_display(self, schedule_data: list[dict[str, Any]]) -> str:
         """Форматировать расписание для отображения в боте."""
         if not schedule_data:
             return "📅 Расписание не найдено."

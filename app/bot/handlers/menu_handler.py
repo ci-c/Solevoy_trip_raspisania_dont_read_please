@@ -1,20 +1,18 @@
-"""
-Обработчик главного меню.
-"""
+"""Обработчик главного меню."""
 
 from aiogram import Dispatcher, types
 from aiogram.fsm.context import FSMContext
 from loguru import logger
 
 from app.bot.callbacks import MenuCallback
-from app.bot.keyboards import get_main_menu_keyboard, get_group_search_keyboard
+from app.bot.keyboards import get_group_search_keyboard, get_main_menu_keyboard
 from app.bot.states import GroupSearchStates
 from app.services.user_service import UserService
 from app.utils.logger import log_user_action
 
 
 async def handle_menu(
-    callback: types.CallbackQuery, callback_data: MenuCallback, state: FSMContext
+    callback: types.CallbackQuery, callback_data: MenuCallback, state: FSMContext,
 ) -> None:
     """Обработчик главного меню."""
     await callback.answer()
@@ -146,6 +144,6 @@ async def handle_menu(
         )
 
 
-async def register_menu_handlers(dp: Dispatcher):
+async def register_menu_handlers(dp: Dispatcher) -> None:
     """Регистрация обработчиков меню."""
     dp.callback_query.register(handle_menu, MenuCallback.filter())

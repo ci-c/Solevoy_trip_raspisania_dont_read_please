@@ -187,12 +187,12 @@ async def register_main_menu_handlers(dp) -> None:
     dp.message.register(handle_schedule_command, lambda m: m.text == "📅 Расписание")
     dp.message.register(handle_grades_command, lambda m: m.text == "📊 Оценки")
     dp.message.register(
-        handle_attendance_command, lambda m: m.text == "📝 Посещаемость"
+        handle_attendance_command, lambda m: m.text == "📝 Посещаемость",
     )
     dp.message.register(handle_settings_command, lambda m: m.text == "⚙️ Настройки")
     dp.message.register(handle_group_command_menu, lambda m: m.text == "📚 Группа")
     dp.message.register(
-        handle_notifications_command, lambda m: m.text == "🔔 Уведомления"
+        handle_notifications_command, lambda m: m.text == "🔔 Уведомления",
     )
     dp.message.register(handle_help_command_menu, lambda m: m.text == "❓ Помощь")
 

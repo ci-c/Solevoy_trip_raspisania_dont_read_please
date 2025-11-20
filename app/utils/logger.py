@@ -1,12 +1,10 @@
-"""
-Система логирования с ротацией и уровнями доступа.
-"""
+"""Система логирования с ротацией и уровнями доступа."""
 
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
-from datetime import datetime
+
 from loguru import logger
-from typing import Optional
 
 from ..models.user import AccessLevel
 
@@ -14,12 +12,12 @@ from ..models.user import AccessLevel
 class LoggingConfig:
     """Конфигурация логирования."""
 
-    def __init__(self, base_dir: Optional[Path] = None):
+    def __init__(self, base_dir: Path | None = None) -> None:
         self.base_dir = base_dir or Path(__file__).parent.parent.parent
         self.logs_dir = self.base_dir / "logs"
         self.logs_dir.mkdir(exist_ok=True)
 
-    def setup_logging(self):
+    def setup_logging(self) -> None:
         """Настроить систему логирования."""
         # Удаляем стандартный обработчик
         logger.remove()
@@ -96,24 +94,24 @@ class LoggingConfig:
         )
 
 
-def log_user_action(user_id: int, action: str, details: str = ""):
+def log_user_action(user_id: int, action: str, details: str = "") -> None:
     """Логирование действий пользователя."""
     logger.bind(user_action=True, user_id=user_id, action=action).info(details)
 
 
-def log_api_request(request_type: str, duration_ms: int, details: str = ""):
+def log_api_request(request_type: str, duration_ms: int, details: str = "") -> None:
     """Логирование API запросов."""
     logger.bind(
-        api_request=True, request_type=request_type, duration_ms=duration_ms
+        api_request=True, request_type=request_type, duration_ms=duration_ms,
     ).debug(details)
 
 
 def log_security_event(
-    user_id: int, access_level: AccessLevel, event: str, details: str = ""
-):
+    user_id: int, access_level: AccessLevel, event: str, details: str = "",
+) -> None:
     """Логирование событий безопасности."""
     logger.bind(
-        security=True, user_id=user_id, access_level=access_level.value
+        security=True, user_id=user_id, access_level=access_level.value,
     ).warning(f"{event}: {details}")
 
 
@@ -130,30 +128,30 @@ def get_error_details_for_user(error: Exception, user_access_level: AccessLevel)
             f"🔧 **Техническая информация:**\n"
             f"• Тип ошибки: `{error_type}`\n"
             f"• Сообщение: `{error_msg[:300]}{'...' if len(error_msg) > 300 else ''}`\n"
-            f"• Время: `{datetime.now().isoformat()}`\n\n"
+            f"• Время: `{datetime.now(tz=timezone.utc).isoformat()}`\n\n"
             f"💡 Данная информация доступна только администраторам."
         )
 
-    elif user_access_level == AccessLevel.BASIC:
+    if user_access_level == AccessLevel.BASIC:
         # Базовая информация для обычных пользователей
         return (
             f"{base_message}. Попробуйте позже или обратитесь к администратору.\n\n"
             f"Если проблема повторяется, сообщите об этом в поддержку."
         )
 
-    else:  # GUEST
-        # Минимальная информация для гостей
-        return f"{base_message}. Попробуйте позже."
+    # GUEST
+    # Минимальная информация для гостей
+    return f"{base_message}. Попробуйте позже."
 
 
-def log_bot_startup():
+def log_bot_startup() -> None:
     """Логирование запуска бота."""
     logger.info("=" * 50)
     logger.info("SZGMU Schedule Bot is starting up")
     logger.info("=" * 50)
 
 
-def log_bot_shutdown():
+def log_bot_shutdown() -> None:
     """Логирование остановки бота."""
     logger.info("=" * 50)
     logger.info("SZGMU Schedule Bot is shutting down")

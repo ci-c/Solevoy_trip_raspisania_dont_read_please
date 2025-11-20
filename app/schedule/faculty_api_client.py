@@ -23,6 +23,7 @@ class FacultyAPIClient:
 
         Returns:
             List of faculty dictionaries with id and name.
+
         """
         url = f"{self.base_url}/faculties"
 
@@ -60,6 +61,7 @@ class FacultyAPIClient:
 
         Returns:
             List of speciality dictionaries with code, name and faculty info.
+
         """
         url = f"{self.base_url}/specialities"
         if faculty_id is not None:

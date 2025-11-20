@@ -1,6 +1,4 @@
-"""
-Callback data фабрики для бота.
-"""
+"""Callback data фабрики для бота."""
 
 from aiogram.filters.callback_data import CallbackData
 
