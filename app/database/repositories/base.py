@@ -3,7 +3,7 @@
 
 """Base repository class and interfaces."""
 
-from typing import Any, TypeVar
+from typing import Any, Generic, TypeVar
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,7 +13,7 @@ from app.database.models import Base
 T = TypeVar("T", bound=Base)
 
 
-class BaseRepository[T: Base]:
+class BaseRepository(Generic[T]):
     """Base repository class for database operations."""
 
     def __init__(self, model: type[T], session: AsyncSession) -> None:

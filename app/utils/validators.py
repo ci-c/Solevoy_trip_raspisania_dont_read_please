@@ -6,7 +6,7 @@ import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, TypeVar
+from typing import Any, Generic, TypeVar
 
 T = TypeVar("T")
 
@@ -25,7 +25,7 @@ class ValidationLevel(Enum):
 
 
 @dataclass
-class ValidationResult[T]:
+class ValidationResult(Generic[T]):
     """Результат валидации."""
 
     is_valid: bool
@@ -34,7 +34,7 @@ class ValidationResult[T]:
     warnings: list[str]
 
 
-class BaseValidator[T]:
+class BaseValidator(Generic[T]):
     """Базовый валидатор."""
 
     def __init__(self, level: ValidationLevel = ValidationLevel.NORMAL) -> None:
