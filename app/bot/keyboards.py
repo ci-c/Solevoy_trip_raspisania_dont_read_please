@@ -228,6 +228,30 @@ def get_simple_group_keyboard() -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
+def get_group_search_keyboard() -> InlineKeyboardMarkup:
+    """Клавиатура для выбора типа поиска группы.
+
+    Returns:
+        InlineKeyboardMarkup: Клавиатура выбора типа поиска.
+
+    """
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text="🔢 По номеру группы",
+        callback_data="group_search:by_number",
+    )
+    builder.button(
+        text="📋 По специальности",
+        callback_data="group_search:by_speciality",
+    )
+    builder.button(
+        text="🏠 В меню",
+        callback_data=MenuCallback(action="home"),
+    )
+    builder.adjust(1)
+    return builder.as_markup()
+
+
 def get_confirm_keyboard(
     confirm_action: str,
     cancel_action: str = "cancel",

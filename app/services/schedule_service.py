@@ -249,7 +249,10 @@ class ScheduleService:
                 result = await session.execute(query.order_by(Group.name))
                 groups = result.scalars().all()
 
-                semester, year = self.current_semester
+                # Get current semester info
+                current_semester_info = await self.get_current_semester()
+                semester = current_semester_info.get("semester") if current_semester_info else None
+                year = current_semester_info.get("year") if current_semester_info else None
 
                 return [
                     {
@@ -469,12 +472,20 @@ class ScheduleService:
     def _extract_course_number(self, group_name: str) -> int | None:
         """Извлечь номер курса из названия группы."""
         try:
-            # Ищем цифру в начале строки
+            # Ищем все ведущие цифры в начале строки
             import re
 
             match = re.match(r"^(\d+)", group_name)
             if match:
-                return int(match.group(1))
+                number = int(match.group(1))
+                # Для стандартных групп типа "101а" берем только первую цифру (курс)
+                # Для нестандартных (например "5" или "12а") возвращаем все число
+                if number >= 100:
+                    # Трехзначное число - берем первую цифру (курс)
+                    return int(str(number)[0])
+                else:
+                    # Однозначное или двузначное - возвращаем как есть
+                    return number
         except Exception as e:
             logger.error(f"Error extracting course number from '{group_name}': {e}")
             logger.error(f"Traceback: {e.__traceback__}")
