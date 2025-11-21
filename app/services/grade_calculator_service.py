@@ -1,15 +1,13 @@
-"""
-Сервис расчета оценок и коэффициентов согласно регламентам СЗГМУ.
-"""
+"""Сервис расчета оценок и коэффициентов согласно регламентам СЗГМУ."""
 
-from datetime import date
-from typing import List, Dict
 from dataclasses import dataclass
-from loguru import logger
+from datetime import date
 
-from app.database.session import get_session
-from app.database.models import User
+from loguru import logger
 from sqlalchemy import select
+
+from app.database.models import User
+from app.database.session import get_session
 
 
 @dataclass
@@ -55,7 +53,7 @@ class SubjectStats:
 class GradeCalculatorService:
     """Сервис расчета оценок и коэффициентов."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.excused_reasons = {
             "болезнь": True,
             "регистрация брака": True,
@@ -87,7 +85,7 @@ class GradeCalculatorService:
 
         except Exception as e:
             logger.error(
-                f"Error calculating TSB for user {user_id}, subject {subject}: {e}"
+                f"Error calculating TSB for user {user_id}, subject {subject}: {e}",
             )
             return 0.0
 
@@ -115,7 +113,7 @@ class GradeCalculatorService:
 
         except Exception as e:
             logger.error(
-                f"Error calculating KNL for user {user_id}, subject {subject}: {e}"
+                f"Error calculating KNL for user {user_id}, subject {subject}: {e}",
             )
             return 0.0
 
@@ -143,7 +141,7 @@ class GradeCalculatorService:
 
         except Exception as e:
             logger.error(
-                f"Error calculating KNS for user {user_id}, subject {subject}: {e}"
+                f"Error calculating KNS for user {user_id}, subject {subject}: {e}",
             )
             return 0.0
 
@@ -159,7 +157,7 @@ class GradeCalculatorService:
 
         except Exception as e:
             logger.error(
-                f"Error calculating OSB for user {user_id}, subject {subject}: {e}"
+                f"Error calculating OSB for user {user_id}, subject {subject}: {e}",
             )
             return 0.0
 
@@ -207,7 +205,7 @@ class GradeCalculatorService:
 
         except Exception as e:
             logger.error(
-                f"Error getting subject stats for user {user_id}, subject {subject}: {e}"
+                f"Error getting subject stats for user {user_id}, subject {subject}: {e}",
             )
             return SubjectStats(
                 subject=subject,
@@ -270,7 +268,7 @@ class GradeCalculatorService:
             # TODO: Сохранить в базу данных
             # Пока только логируем
             logger.info(
-                f"Added attendance for user {user_id}, subject {subject}: present={is_present}, excused={is_excused}"
+                f"Added attendance for user {user_id}, subject {subject}: present={is_present}, excused={is_excused}",
             )
             return True
 
@@ -283,30 +281,30 @@ class GradeCalculatorService:
         reason_lower = reason.lower()
         return any(
             excused_reason in reason_lower
-            for excused_reason in self.excused_reasons.keys()
+            for excused_reason in self.excused_reasons
         )
 
-    async def _get_grades(self, user_id: int, subject: str) -> List[Grade] | None:
+    async def _get_grades(self, user_id: int, subject: str) -> list[Grade] | None:
         """Получить оценки пользователя по предмету."""
         # TODO: Реализовать получение из базы данных
         # Пока возвращаем заглушку
         return []
 
     async def _get_attendance(
-        self, user_id: int, subject: str, lesson_type: str
-    ) -> List[Attendance] | None:
+        self, user_id: int, subject: str, lesson_type: str,
+    ) -> list[Attendance] | None:
         """Получить посещаемость пользователя по предмету и типу занятия."""
         # TODO: Реализовать получение из базы данных
         # Пока возвращаем заглушку
         return []
 
-    async def get_user_subjects(self, user_id: int) -> List[str] | None:
+    async def get_user_subjects(self, user_id: int) -> list[str] | None:
         """Получить список предметов пользователя."""
         try:
             # Получаем группу пользователя
             async for session in get_session():
                 result = await session.execute(
-                    select(User).where(User.telegram_id == user_id)
+                    select(User).where(User.telegram_id == user_id),
                 )
                 user = result.scalar_one_or_none()
 
@@ -317,12 +315,12 @@ class GradeCalculatorService:
                 # Пока возвращаем заглушку
                 return ["Анатомия", "Физиология", "Химия", "Биология"]
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error getting user subjects: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
         return None
 
-    async def get_user_overall_stats(self, user_id: int) -> Dict[str, str] | None:
+    async def get_user_overall_stats(self, user_id: int) -> dict[str, str] | None:
         """Получить общую статистику пользователя."""
         try:
             subjects = await self.get_user_subjects(user_id)
@@ -357,7 +355,7 @@ class GradeCalculatorService:
                 "attendance_rate": round(attendance_rate, 1),
             }
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error getting user overall stats: {e}")
             return {
                 "total_subjects": 0,

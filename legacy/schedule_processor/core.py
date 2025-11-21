@@ -3,23 +3,25 @@
 import datetime
 import logging
 from pathlib import Path
-from typing import List, Optional
+from typing import TYPE_CHECKING
 
 from .api import find_schedule_ids, get_schedule_data, process_lessons
 from .config import WEEK_DAYS
-from .generator import process_lessons_for_export, gen_excel_file, gen_ical
-from .models import Lesson
+from .generator import gen_excel_file, gen_ical, process_lessons_for_export
+
+if TYPE_CHECKING:
+    from .models import Lesson
 
 logger = logging.getLogger(__name__)
 
 
 def process_api_schedule(
-    speciality: List[str],
-    semester: List[str],
-    course_number: List[str],
-    academic_year: List[str],
+    speciality: list[str],
+    semester: list[str],
+    course_number: list[str],
+    academic_year: list[str],
     subgroup_name: str,
-    group_stream: Optional[List[str]] = None,
+    group_stream: list[str] | None = None,
 ) -> bool:
     """
     Main function for getting, processing and exporting schedule from API.

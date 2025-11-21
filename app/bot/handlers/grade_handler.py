@@ -3,28 +3,25 @@
 
 """Обработчики для модуля оценок и академических показателей."""
 
-from datetime import date
-from typing import List
+from datetime import UTC, datetime
 
 from aiogram import Dispatcher, types
-from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from loguru import logger
 
 from app.bot.callbacks import GradeCallback, MenuCallback
 from app.bot.keyboards import (
-    get_main_menu_keyboard,
     get_grades_keyboard,
+    get_main_menu_keyboard,
     get_subject_grades_keyboard,
 )
 from app.bot.states import GradeStates
 from app.services.grade_calculator_service import GradeCalculatorService
 from app.services.user_service import UserService
-from app.models.academic import GradeType
 
 
 async def handle_grades_main(
-    callback: types.CallbackQuery, callback_data: GradeCallback, state: FSMContext
+    callback: types.CallbackQuery, callback_data: GradeCallback, state: FSMContext,
 ) -> None:
     """Главное меню оценок."""
     await callback.answer()
@@ -49,7 +46,7 @@ async def handle_grades_main(
         # Получаем общую статистику
         stats = await grade_service.get_user_overall_stats(user_id)
 
-        text = f"🔢 **Академические показатели**\n\n"
+        text = "🔢 **Академические показатели**\n\n"
         text += f"👤 {user.full_name or 'Пользователь'}\n"
         text += f"🎓 Группа: {user.group_name or 'Не указана'}\n\n"
 
@@ -73,8 +70,9 @@ async def handle_grades_main(
             reply_markup=get_grades_keyboard(subjects),
         )
 
-    except Exception as e:
-        logger.error(f"Error in grades main handler: {e}")
+    except Exception:  # noqa: BLE001  - catch all for user-facing error handling
+        logger.error("Error in handler")
+
         await callback.message.edit_text(
             "❌ Ошибка при загрузке оценок. Попробуйте позже.",
             reply_markup=get_main_menu_keyboard(),
@@ -82,7 +80,7 @@ async def handle_grades_main(
 
 
 async def handle_subject_selection(
-    callback: types.CallbackQuery, callback_data: GradeCallback, state: FSMContext
+    callback: types.CallbackQuery, callback_data: GradeCallback, state: FSMContext,
 ) -> None:
     """Выбор предмета для просмотра/редактирования."""
     await callback.answer()
@@ -96,12 +94,12 @@ async def handle_subject_selection(
         subject_stats = await grade_service.get_subject_stats(user_id, subject)
 
         text = f"📚 **{subject}**\n\n"
-        text += f"📊 **Показатели:**\n"
+        text += "📊 **Показатели:**\n"
         text += f"• ТСБ: {subject_stats.tsb:.2f}\n"
         text += f"• КНЛ: {subject_stats.knl:.2f}\n"
         text += f"• КНС: {subject_stats.kns:.2f}\n"
         text += f"• **ОСБ: {subject_stats.osb:.2f}**\n\n"
-        text += f"📈 **Посещаемость:**\n"
+        text += "📈 **Посещаемость:**\n"
         text += f"• Всего занятий: {subject_stats.total_lessons}\n"
         text += f"• Посещено: {subject_stats.attended_lessons}\n"
         text += f"• Пропущено (ув.): {subject_stats.excused_absences}\n"
@@ -115,8 +113,9 @@ async def handle_subject_selection(
             reply_markup=get_subject_grades_keyboard(subject),
         )
 
-    except Exception as e:
-        logger.error(f"Error in subject selection handler: {e}")
+    except Exception:  # noqa: BLE001  - catch all for user-facing error handling
+        logger.error("Error in handler")
+
         await callback.message.edit_text(
             f"❌ Ошибка при загрузке предмета '{subject}'. Попробуйте позже.",
             reply_markup=get_grades_keyboard([]),
@@ -124,12 +123,11 @@ async def handle_subject_selection(
 
 
 async def handle_add_grade(
-    callback: types.CallbackQuery, callback_data: GradeCallback, state: FSMContext
+    callback: types.CallbackQuery, callback_data: GradeCallback, state: FSMContext,
 ) -> None:
     """Добавление новой оценки."""
     await callback.answer()
     subject = callback_data.subject
-    user_id = callback.from_user.id
 
     try:
         await state.set_state(GradeStates.entering_grade_data)
@@ -144,13 +142,13 @@ async def handle_add_grade(
                     types.InlineKeyboardButton(
                         text="📝 Контрольная",
                         callback_data=GradeCallback(
-                            action="grade_type", subject=subject, data="контрольная"
+                            action="grade_type", subject=subject, data="контрольная",
                         ).pack(),
                     ),
                     types.InlineKeyboardButton(
                         text="🧪 Лабораторная",
                         callback_data=GradeCallback(
-                            action="grade_type", subject=subject, data="лабораторная"
+                            action="grade_type", subject=subject, data="лабораторная",
                         ).pack(),
                     ),
                 ],
@@ -158,13 +156,13 @@ async def handle_add_grade(
                     types.InlineKeyboardButton(
                         text="📖 Устный ответ",
                         callback_data=GradeCallback(
-                            action="grade_type", subject=subject, data="устный"
+                            action="grade_type", subject=subject, data="устный",
                         ).pack(),
                     ),
                     types.InlineKeyboardButton(
                         text="📄 Реферат",
                         callback_data=GradeCallback(
-                            action="grade_type", subject=subject, data="реферат"
+                            action="grade_type", subject=subject, data="реферат",
                         ).pack(),
                     ),
                 ],
@@ -172,13 +170,13 @@ async def handle_add_grade(
                     types.InlineKeyboardButton(
                         text="📊 Зачет",
                         callback_data=GradeCallback(
-                            action="grade_type", subject=subject, data="зачет"
+                            action="grade_type", subject=subject, data="зачет",
                         ).pack(),
                     ),
                     types.InlineKeyboardButton(
                         text="✍️ Свой вариант",
                         callback_data=GradeCallback(
-                            action="grade_type", subject=subject, data="другое"
+                            action="grade_type", subject=subject, data="другое",
                         ).pack(),
                     ),
                 ],
@@ -186,31 +184,31 @@ async def handle_add_grade(
                     types.InlineKeyboardButton(
                         text="⬅️ Назад",
                         callback_data=GradeCallback(
-                            action="view_subject", subject=subject
+                            action="view_subject", subject=subject,
                         ).pack(),
                     ),
                 ],
-            ]
+            ],
         )
 
         await callback.message.edit_text(text, reply_markup=keyboard)
 
-    except Exception as e:
-        logger.error(f"Error in add grade handler: {e}")
+    except Exception:  # noqa: BLE001  - catch all for user-facing error handling
+        logger.error("Error in handler")
+
         await callback.message.edit_text(
-            f"❌ Ошибка при добавлении оценки. Попробуйте позже.",
+            "❌ Ошибка при добавлении оценки. Попробуйте позже.",
             reply_markup=get_grades_keyboard([]),
         )
 
 
 async def handle_grade_type_selection(
-    callback: types.CallbackQuery, callback_data: GradeCallback, state: FSMContext
+    callback: types.CallbackQuery, callback_data: GradeCallback, state: FSMContext,
 ) -> None:
     """Выбор типа оценки."""
     await callback.answer()
     subject = callback_data.subject
     grade_type = callback_data.data
-    user_id = callback.from_user.id
 
     try:
         await state.update_data(grade_type=grade_type)
@@ -225,13 +223,13 @@ async def handle_grade_type_selection(
                     types.InlineKeyboardButton(
                         text="5️⃣",
                         callback_data=GradeCallback(
-                            action="grade_value", subject=subject, data="5"
+                            action="grade_value", subject=subject, data="5",
                         ).pack(),
                     ),
                     types.InlineKeyboardButton(
                         text="4️⃣",
                         callback_data=GradeCallback(
-                            action="grade_value", subject=subject, data="4"
+                            action="grade_value", subject=subject, data="4",
                         ).pack(),
                     ),
                 ],
@@ -239,13 +237,13 @@ async def handle_grade_type_selection(
                     types.InlineKeyboardButton(
                         text="3️⃣",
                         callback_data=GradeCallback(
-                            action="grade_value", subject=subject, data="3"
+                            action="grade_value", subject=subject, data="3",
                         ).pack(),
                     ),
                     types.InlineKeyboardButton(
                         text="2️⃣",
                         callback_data=GradeCallback(
-                            action="grade_value", subject=subject, data="2"
+                            action="grade_value", subject=subject, data="2",
                         ).pack(),
                     ),
                 ],
@@ -253,25 +251,26 @@ async def handle_grade_type_selection(
                     types.InlineKeyboardButton(
                         text="⬅️ Назад",
                         callback_data=GradeCallback(
-                            action="add_grade", subject=subject
+                            action="add_grade", subject=subject,
                         ).pack(),
                     ),
                 ],
-            ]
+            ],
         )
 
         await callback.message.edit_text(text, reply_markup=keyboard)
 
-    except Exception as e:
-        logger.error(f"Error in grade type selection handler: {e}")
+    except Exception:  # noqa: BLE001  - catch all for user-facing error handling
+        logger.error("Error in handler")
+
         await callback.message.edit_text(
-            f"❌ Ошибка при выборе типа оценки. Попробуйте позже.",
+            "❌ Ошибка при выборе типа оценки. Попробуйте позже.",
             reply_markup=get_grades_keyboard([]),
         )
 
 
 async def handle_grade_value_selection(
-    callback: types.CallbackQuery, callback_data: GradeCallback, state: FSMContext
+    callback: types.CallbackQuery, callback_data: GradeCallback, state: FSMContext,
 ) -> None:
     """Сохранение выбранной оценки."""
     await callback.answer()
@@ -291,7 +290,7 @@ async def handle_grade_value_selection(
             subject=subject,
             grade=grade_value,
             control_point=grade_type,
-            date=date.today(),
+            date=datetime.now(UTC).date(),
             is_excused=False,
         )
 
@@ -301,7 +300,7 @@ async def handle_grade_value_selection(
                 f"📚 Предмет: {subject}\n"
                 f"📝 Тип: {grade_type}\n"
                 f"🎯 Оценка: {grade_value}\n"
-                f"📅 Дата: {date.today().strftime('%d.%m.%Y')}\n\n"
+                f"📅 Дата: {datetime.now(UTC).date().strftime('%d.%m.%Y')}\n\n"
                 f"Оценка учтена в расчете ОСБ.",
                 reply_markup=types.InlineKeyboardMarkup(
                     inline_keyboard=[
@@ -309,40 +308,40 @@ async def handle_grade_value_selection(
                             types.InlineKeyboardButton(
                                 text="📚 К предмету",
                                 callback_data=GradeCallback(
-                                    action="view_subject", subject=subject
+                                    action="view_subject", subject=subject,
                                 ).pack(),
                             ),
                             types.InlineKeyboardButton(
                                 text="🏠 В меню",
                                 callback_data=MenuCallback(action="grades").pack(),
                             ),
-                        ]
-                    ]
+                        ],
+                    ],
                 ),
             )
         else:
             await callback.message.edit_text(
-                f"❌ Ошибка при сохранении оценки. Попробуйте позже.",
+                "❌ Ошибка при сохранении оценки. Попробуйте позже.",
                 reply_markup=get_grades_keyboard([]),
             )
 
         await state.clear()
 
-    except Exception as e:
-        logger.error(f"Error in grade value selection handler: {e}")
+    except Exception:  # noqa: BLE001  - catch all for user-facing error handling
+        logger.error("Error in handler")
+
         await callback.message.edit_text(
-            f"❌ Ошибка при сохранении оценки. Попробуйте позже.",
+            "❌ Ошибка при сохранении оценки. Попробуйте позже.",
             reply_markup=get_grades_keyboard([]),
         )
 
 
 async def handle_add_attendance(
-    callback: types.CallbackQuery, callback_data: GradeCallback, state: FSMContext
+    callback: types.CallbackQuery, callback_data: GradeCallback, state: FSMContext,
 ) -> None:
     """Добавление записи о посещаемости."""
     await callback.answer()
     subject = callback_data.subject
-    user_id = callback.from_user.id
 
     try:
         await state.set_state(GradeStates.entering_attendance_data)
@@ -357,13 +356,13 @@ async def handle_add_attendance(
                     types.InlineKeyboardButton(
                         text="📚 Лекция",
                         callback_data=GradeCallback(
-                            action="attendance_type", subject=subject, data="лекция"
+                            action="attendance_type", subject=subject, data="лекция",
                         ).pack(),
                     ),
                     types.InlineKeyboardButton(
                         text="🧪 Семинар",
                         callback_data=GradeCallback(
-                            action="attendance_type", subject=subject, data="семинар"
+                            action="attendance_type", subject=subject, data="семинар",
                         ).pack(),
                     ),
                 ],
@@ -371,31 +370,31 @@ async def handle_add_attendance(
                     types.InlineKeyboardButton(
                         text="⬅️ Назад",
                         callback_data=GradeCallback(
-                            action="view_subject", subject=subject
+                            action="view_subject", subject=subject,
                         ).pack(),
                     ),
                 ],
-            ]
+            ],
         )
 
         await callback.message.edit_text(text, reply_markup=keyboard)
 
-    except Exception as e:
-        logger.error(f"Error in add attendance handler: {e}")
+    except Exception:  # noqa: BLE001  - catch all for user-facing error handling
+        logger.error("Error in handler")
+
         await callback.message.edit_text(
-            f"❌ Ошибка при добавлении посещаемости. Попробуйте позже.",
+            "❌ Ошибка при добавлении посещаемости. Попробуйте позже.",
             reply_markup=get_grades_keyboard([]),
         )
 
 
 async def handle_attendance_type_selection(
-    callback: types.CallbackQuery, callback_data: GradeCallback, state: FSMContext
+    callback: types.CallbackQuery, callback_data: GradeCallback, state: FSMContext,
 ) -> None:
     """Выбор типа занятия для посещаемости."""
     await callback.answer()
     subject = callback_data.subject
     lesson_type = callback_data.data
-    user_id = callback.from_user.id
 
     try:
         await state.update_data(lesson_type=lesson_type)
@@ -409,13 +408,13 @@ async def handle_attendance_type_selection(
                     types.InlineKeyboardButton(
                         text="✅ Присутствовал",
                         callback_data=GradeCallback(
-                            action="attendance_status", subject=subject, data="present"
+                            action="attendance_status", subject=subject, data="present",
                         ).pack(),
                     ),
                     types.InlineKeyboardButton(
                         text="❌ Отсутствовал",
                         callback_data=GradeCallback(
-                            action="attendance_status", subject=subject, data="absent"
+                            action="attendance_status", subject=subject, data="absent",
                         ).pack(),
                     ),
                 ],
@@ -423,7 +422,7 @@ async def handle_attendance_type_selection(
                     types.InlineKeyboardButton(
                         text="🏥 По уважительной причине",
                         callback_data=GradeCallback(
-                            action="attendance_status", subject=subject, data="excused"
+                            action="attendance_status", subject=subject, data="excused",
                         ).pack(),
                     ),
                 ],
@@ -431,25 +430,26 @@ async def handle_attendance_type_selection(
                     types.InlineKeyboardButton(
                         text="⬅️ Назад",
                         callback_data=GradeCallback(
-                            action="add_attendance", subject=subject
+                            action="add_attendance", subject=subject,
                         ).pack(),
                     ),
                 ],
-            ]
+            ],
         )
 
         await callback.message.edit_text(text, reply_markup=keyboard)
 
-    except Exception as e:
-        logger.error(f"Error in attendance type selection handler: {e}")
+    except Exception:  # noqa: BLE001  - catch all for user-facing error handling
+        logger.error("Error in handler")
+
         await callback.message.edit_text(
-            f"❌ Ошибка при выборе типа занятия. Попробуйте позже.",
+            "❌ Ошибка при выборе типа занятия. Попробуйте позже.",
             reply_markup=get_grades_keyboard([]),
         )
 
 
 async def handle_attendance_status_selection(
-    callback: types.CallbackQuery, callback_data: GradeCallback, state: FSMContext
+    callback: types.CallbackQuery, callback_data: GradeCallback, state: FSMContext,
 ) -> None:
     """Сохранение статуса посещаемости."""
     await callback.answer()
@@ -472,7 +472,7 @@ async def handle_attendance_status_selection(
             user_id=user_id,
             subject=subject,
             lesson_type=lesson_type,
-            date=date.today(),
+            date=datetime.now(UTC).date(),
             is_present=is_present,
             is_excused=is_excused,
         )
@@ -489,7 +489,7 @@ async def handle_attendance_status_selection(
                 f"📚 Предмет: {subject}\n"
                 f"📅 Тип: {lesson_type}\n"
                 f"👤 Статус: {status_text}\n"
-                f"📅 Дата: {date.today().strftime('%d.%m.%Y')}\n\n"
+                f"📅 Дата: {datetime.now(UTC).date().strftime('%d.%m.%Y')}\n\n"
                 f"Данные учтены в расчете КНЛ/КНС.",
                 reply_markup=types.InlineKeyboardMarkup(
                     inline_keyboard=[
@@ -497,29 +497,30 @@ async def handle_attendance_status_selection(
                             types.InlineKeyboardButton(
                                 text="📚 К предмету",
                                 callback_data=GradeCallback(
-                                    action="view_subject", subject=subject
+                                    action="view_subject", subject=subject,
                                 ).pack(),
                             ),
                             types.InlineKeyboardButton(
                                 text="🏠 В меню",
                                 callback_data=MenuCallback(action="grades").pack(),
                             ),
-                        ]
-                    ]
+                        ],
+                    ],
                 ),
             )
         else:
             await callback.message.edit_text(
-                f"❌ Ошибка при сохранении посещаемости. Попробуйте позже.",
+                "❌ Ошибка при сохранении посещаемости. Попробуйте позже.",
                 reply_markup=get_grades_keyboard([]),
             )
 
         await state.clear()
 
-    except Exception as e:
-        logger.error(f"Error in attendance status selection handler: {e}")
+    except Exception:  # noqa: BLE001  - catch all for user-facing error handling
+        logger.error("Error in handler")
+
         await callback.message.edit_text(
-            f"❌ Ошибка при сохранении посещаемости. Попробуйте позже.",
+            "❌ Ошибка при сохранении посещаемости. Попробуйте позже.",
             reply_markup=get_grades_keyboard([]),
         )
 
@@ -535,5 +536,5 @@ async def register_grade_handlers(dp: Dispatcher) -> None:
     dp.callback_query.register(handle_add_attendance, GradeCallback.filter())
     dp.callback_query.register(handle_attendance_type_selection, GradeCallback.filter())
     dp.callback_query.register(
-        handle_attendance_status_selection, GradeCallback.filter()
+        handle_attendance_status_selection, GradeCallback.filter(),
     )

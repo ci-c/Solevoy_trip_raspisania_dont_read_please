@@ -3,32 +3,35 @@
 """
 
 import asyncio
-from typing import Dict
 from unittest.mock import AsyncMock
 
 import pytest
 
-from app.services.user_service import UserService
-from app.services.schedule_service import ScheduleService
-from app.models.user import AccessLevel
 from app.database.session import DATABASE_PATH, init_db
+from app.models.user import AccessLevel
+from app.services.schedule_service import ScheduleService
+from app.services.user_service import UserService
+
+# Import new fixtures from fixtures modules
+pytest_plugins = [
+    "tests.fixtures.database",
+    "tests.fixtures.test_data",
+]
 
 
-@pytest.fixture(scope="session")
-def event_loop():
-    """Создание event loop для всей сессии."""
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
+
 
 
 @pytest.fixture(scope="session", autouse=True)
-def reset_database(event_loop):
+def reset_database():
     """Пересоздать БД перед тестовой сессией."""
     if DATABASE_PATH.exists():
         DATABASE_PATH.unlink()
-    event_loop.run_until_complete(init_db())
-    yield
+    loop = asyncio.new_event_loop()
+    try:
+        loop.run_until_complete(init_db())
+    finally:
+        loop.close()
 
 
 @pytest.fixture
@@ -84,7 +87,7 @@ def test_schedule_service() -> ScheduleService:
 
 
 @pytest.fixture
-def sample_user_data() -> Dict[str, str]:
+def sample_user_data() -> dict[str, str]:
     """Тестовые данные пользователя."""
     return {
         "telegram_id": 123456789,
@@ -95,10 +98,10 @@ def sample_user_data() -> Dict[str, str]:
 
 
 @pytest.fixture
-def sample_group_data() -> Dict[str, str]:
+def sample_group_data() -> dict[str, str]:
     """Тестовые данные группы."""
     return {
-        "number": "101а",
+        "name": "101а",
         "course": 1,
         "stream": "а",
         "speciality": "31.05.01 лечебное дело",
@@ -108,7 +111,7 @@ def sample_group_data() -> Dict[str, str]:
 
 
 @pytest.fixture
-def sample_lesson_data() -> Dict[str, str]:
+def sample_lesson_data() -> dict[str, str]:
     """Тестовые данные занятия."""
     return {
         "subject_name": "Анатомия человека",

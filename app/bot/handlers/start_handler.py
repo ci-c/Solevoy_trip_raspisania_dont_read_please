@@ -1,21 +1,19 @@
-"""
-Обработчик команды /start и базового меню.
-"""
+"""Обработчик команды /start и базового меню."""
 
 from aiogram import Dispatcher, types
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from loguru import logger
 
-from app.bot.keyboards import get_main_menu_keyboard, get_main_menu_reply_keyboard
-from app.bot.states import MainMenu, GroupSetupStates
-from app.services.user_service import UserService
-from app.utils.validation import validate_user_input, ValidationError
-from app.utils.error_handling import ErrorHandler, DatabaseError
 from app.bot.handlers.group_setup_handler import (
     handle_group_command,
     handle_help_command,
 )
+from app.bot.keyboards import get_main_menu_reply_keyboard
+from app.bot.states import MainMenu
+from app.services.user_service import UserService
+from app.utils.error_handling import DatabaseError, ErrorHandler
+from app.utils.validation import ValidationError, validate_user_input
 
 
 async def cmd_start(message: types.Message, state: FSMContext) -> None:
@@ -46,7 +44,7 @@ async def cmd_start(message: types.Message, state: FSMContext) -> None:
         if message.from_user.username:
             try:
                 username = validate_user_input(
-                    "username", message.from_user.username, required=False
+                    "username", message.from_user.username, required=False,
                 )
             except ValidationError as e:
                 logger.warning(f"Invalid username for user {message.from_user.id}: {e}")
@@ -54,11 +52,11 @@ async def cmd_start(message: types.Message, state: FSMContext) -> None:
         if message.from_user.full_name:
             try:
                 full_name = validate_user_input(
-                    "name", message.from_user.full_name, required=False
+                    "name", message.from_user.full_name, required=False,
                 )
             except ValidationError as e:
                 logger.warning(
-                    f"Invalid full_name for user {message.from_user.id}: {e}"
+                    f"Invalid full_name for user {message.from_user.id}: {e}",
                 )
                 full_name = f"User {message.from_user.id}"
 
@@ -133,13 +131,13 @@ async def cmd_clean(message: types.Message, state: FSMContext) -> None:
             reply_markup=get_main_menu_reply_keyboard(),
         )
 
-    except Exception as e:
-        logger.error(f"Error in cmd_clean: {e}")
+    except Exception as e:  # noqa: BLE001  - catch all for bot command error handling
+        logger.error(f" in cmd_clean: {e}")
         logger.error(f"Traceback: {e.__traceback__}")
         await message.answer("❌ Ошибка при очистке диалога")
 
 
-async def register_start_handlers(dp: Dispatcher):
+async def register_start_handlers(dp: Dispatcher) -> None:
     """Регистрация обработчиков старта."""
     dp.message.register(cmd_start, Command("start"))
     dp.message.register(handle_help_command, Command("help"))

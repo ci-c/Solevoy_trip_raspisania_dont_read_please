@@ -2,14 +2,15 @@
 
 """Система проверки типов во время выполнения для предотвращения runtime ошибок."""
 
-from typing import Any, TypeVar, Type, Union, get_origin, get_args, Callable
 import inspect
+from collections.abc import Callable
 from functools import wraps
+from typing import Any, TypeVar, Union, get_args, get_origin
 
 T = TypeVar("T")
 
 
-def type_check(value: Any, expected_type: Type[T]) -> bool:
+def type_check[T](value: Any, expected_type: type[T]) -> bool:
     """Проверить тип значения во время выполнения."""
     if expected_type is Any:
         return True
@@ -63,23 +64,27 @@ def runtime_type_check(func: Callable) -> Callable:
         for param_name, value in bound_args.arguments.items():
             if param_name in sig.parameters:
                 param = sig.parameters[param_name]
-                if param.annotation != inspect.Parameter.empty:
-                    if not type_check(value, param.annotation):
-                        raise TypeError(
-                            f"Parameter '{param_name}' expected {param.annotation}, "
-                            f"got {type(value).__name__}"
-                        )
+                if param.annotation != inspect.Parameter.empty and not type_check(value, param.annotation):
+                    msg = (
+                        f"Parameter '{param_name}' expected {param.annotation}, "
+                        f"got {type(value).__name__}"
+                    )
+                    raise TypeError(
+                        msg,
+                    )
 
         # Выполняем функцию
         result = func(*args, **kwargs)
 
         # Проверяем тип возвращаемого значения
-        if sig.return_annotation != inspect.Parameter.empty:
-            if not type_check(result, sig.return_annotation):
-                raise TypeError(
-                    f"Return value expected {sig.return_annotation}, "
-                    f"got {type(result).__name__}"
-                )
+        if sig.return_annotation != inspect.Parameter.empty and not type_check(result, sig.return_annotation):
+            msg = (
+                f"Return value expected {sig.return_annotation}, "
+                f"got {type(result).__name__}"
+            )
+            raise TypeError(
+                msg,
+            )
 
         return result
 
@@ -87,36 +92,35 @@ def runtime_type_check(func: Callable) -> Callable:
 
 
 def safe_type_convert(
-    value: Any, target_type: Type[T], default: T | None = None
+    value: Any, target_type: type[T], default: T | None = None,
 ) -> T | None:
     """Безопасное преобразование типа с fallback значением."""
     try:
         if target_type is str:
             return str(value)  # type: ignore
-        elif target_type is int:
+        if target_type is int:
             return int(value)  # type: ignore
-        elif target_type is float:
+        if target_type is float:
             return float(value)  # type: ignore
-        elif target_type is bool:
+        if target_type is bool:
             if isinstance(value, str):
                 return value.lower() in ("true", "1", "yes", "on")  # type: ignore
             return bool(value)  # type: ignore
-        elif target_type is list:
+        if target_type is list:
             if isinstance(value, (list, tuple, set)):
                 return list(value)  # type: ignore
             return [value]  # type: ignore
-        elif target_type is dict:
+        if target_type is dict:
             if isinstance(value, dict):
                 return value  # type: ignore
             return {}  # type: ignore
-        else:
-            return value  # type: ignore
+        return value  # type: ignore
     except (ValueError, TypeError):
         return default
 
 
 def validate_dict_structure(
-    data: dict[str, Any], expected_structure: dict[str, Type]
+    data: dict[str, Any], expected_structure: dict[str, type],
 ) -> bool:
     """Проверить структуру словаря."""
     for key, expected_type in expected_structure.items():
@@ -127,7 +131,7 @@ def validate_dict_structure(
     return True
 
 
-def ensure_type(value: Any, expected_type: Type[T], fallback: T | None = None) -> T:
+def ensure_type(value: Any, expected_type: type[T], fallback: T | None = None) -> T:
     """Гарантировать правильный тип значения."""
     if type_check(value, expected_type):
         return value
@@ -140,8 +144,9 @@ def ensure_type(value: Any, expected_type: Type[T], fallback: T | None = None) -
     if converted is not None:
         return converted
 
+    msg = f"Cannot convert {type(value).__name__} to {expected_type.__name__}"
     raise TypeError(
-        f"Cannot convert {type(value).__name__} to {expected_type.__name__}"
+        msg,
     )
 
 

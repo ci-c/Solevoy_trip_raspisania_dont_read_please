@@ -171,9 +171,10 @@ class BotApplication:
         Raises:
             NotInitializedError: If setup() was not called
             TelegramAPIError: If connection to Telegram API fails
+
         """
         if not (self.bot and self.dp):
-            raise NotInitializedError()
+            raise NotInitializedError
 
         try:
             log_bot_startup()

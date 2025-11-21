@@ -2,7 +2,6 @@
 Модуль для работы с вопросами об аттестации и текущем контроле СЗГМУ.
 """
 
-from typing import Dict, List, Optional
 from pathlib import Path
 
 
@@ -18,14 +17,14 @@ class AttestationHelper:
         try:
             summary_file = self.docs_path / "szgmu_regulations_summary.md"
             if summary_file.exists():
-                with open(summary_file, "r", encoding="utf-8") as f:
+                with open(summary_file, encoding="utf-8") as f:
                     self.regulations_text = f.read()
             else:
                 self.regulations_text = ""
         except Exception:
             self.regulations_text = ""
 
-    def get_absence_info(self) -> Dict[str, str]:
+    def get_absence_info(self) -> dict[str, str]:
         """Получить информацию об уважительных причинах пропусков."""
         return {
             "болезнь": "Справка, заверенная в поликлинике вуза. Подавать в течение 5 рабочих дней.",
@@ -83,7 +82,7 @@ class AttestationHelper:
 
 ⚠️ **Важно:** Университет может не рассматривать документы, поданные позже установленного срока"""
 
-    def analyze_question(self, question: str) -> Optional[str]:
+    def analyze_question(self, question: str) -> str | None:
         """Анализ вопроса и подбор подходящего ответа."""
         question_lower = question.lower()
 
@@ -178,7 +177,7 @@ class AttestationHelper:
 
 ⏰ **Переходный период:** До осени 2025 действуют старые документы"""
 
-    def get_practical_tips(self) -> List[str]:
+    def get_practical_tips(self) -> list[str]:
         """Практические советы для студентов."""
         return [
             "📈 Поддерживайте высокую посещаемость - она критически влияет на ОСБ",

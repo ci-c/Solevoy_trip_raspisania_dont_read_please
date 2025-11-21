@@ -2,10 +2,11 @@
 
 """Система валидации данных для предотвращения runtime ошибок."""
 
-from typing import Any, TypeVar, Generic, Callable
+import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
-import re
+from typing import Any, Generic, TypeVar
 
 T = TypeVar("T")
 
@@ -13,7 +14,6 @@ T = TypeVar("T")
 class ValidationError(Exception):
     """Ошибка валидации данных."""
 
-    pass
 
 
 class ValidationLevel(Enum):
@@ -37,7 +37,7 @@ class ValidationResult(Generic[T]):
 class BaseValidator(Generic[T]):
     """Базовый валидатор."""
 
-    def __init__(self, level: ValidationLevel = ValidationLevel.NORMAL):
+    def __init__(self, level: ValidationLevel = ValidationLevel.NORMAL) -> None:
         self.level = level
         self.errors: list[str] = []
         self.warnings: list[str] = []
@@ -79,7 +79,7 @@ class StringValidator(BaseValidator[str]):
         pattern: str | None = None,
         allow_empty: bool = True,
         level: ValidationLevel = ValidationLevel.NORMAL,
-    ):
+    ) -> None:
         super().__init__(level)
         self.min_length = min_length
         self.max_length = max_length
@@ -89,27 +89,32 @@ class StringValidator(BaseValidator[str]):
     def _validate_impl(self, data: Any) -> str:
         if not isinstance(data, str):
             if self.level == ValidationLevel.STRICT:
-                raise ValidationError(f"Expected string, got {type(data).__name__}")
+                msg = f"Expected string, got {type(data).__name__}"
+                raise ValidationError(msg)
             data = str(data)
             self.warnings.append(f"Converted {type(data).__name__} to string")
 
         if not self.allow_empty and not data.strip():
-            raise ValidationError("Empty string not allowed")
+            msg = "Empty string not allowed"
+            raise ValidationError(msg)
 
         if len(data) < self.min_length:
-            raise ValidationError(f"String too short: {len(data)} < {self.min_length}")
+            msg = f"String too short: {len(data)} < {self.min_length}"
+            raise ValidationError(msg)
 
         if self.max_length and len(data) > self.max_length:
             if self.level == ValidationLevel.STRICT:
+                msg = f"String too long: {len(data)} > {self.max_length}"
                 raise ValidationError(
-                    f"String too long: {len(data)} > {self.max_length}"
+                    msg,
                 )
             data = data[: self.max_length]
             self.warnings.append(f"String truncated to {self.max_length} characters")
 
         if self.pattern and not self.pattern.match(data):
+            msg = f"String doesn't match pattern: {self.pattern.pattern}"
             raise ValidationError(
-                f"String doesn't match pattern: {self.pattern.pattern}"
+                msg,
             )
 
         return data
@@ -123,7 +128,7 @@ class IntegerValidator(BaseValidator[int]):
         min_value: int | None = None,
         max_value: int | None = None,
         level: ValidationLevel = ValidationLevel.NORMAL,
-    ):
+    ) -> None:
         super().__init__(level)
         self.min_value = min_value
         self.max_value = max_value
@@ -133,22 +138,27 @@ class IntegerValidator(BaseValidator[int]):
             try:
                 data = int(data)
             except ValueError:
-                raise ValidationError(f"Cannot convert '{data}' to integer")
+                msg = f"Cannot convert '{data}' to integer"
+                raise ValidationError(msg)
         elif not isinstance(data, int):
             if self.level == ValidationLevel.STRICT:
-                raise ValidationError(f"Expected integer, got {type(data).__name__}")
+                msg = f"Expected integer, got {type(data).__name__}"
+                raise ValidationError(msg)
             try:
                 data = int(data)
             except (ValueError, TypeError):
+                msg = f"Cannot convert {type(data).__name__} to integer"
                 raise ValidationError(
-                    f"Cannot convert {type(data).__name__} to integer"
+                    msg,
                 )
 
         if self.min_value is not None and data < self.min_value:
-            raise ValidationError(f"Value too small: {data} < {self.min_value}")
+            msg = f"Value too small: {data} < {self.min_value}"
+            raise ValidationError(msg)
 
         if self.max_value is not None and data > self.max_value:
-            raise ValidationError(f"Value too large: {data} > {self.max_value}")
+            msg = f"Value too large: {data} > {self.max_value}"
+            raise ValidationError(msg)
 
         return data
 
@@ -162,7 +172,7 @@ class DictValidator(BaseValidator[dict[str, Any]]):
         optional_keys: set[str] | None = None,
         key_validators: dict[str, BaseValidator] | None = None,
         level: ValidationLevel = ValidationLevel.NORMAL,
-    ):
+    ) -> None:
         super().__init__(level)
         self.required_keys = required_keys or set()
         self.optional_keys = optional_keys or set()
@@ -170,12 +180,14 @@ class DictValidator(BaseValidator[dict[str, Any]]):
 
     def _validate_impl(self, data: Any) -> dict[str, Any]:
         if not isinstance(data, dict):
-            raise ValidationError(f"Expected dict, got {type(data).__name__}")
+            msg = f"Expected dict, got {type(data).__name__}"
+            raise ValidationError(msg)
 
         # Проверяем обязательные ключи
         missing_keys = self.required_keys - set(data.keys())
         if missing_keys:
-            raise ValidationError(f"Missing required keys: {missing_keys}")
+            msg = f"Missing required keys: {missing_keys}"
+            raise ValidationError(msg)
 
         # Валидируем значения
         validated_data = {}
@@ -184,8 +196,9 @@ class DictValidator(BaseValidator[dict[str, Any]]):
                 validator = self.key_validators[key]
                 result = validator.validate(value)
                 if not result.is_valid:
+                    msg = f"Validation failed for key '{key}': {result.errors}"
                     raise ValidationError(
-                        f"Validation failed for key '{key}': {result.errors}"
+                        msg,
                     )
                 validated_data[key] = result.data
             else:
@@ -197,7 +210,7 @@ class DictValidator(BaseValidator[dict[str, Any]]):
 class GroupDataValidator(DictValidator):
     """Валидатор данных группы."""
 
-    def __init__(self, level: ValidationLevel = ValidationLevel.NORMAL):
+    def __init__(self, level: ValidationLevel = ValidationLevel.NORMAL) -> None:
         super().__init__(
             required_keys={"id", "name", "faculty", "speciality", "course"},
             key_validators={
@@ -214,7 +227,7 @@ class GroupDataValidator(DictValidator):
 class UserDataValidator(DictValidator):
     """Валидатор данных пользователя."""
 
-    def __init__(self, level: ValidationLevel = ValidationLevel.NORMAL):
+    def __init__(self, level: ValidationLevel = ValidationLevel.NORMAL) -> None:
         super().__init__(
             required_keys={"telegram_id"},
             optional_keys={"group_id", "subscription_type"},
@@ -222,7 +235,7 @@ class UserDataValidator(DictValidator):
                 "telegram_id": IntegerValidator(min_value=1),
                 "group_id": IntegerValidator(min_value=1),
                 "subscription_type": StringValidator(
-                    pattern=r"^(free|standard|premium)$"
+                    pattern=r"^(free|standard|premium)$",
                 ),
             },
             level=level,

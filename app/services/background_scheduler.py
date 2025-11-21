@@ -1,10 +1,9 @@
-"""
-Фоновый планировщик для автоматического обновления расписаний.
-"""
+"""Фоновый планировщик для автоматического обновления расписаний."""
 
 import asyncio
-from datetime import datetime, time, timedelta
-from typing import Optional
+import contextlib
+from datetime import UTC, datetime, time, timedelta
+
 from loguru import logger
 
 from app.services.schedule_updater_service import ScheduleUpdaterService
@@ -13,7 +12,7 @@ from app.services.schedule_updater_service import ScheduleUpdaterService
 class BackgroundScheduler:
     """Планировщик фоновых задач."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.schedule_updater = ScheduleUpdaterService()
         self.is_running = False
         self.tasks: set = set()
@@ -45,10 +44,8 @@ class BackgroundScheduler:
         for task in self.tasks.copy():
             if not task.done():
                 task.cancel()
-                try:
+                with contextlib.suppress(asyncio.CancelledError):
                     await task
-                except asyncio.CancelledError:
-                    pass
 
         self.tasks.clear()
         logger.info("Background scheduler stopped")
@@ -109,7 +106,7 @@ class BackgroundScheduler:
                 # Давно не было синхронизации
                 if stats["last_sync"]:
                     last_sync = datetime.fromisoformat(stats["last_sync"])
-                    if datetime.now() - last_sync > timedelta(days=2):
+                    if datetime.now(tz=UTC) - last_sync > timedelta(days=2):
                         issues.append("No sync for 2+ days")
 
                 # Мало синхронизированных групп
@@ -128,7 +125,7 @@ class BackgroundScheduler:
 
     async def _wait_until_time(self, target_time: time) -> None:
         """Ждать до определенного времени."""
-        now = datetime.now()
+        now = datetime.now(tz=UTC)
         target_dt = datetime.combine(now.date(), target_time)
 
         # Если время уже прошло сегодня, ждем до завтра
@@ -159,14 +156,14 @@ class BackgroundScheduler:
             result = await self.schedule_updater.update_group_schedule(group_id)
             logger.info(f"Group {group_id} updated: {result}")
             return result
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error updating group {group_id}: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
             return {"error": str(e), "group_id": group_id, "success": False}
 
 
 # Глобальный экземпляр планировщика
-_scheduler_instance: Optional[BackgroundScheduler] = None
+_scheduler_instance: BackgroundScheduler | None = None
 
 
 async def get_scheduler() -> BackgroundScheduler:

@@ -1,7 +1,7 @@
-import requests
 import json
 import logging
-from typing import Dict, List
+
+import requests
 from lesson import Lesson
 
 # Set up logging for the module
@@ -47,14 +47,14 @@ def get_schedule_data(schedule_id: int) -> dict | None:
 
         return data
     except requests.exceptions.RequestException as e:
-        logger.error(f"HTTP request error occurred: {e}")
+        logger.exception(f"HTTP request error occurred: {e}")
         return None
     except json.JSONDecodeError:
-        logger.error("JSON decoding error: The response is not valid JSON.")
+        logger.exception("JSON decoding error: The response is not valid JSON.")
         return None
 
 
-def process_lessons(schedule_data: Dict) -> list[Lesson]:
+def process_lessons(schedule_data: dict) -> list[Lesson]:
     """
     Processes a list of lesson dictionaries, converts them to Lesson objects,
     and returns a list of all lessons.
@@ -65,15 +65,15 @@ def process_lessons(schedule_data: Dict) -> list[Lesson]:
     Returns:
         A list of Lesson objects.
     """
-    lessons: List[Lesson] = []
+    lessons: list[Lesson] = []
     if "scheduleLessonDtoList" in schedule_data:
         for lesson_dict in schedule_data["scheduleLessonDtoList"]:
             try:
                 lesson_obj = Lesson(**lesson_dict)
                 lessons.append(lesson_obj)
             except TypeError as e:
-                logger.error(f"Error creating Lesson object due to missing fields: {e}")
-                logger.error(
+                logger.exception(f"Error creating Lesson object due to missing fields: {e}")
+                logger.exception(
                     f"Skipping this lesson entry with keys: {list(lesson_dict.keys())}"
                 )
                 continue
@@ -81,7 +81,7 @@ def process_lessons(schedule_data: Dict) -> list[Lesson]:
     return lessons
 
 
-def main():
+def main() -> None:
     """
     Main function to fetch, process, and display the schedule for tests.
     """
@@ -122,7 +122,6 @@ def main():
         )
 
         for week in sorted_weeks:
-            print(f"\n--- Неделя {week} ---")
 
             # Sort lessons within the week by day and then by time
             sorted_lessons = sorted(
@@ -136,17 +135,14 @@ def main():
             current_day = None
             for lesson in sorted_lessons:
                 if lesson.dayName and lesson.dayName != current_day:
-                    print(f"\n  --- {lesson.dayName.upper()} ---")
                     current_day = lesson.dayName
 
-                print(f"- {lesson.pairTime}: {lesson.subjectName}")
                 if lesson.auditoryNumber:
-                    print(f"  Аудитория: {lesson.auditoryNumber}")
+                    pass
                 if lesson.locationAddress:
-                    print(f"  Адрес: {lesson.locationAddress}")
+                    pass
                 if lesson.lectorName:
-                    print(f"  Преподаватель: {lesson.lectorName}")
-                print("-" * 10)
+                    pass
     else:
         logger.error("Could not fetch schedule data.")
 

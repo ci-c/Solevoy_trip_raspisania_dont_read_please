@@ -1,20 +1,19 @@
-"""
-Обработчик настройки профиля.
-"""
+"""Обработчик настройки профиля."""
 
 from aiogram import Dispatcher, types
 from aiogram.fsm.context import FSMContext
 from loguru import logger
 
 from app.bot.callbacks import ProfileCallback
-from app.bot.keyboards import get_profile_setup_keyboard, get_main_menu_keyboard
+from app.bot.keyboards import get_main_menu_keyboard, get_profile_setup_keyboard
 from app.bot.states import ProfileSetup
 from app.services.user_service import UserService
+
 # from ...services.education_service import EducationService  # Пока не используется
 
 
 async def handle_profile_setup(
-    callback: types.CallbackQuery, callback_data: ProfileCallback, state: FSMContext
+    callback: types.CallbackQuery, callback_data: ProfileCallback, state: FSMContext,
 ) -> None:
     """Обработчик настройки профиля."""
     await callback.answer()
@@ -34,7 +33,7 @@ async def handle_profile_setup(
 
 
 async def confirm_profile_setup(
-    callback: types.CallbackQuery, state: FSMContext
+    callback: types.CallbackQuery, state: FSMContext,
 ) -> None:
     """Подтверждение настройки профиля."""
     try:
@@ -76,14 +75,15 @@ async def confirm_profile_setup(
             reply_markup=get_main_menu_keyboard(updated_user),
         )
 
-    except Exception as e:
-        logger.error(f"Error confirming profile setup: {e}")
+    except Exception:  # noqa: BLE001  - catch all for user-facing error handling
+        logger.error("Error in handler")
+
         await callback.message.edit_text(
             "❌ Ошибка при сохранении профиля. Попробуйте еще раз.",
             reply_markup=get_main_menu_keyboard(None),
         )
 
 
-async def register_profile_handlers(dp: Dispatcher):
+async def register_profile_handlers(dp: Dispatcher) -> None:
     """Регистрация обработчиков профиля."""
     dp.callback_query.register(handle_profile_setup, ProfileCallback.filter())

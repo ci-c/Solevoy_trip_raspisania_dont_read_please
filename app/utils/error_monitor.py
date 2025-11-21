@@ -2,13 +2,14 @@
 
 """Система мониторинга и предотвращения runtime ошибок."""
 
-import traceback
-from typing import Any, Callable, TypeVar, Optional
-from functools import wraps
-from dataclasses import dataclass
-from datetime import datetime, timedelta
-from collections import defaultdict, deque
 import asyncio
+import traceback
+from collections import defaultdict, deque
+from collections.abc import Callable
+from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
+from functools import wraps
+from typing import Any, TypeVar
 
 from app.utils.logger import logger
 
@@ -30,7 +31,7 @@ class ErrorInfo:
 class ErrorMonitor:
     """Монитор ошибок для предотвращения повторных сбоев."""
 
-    def __init__(self, max_errors: int = 100, time_window: int = 300):
+    def __init__(self, max_errors: int = 100, time_window: int = 300) -> None:
         self.max_errors = max_errors
         self.time_window = timedelta(seconds=time_window)
         self.errors: deque[ErrorInfo] = deque(maxlen=max_errors)
@@ -45,7 +46,7 @@ class ErrorMonitor:
     ) -> None:
         """Записать информацию об ошибке."""
         error_info = ErrorInfo(
-            timestamp=datetime.now(),
+            timestamp=datetime.now(tz=UTC),
             function_name=function_name,
             error_type=type(error).__name__,
             error_message=str(error),
@@ -60,7 +61,7 @@ class ErrorMonitor:
         if self.error_counts[function_name] > 5:
             self.function_blacklist.add(function_name)
             logger.warning(
-                f"Function {function_name} added to blacklist due to repeated errors"
+                f"Function {function_name} added to blacklist due to repeated errors",
             )
 
     def is_function_blacklisted(self, function_name: str) -> bool:
@@ -69,7 +70,7 @@ class ErrorMonitor:
 
     def get_recent_errors(self, function_name: str | None = None) -> list[ErrorInfo]:
         """Получить недавние ошибки."""
-        now = datetime.now()
+        now = datetime.now(tz=UTC)
         recent_errors = [
             error for error in self.errors if now - error.timestamp <= self.time_window
         ]
@@ -139,8 +140,7 @@ async def safe_execute_async(
     try:
         if asyncio.iscoroutinefunction(func):
             return await func(*args, **kwargs)
-        else:
-            return func(*args, **kwargs)
+        return func(*args, **kwargs)
     except Exception as e:
         error_monitor.record_error(function_name, e, context)
         logger.error(f"{error_message} in {function_name}: {e}")
@@ -167,7 +167,7 @@ def error_handler(
                 return func(*args, **kwargs)
             except Exception as e:
                 error_monitor.record_error(
-                    function_name, e, {"args": args, "kwargs": kwargs}
+                    function_name, e, {"args": args, "kwargs": kwargs},
                 )
                 logger.error(f"{error_message} in {function_name}: {e}")
                 if log_traceback:
@@ -199,7 +199,7 @@ def async_error_handler(
                 return await func(*args, **kwargs)
             except Exception as e:
                 error_monitor.record_error(
-                    function_name, e, {"args": args, "kwargs": kwargs}
+                    function_name, e, {"args": args, "kwargs": kwargs},
                 )
                 logger.error(f"{error_message} in {function_name}: {e}")
                 if log_traceback:

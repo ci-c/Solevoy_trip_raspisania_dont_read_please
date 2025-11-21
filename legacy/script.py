@@ -8,7 +8,6 @@ from zoneinfo import ZoneInfo
 import ics
 import openpyxl
 import rich
-
 from sw import get_sw_dict
 
 SWP_NAME: str = "ФП"

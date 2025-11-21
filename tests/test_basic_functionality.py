@@ -2,12 +2,13 @@
 Базовые тесты функциональности.
 """
 
-import pytest
 from unittest.mock import AsyncMock, patch
 
-from app.services.user_service import UserService
-from app.services.schedule_service import ScheduleService
+import pytest
+
 from app.services.group_search_service import GroupSearchService
+from app.services.schedule_service import ScheduleService
+from app.services.user_service import UserService
 
 
 class TestBasicFunctionality:

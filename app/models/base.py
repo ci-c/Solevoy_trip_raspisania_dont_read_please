@@ -1,19 +1,18 @@
-"""
-Базовая модель для всех сущностей.
-"""
+"""Базовая модель для всех сущностей."""
 
 from datetime import datetime
-from typing import Optional
-from pydantic import BaseModel as PydanticBaseModel, Field
+
+from pydantic import BaseModel as PydanticBaseModel
+from pydantic import Field
 
 
 class BaseModel(PydanticBaseModel):
     """Базовая модель с общими полями."""
 
-    id: Optional[int] = Field(None, description="Уникальный идентификатор")
-    created_at: Optional[datetime] = Field(None, description="Время создания записи")
-    updated_at: Optional[datetime] = Field(
-        None, description="Время последнего обновления"
+    id: int | None = Field(None, description="Уникальный идентификатор")
+    created_at: datetime | None = Field(None, description="Время создания записи")
+    updated_at: datetime | None = Field(
+        None, description="Время последнего обновления",
     )
 
     class Config:
@@ -25,5 +24,5 @@ class BaseModel(PydanticBaseModel):
     def dict_for_db(self, exclude_none: bool = True) -> dict:
         """Преобразовать модель в словарь для сохранения в БД."""
         return self.model_dump(
-            exclude_none=exclude_none, exclude={"id"} if not self.id else set()
+            exclude_none=exclude_none, exclude={"id"} if not self.id else set(),
         )

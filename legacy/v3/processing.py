@@ -35,8 +35,7 @@ def process_lessons_for_export(
     # 1. Фильтрация по подгруппе
     def f_filter(lesson: Lesson) -> bool:
         r: bool = lesson.subgroup == subgroup_name.upper()
-        r = r or lesson.subgroup == subgroup_name.lower()
-        return r
+        return r or lesson.subgroup == subgroup_name.lower()
 
     filtered_lessons = [lesson for lesson in raw_lessons if f_filter(lesson)]
     processed_lessons: dict[tuple[datetime.date, int, str], PostLesson] = {}
@@ -98,7 +97,7 @@ def process_lessons_for_export(
             lesson_number,
             lesson_type_key,
         )
-        if key in processed_lessons.keys():
+        if key in processed_lessons:
             logger.warning("WARN! Overwriting lesson")
         processed_lessons[key] = post_lesson
 

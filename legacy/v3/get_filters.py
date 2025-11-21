@@ -1,9 +1,9 @@
-import requests
 import json
-import sys
+
+import requests
 
 
-def get_valid_filters():
+def get_valid_filters() -> None:
     """
     Получает и выводит список валидных фильтров (типов занятий, курсов и т.д.)
     с API сайта СЗГМУ.
@@ -18,9 +18,8 @@ def get_valid_filters():
         "Семестры": "https://frsview.szgmu.ru/api/view/semester",
     }
 
-    print("Получение валидных фильтров с сайта СЗГМУ...\n")
 
-    for filter_name, url in endpoints.items():
+    for url in endpoints.values():
         try:
             response = requests.get(url)
             response.raise_for_status()  # Вызовет исключение для ошибок HTTP
@@ -30,19 +29,12 @@ def get_valid_filters():
             valid_names = [item["name"] for item in data]
 
             # Выводим результат
-            print(f"--- {filter_name} ---")
-            for name in valid_names:
-                print(f"  - {name}")
-            print()  # Пустая строка для читаемости
+            for _name in valid_names:
+                pass
 
-        except requests.exceptions.RequestException as e:
-            print(f"Ошибка при получении '{filter_name}': {e}", file=sys.stderr)
+        except requests.exceptions.RequestException:
             continue
         except json.JSONDecodeError:
-            print(
-                f"Ошибка: Ответ для '{filter_name}' не является корректным JSON.",
-                file=sys.stderr,
-            )
             continue
 
 

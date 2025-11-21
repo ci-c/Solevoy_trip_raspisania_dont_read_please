@@ -1,3 +1,1 @@
-"""
-SZGMU Bot Application Package
-"""
+"""SZGMU Bot Application Package."""

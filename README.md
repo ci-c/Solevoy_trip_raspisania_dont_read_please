@@ -12,7 +12,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Клонирование репозитория
 git clone <repository-url>
-cd P-2
+cd Solevoy_trip_raspisania_dont_read_please
 
 # Установка зависимостей
 uv sync
@@ -86,6 +86,7 @@ uv run pytest
 ```bash
 uv run ruff check .
 uv run ruff format .
+uv run pyright
 ```
 
 ## 📋 Функции
@@ -125,6 +126,6 @@ MIT License - см. файл [LICENSE](LICENSE)
 
 ---
 
-**Версия:** 2.0.0  
-**Python:** 3.13+  
+**Версия:** 2.0.0
+**Python:** 3.14+
 **Статус:** В разработке

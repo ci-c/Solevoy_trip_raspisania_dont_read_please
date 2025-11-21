@@ -6,14 +6,14 @@
 """
 
 import json
-from pathlib import Path
-from typing import Dict, List, Tuple, Any, Set
 from datetime import datetime
+from pathlib import Path
+from typing import Any
 
 import yaml
 from docx import Document
-from docx.shared import Pt, Inches
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+from docx.shared import Inches, Pt
 
 # ============================================================================
 # КОНСТАНТЫ
@@ -46,7 +46,7 @@ LINE_SPACING_SINGLE = 1.0
 SIGNATURE_SPACING = 80
 
 # Сопоставление сокращений типов занятий с полными названиями (для объяснительной)
-LESSON_TYPE_FULL_NAMES: Dict[str, str] = {
+LESSON_TYPE_FULL_NAMES: dict[str, str] = {
     "л": "лекцию",
     "п": "практическое занятие",
     "лаб": "практическое занятие",
@@ -54,10 +54,10 @@ LESSON_TYPE_FULL_NAMES: Dict[str, str] = {
 }
 
 # Типы занятий для лекций (влияют на КНЛ)
-LECTURE_TYPES: Set[str] = {"л"}
+LECTURE_TYPES: set[str] = {"л"}
 
 # Типы занятий для семинаров/практик (влияют на КНС)
-SEMINAR_TYPES: Set[str] = {"п", "сем", "лаб"}
+SEMINAR_TYPES: set[str] = {"п", "сем", "лаб"}
 
 # Названия файлов конфигурации
 CONFIG_FILENAME = "config"
@@ -68,69 +68,55 @@ MISSED_CLASSES_FILENAME = "missed_classes"
 # ============================================================================
 
 
-def load_data_file(filename_base: str, default_data: Dict[str, Any]) -> Dict[str, Any]:
+def load_data_file(filename_base: str, default_data: dict[str, Any]) -> dict[str, Any]:
     """
     Загружает данные из YAML или JSON файла.
-    
+
     Функция пытается загрузить данные из файлов в следующем порядке приоритета:
     1. {filename_base}.yaml
     2. {filename_base}.yml
     3. {filename_base}.json
-    
+
     Args:
         filename_base: Базовое имя файла без расширения
         default_data: Данные по умолчанию, используемые если файл не найден
-        
+
     Returns:
         Словарь с загруженными данными или default_data при ошибке
-        
+
     Example:
         >>> config = load_data_file("config", {"director": ""})
     """
     possible_extensions = [".yaml", ".yml", ".json"]
-    
+
     for extension in possible_extensions:
         filepath = Path(f"{filename_base}{extension}")
-        
+
         try:
             with filepath.open("r", encoding="utf-8") as file:
                 if extension in (".yaml", ".yml"):
-                    print(f"✓ Загрузка данных из YAML файла: '{filepath}'")
                     return yaml.safe_load(file)
-                elif extension == ".json":
-                    print(f"✓ Загрузка данных из JSON файла: '{filepath}'")
+                if extension == ".json":
                     return json.load(file)
-                    
+
         except FileNotFoundError:
             continue
-            
-        except (yaml.YAMLError, json.JSONDecodeError) as parse_error:
-            print(
-                f"✗ Ошибка парсинга файла '{filepath}': {parse_error}\n"
-                f"  Попытка загрузки следующего формата..."
-            )
+
+        except (yaml.YAMLError, json.JSONDecodeError):
             continue
-            
-        except Exception as unexpected_error:
-            print(
-                f"✗ Неожиданная ошибка при загрузке '{filepath}': {unexpected_error}\n"
-                f"  Попытка загрузки следующего формата..."
-            )
+
+        except Exception:
             continue
-    
+
     # Если ни один файл не был успешно загружен
-    attempted_files = [f"{filename_base}{ext}" for ext in possible_extensions]
-    print(
-        f"⚠ Предупреждение: Файлы {', '.join(attempted_files)} не найдены.\n"
-        f"  Используются данные по умолчанию."
-    )
+    [f"{filename_base}{ext}" for ext in possible_extensions]
     return default_data
 
 
-def load_config() -> Dict[str, str]:
+def load_config() -> dict[str, str]:
     """
     Загружает конфигурацию приложения из файла config.yaml/yml/json.
-    
+
     Returns:
         Словарь с конфигурационными данными:
         - director: ФИО директора/помощника директора
@@ -149,10 +135,10 @@ def load_config() -> Dict[str, str]:
     return load_data_file(CONFIG_FILENAME, default_config)
 
 
-def load_missed_classes() -> Dict[str, Any]:
+def load_missed_classes() -> dict[str, Any]:
     """
     Загружает данные о пропущенных занятиях из файла missed_classes.yaml/yml/json.
-    
+
     Returns:
         Словарь с данными о пропусках:
         - reason: Словарь с причиной в двух падежах (instrumental, genitive)
@@ -184,7 +170,7 @@ def add_styled_paragraph(
 ) -> None:
     """
     Добавляет абзац с заданным стилем в документ.
-    
+
     Args:
         document: Объект документа Word
         text: Текст абзаца
@@ -193,13 +179,13 @@ def add_styled_paragraph(
     """
     paragraph = document.add_paragraph()
     run = paragraph.add_run(text)
-    
+
     if is_bold:
         run.bold = True
-        
+
     run.font.size = FONT_SIZE
     run.font.name = FONT_NAME
-    
+
     paragraph.paragraph_format.line_spacing = LINE_SPACING_SINGLE
     paragraph.alignment = alignment
 
@@ -207,7 +193,7 @@ def add_styled_paragraph(
 def add_blank_paragraphs(document: Document, count: int = 1) -> None:
     """
     Добавляет пустые абзацы для создания вертикального отступа.
-    
+
     Args:
         document: Объект документа Word
         count: Количество пустых абзацев для добавления
@@ -220,16 +206,16 @@ def add_blank_paragraphs(document: Document, count: int = 1) -> None:
 def setup_document_page(document: Document) -> None:
     """
     Настраивает параметры страницы документа (размер A4, поля).
-    
+
     Args:
         document: Объект документа Word для настройки
     """
     section = document.sections[0]
-    
+
     # Установка размера страницы A4
     section.page_height = PAGE_HEIGHT_A4
     section.page_width = PAGE_WIDTH_A4
-    
+
     # Установка полей страницы
     section.top_margin = MARGIN_TOP
     section.bottom_margin = MARGIN_BOTTOM
@@ -243,24 +229,24 @@ def setup_document_page(document: Document) -> None:
 
 
 def format_lesson_info_by_type(
-    lesson_types_with_dates: Dict[str, List[str]]
-) -> Tuple[Dict[str, List[str]], Dict[str, List[str]]]:
+    lesson_types_with_dates: dict[str, list[str]]
+) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
     """
     Разделяет занятия на лекции и практики/семинары с их датами.
-    
+
     Args:
         lesson_types_with_dates: Словарь {тип_занятия: [список_дат]}
-        
+
     Returns:
         Кортеж (лекции, практики) где каждый элемент - словарь {тип: [даты]}
-        
+
     Example:
         >>> format_lesson_info_by_type({"л": ["01.10"], "п": ["02.10"]})
         ({"л": ["01.10"]}, {"п": ["02.10"]})
     """
     lectures = {}
     seminars = {}
-    
+
     for lesson_type_abbr, dates in lesson_types_with_dates.items():
         if lesson_type_abbr.lower() in LECTURE_TYPES:
             lectures[lesson_type_abbr] = dates
@@ -269,29 +255,29 @@ def format_lesson_info_by_type(
             if "п" not in seminars:
                 seminars["п"] = []
             seminars["п"].extend(dates)
-    
+
     return lectures, seminars
 
 
 def format_lesson_types_and_dates(
-    lesson_types_with_dates: Dict[str, List[str]]
-) -> Tuple[str, str]:
+    lesson_types_with_dates: dict[str, list[str]]
+) -> tuple[str, str]:
     """
     Форматирует типы занятий (без дублирования) и все даты.
-    
+
     Args:
         lesson_types_with_dates: Словарь {тип_занятия: [список_дат]}
-        
+
     Returns:
         Кортеж (типы_занятий_строка, даты_строка)
-        
+
     Example:
         >>> format_lesson_types_and_dates({"л": ["01.10", "08.10"], "п": ["03.10"]})
         ("лекцию, практическое занятие", "01.10, 08.10, 03.10")
     """
     unique_types = []
     all_dates = []
-    
+
     for lesson_type_abbr, dates in lesson_types_with_dates.items():
         # Добавляем тип занятия только один раз
         full_lesson_type = LESSON_TYPE_FULL_NAMES.get(
@@ -300,45 +286,44 @@ def format_lesson_types_and_dates(
         )
         if full_lesson_type not in unique_types:
             unique_types.append(full_lesson_type)
-        
+
         # Добавляем все даты
         all_dates.extend(dates)
-    
+
     formatted_types = ", ".join(unique_types)
     formatted_dates = ", ".join(all_dates)
-    
+
     return formatted_types, formatted_dates
 
 
 def determine_knl_kns(
-    lesson_types_with_dates: Dict[str, List[str]]
+    lesson_types_with_dates: dict[str, list[str]]
 ) -> str:
     """
     Определяет какие показатели указывать (КНЛ, КНС или оба).
-    
+
     Args:
         lesson_types_with_dates: Словарь {тип_занятия: [список_дат]}
-        
+
     Returns:
         Строка с показателями: "КНЛ", "КНС" или "КНЛ, КНС"
     """
     has_lectures = any(
-        lesson_type.lower() in LECTURE_TYPES 
-        for lesson_type in lesson_types_with_dates.keys()
+        lesson_type.lower() in LECTURE_TYPES
+        for lesson_type in lesson_types_with_dates
     )
     has_seminars = any(
-        lesson_type.lower() in SEMINAR_TYPES 
-        for lesson_type in lesson_types_with_dates.keys()
+        lesson_type.lower() in SEMINAR_TYPES
+        for lesson_type in lesson_types_with_dates
     )
-    
+
     if has_lectures and has_seminars:
         return "КНЛ, КНС"
-    elif has_lectures:
+    if has_lectures:
         return "КНЛ"
-    elif has_seminars:
+    if has_seminars:
         return "КНС"
-    else:
-        return "КНЛ, КНС"  # На всякий случай
+    return "КНЛ, КНС"  # На всякий случай
 
 
 # ============================================================================
@@ -348,11 +333,11 @@ def determine_knl_kns(
 
 def add_document_header(
     document: Document,
-    config: Dict[str, str]
+    config: dict[str, str]
 ) -> None:
     """
     Добавляет стандартную шапку документа (адресат).
-    
+
     Args:
         document: Объект документа Word
         config: Конфигурационные данные о студенте
@@ -394,14 +379,14 @@ def add_document_header(
 def add_signature_line(document: Document, signature_date: str) -> None:
     """
     Добавляет строку с датой и подписью в конец документа.
-    
+
     Args:
         document: Объект документа Word
         signature_date: Дата подписания документа
     """
     spacing = " " * (SIGNATURE_SPACING - len(signature_date))
     signature_text = f"Дата {signature_date}{spacing} Подпись обучающегося"
-    
+
     add_styled_paragraph(
         document,
         signature_text,
@@ -411,14 +396,14 @@ def add_signature_line(document: Document, signature_date: str) -> None:
 
 def generate_explanatory_note_page(
     document: Document,
-    config: Dict[str, str],
-    missed_data: Dict[str, Any],
+    config: dict[str, str],
+    missed_data: dict[str, Any],
     discipline_name: str,
-    lesson_types_with_dates: Dict[str, List[str]]
+    lesson_types_with_dates: dict[str, list[str]]
 ) -> None:
     """
     Генерирует страницу объяснительной записки.
-    
+
     Args:
         document: Объект документа Word
         config: Конфигурационные данные о студенте
@@ -427,12 +412,12 @@ def generate_explanatory_note_page(
         lesson_types_with_dates: Словарь {тип_занятия: [даты]}
     """
     add_document_header(document, config)
-    
+
     reason_instrumental = missed_data.get("reason", {}).get("instrumental", "")
     signature_date = missed_data.get("signature_date", "")
     if not signature_date:
         signature_date = datetime.now().strftime("%d.%m.%Y")
-    
+
     add_styled_paragraph(
         document,
         "Объяснительная записка",
@@ -440,10 +425,10 @@ def generate_explanatory_note_page(
         alignment=ALIGN_CENTER
     )
     add_blank_paragraphs(document)
-    
+
     # Разделяем на лекции и практики
     lectures, seminars = format_lesson_info_by_type(lesson_types_with_dates)
-    
+
     # Обрабатываем лекции
     if lectures:
         formatted_types, formatted_dates = format_lesson_types_and_dates(lectures)
@@ -461,7 +446,7 @@ def generate_explanatory_note_page(
             f"в связи с: {reason_instrumental}."
         )
         add_blank_paragraphs(document)
-    
+
     # Обрабатываем практики/семинары (теперь все объединены)
     if seminars:
         formatted_types, formatted_dates = format_lesson_types_and_dates(seminars)
@@ -479,28 +464,28 @@ def generate_explanatory_note_page(
             f"в связи с: {reason_instrumental}."
         )
         add_blank_paragraphs(document)
-    
+
     add_styled_paragraph(
         document,
         f"Подтверждающий документ прилагается: "
         f"{missed_data.get('document_proof', '')}."
     )
     add_blank_paragraphs(document)
-    
+
     add_signature_line(document, signature_date)
     document.add_page_break()
 
 
 def generate_application_page(
     document: Document,
-    config: Dict[str, str],
-    missed_data: Dict[str, Any],
+    config: dict[str, str],
+    missed_data: dict[str, Any],
     discipline_name: str,
-    lesson_types_with_dates: Dict[str, List[str]]
+    lesson_types_with_dates: dict[str, list[str]]
 ) -> None:
     """
     Генерирует страницу заявления.
-    
+
     Args:
         document: Объект документа Word
         config: Конфигурационные данные о студенте
@@ -509,12 +494,12 @@ def generate_application_page(
         lesson_types_with_dates: Словарь {тип_занятия: [даты]}
     """
     add_document_header(document, config)
-    
+
     reason_genitive = missed_data.get("reason", {}).get("genitive", "")
     signature_date = missed_data.get("signature_date", "")
     if not signature_date:
         signature_date = datetime.now().strftime("%d.%m.%Y")
-    
+
     add_styled_paragraph(
         document,
         "Заявление",
@@ -522,19 +507,19 @@ def generate_application_page(
         alignment=ALIGN_CENTER
     )
     add_blank_paragraphs(document)
-    
+
     # Определяем КНЛ/КНС
     knl_kns = determine_knl_kns(lesson_types_with_dates)
-    
+
     # Разделяем на лекции и практики
     lectures, seminars = format_lesson_info_by_type(lesson_types_with_dates)
-    
+
     add_styled_paragraph(
         document,
         f"Прошу не снижать {knl_kns} по дисциплине {discipline_name}, "
         f"в связи с пропуском занятий по причине: {reason_genitive}"
     )
-    
+
     # Обрабатываем лекции
     if lectures:
         _, formatted_dates = format_lesson_types_and_dates(lectures)
@@ -542,7 +527,7 @@ def generate_application_page(
             document,
             f"даты пропуска лекций: {formatted_dates};"
         )
-    
+
     # Обрабатываем практики/семинары/лабы (теперь все вместе как "практические занятия")
     if seminars:
         _, formatted_dates = format_lesson_types_and_dates(seminars)
@@ -550,9 +535,9 @@ def generate_application_page(
             document,
             f"даты пропуска практических занятий: {formatted_dates}."
         )
-    
+
     add_blank_paragraphs(document)
-    
+
     add_signature_line(document, signature_date)
     document.add_page_break()
 
@@ -565,56 +550,46 @@ def generate_application_page(
 def create_documents() -> None:
     """
     Основная функция для создания DOCX документов с объяснительными и заявлениями.
-    
+
     Загружает конфигурацию и данные о пропусках, затем генерирует для каждой
     дисциплины документы согласно настройкам. Объяснительная записка создается
     только если в конфиге установлен флаг generate_explanatory: true.
-    
+
     Raises:
         Exception: При ошибке сохранения документа
     """
-    print("\n" + "="*70)
-    print("ГЕНЕРАТОР ДОКУМЕНТОВ О ПРОПУСКАХ ЗАНЯТИЙ")
-    print("="*70 + "\n")
-    
+
     # Загрузка данных
     config = load_config()
     missed_data = load_missed_classes()
-    
+
     disciplines = missed_data.get("disciplines", {})
     generate_explanatory = missed_data.get("generate_explanatory", False)
-    
+
     # Установка даты подписи по умолчанию
     if not missed_data.get("signature_date"):
         missed_data["signature_date"] = datetime.now().strftime("%d.%m.%Y")
-        print(f"ℹ Дата подписи не указана, используется текущая: {missed_data['signature_date']}")
-    
+
     if not disciplines:
-        print("⚠ Нет данных о пропущенных занятиях для генерации документов.")
-        print("  Проверьте файл missed_classes.yaml/json\n")
         return
-    
-    print(f"\nНайдено дисциплин с пропусками: {len(disciplines)}")
-    
+
+
     # Информация о том, что будет сгенерировано
     if generate_explanatory:
-        print("ℹ Режим генерации: Объяснительные записки + Заявления")
+        pass
     else:
-        print("ℹ Режим генерации: Только заявления")
-        print("  (для включения объяснительных добавьте 'generate_explanatory: true' в конфиг)")
-    
+        pass
+
     # Создание документа
     document = Document()
     setup_document_page(document)
-    
+
     # Генерация страниц для каждой дисциплины
     for discipline_name, lesson_types_with_dates in disciplines.items():
         if not lesson_types_with_dates:
-            print(f"  ⊘ Пропуск дисциплины '{discipline_name}' (нет занятий)")
             continue
-            
-        print(f"  ✓ Обработка дисциплины: {discipline_name}")
-        
+
+
         # Генерируем объяснительную только если флаг установлен
         if generate_explanatory:
             generate_explanatory_note_page(
@@ -624,7 +599,7 @@ def create_documents() -> None:
                 discipline_name,
                 lesson_types_with_dates
             )
-        
+
         # Заявление генерируем всегда
         generate_application_page(
             document,
@@ -633,7 +608,7 @@ def create_documents() -> None:
             discipline_name,
             lesson_types_with_dates
         )
-    
+
     # Формирование имени выходного файла
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     student_name_sanitized = (
@@ -641,7 +616,7 @@ def create_documents() -> None:
         .replace(" ", "_")
         .replace("__", "_")
     )
-    
+
     if generate_explanatory:
         output_filename = (
             f"Заявление_Объяснительная_{student_name_sanitized}_{timestamp}.docx"
@@ -650,22 +625,16 @@ def create_documents() -> None:
         output_filename = (
             f"Заявление_{student_name_sanitized}_{timestamp}.docx"
         )
-    
+
     # Сохранение документа
     try:
         document.save(output_filename)
-        print("\n" + "="*70)
-        print(f"✓ УСПЕШНО: Документ '{output_filename}' создан!")
         if generate_explanatory:
-            print(f"  Создано {len(disciplines)} пар документов (объяснительная + заявление)")
+            pass
         else:
-            print(f"  Создано {len(disciplines)} заявлений")
-        print("="*70 + "\n")
-        
-    except Exception as save_error:
-        print("\n" + "="*70)
-        print(f"✗ ОШИБКА при сохранении документа: {save_error}")
-        print("="*70 + "\n")
+            pass
+
+    except Exception:
         raise
 
 

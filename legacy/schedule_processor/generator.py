@@ -3,11 +3,11 @@
 import datetime
 import logging
 from pathlib import Path
-from typing import List
 from zoneinfo import ZoneInfo
-import openpyxl
+
 import ics
-from openpyxl.styles import Alignment, Font, PatternFill, Border, Side
+import openpyxl
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 
 from .config import RINGS, WEEK_DAYS, WEEK_DAYS_INVERTED, WIDTH_COLUMNS
 from .models import Lesson, ProcessedLesson
@@ -35,8 +35,7 @@ def process_lessons_for_export(
     # 1. Filter by subgroup
     def f_filter(lesson: Lesson) -> bool:
         r: bool = lesson.subgroup == subgroup_name.upper()
-        r = r or lesson.subgroup == subgroup_name.lower()
-        return r
+        return r or lesson.subgroup == subgroup_name.lower()
 
     filtered_lessons = [lesson for lesson in raw_lessons if f_filter(lesson)]
     processed_lessons: dict[tuple[datetime.date, int, str], ProcessedLesson] = {}
@@ -115,7 +114,7 @@ def process_lessons_for_export(
             lesson_number,
             lesson_type_key,
         )
-        if key in processed_lessons.keys():
+        if key in processed_lessons:
             logger.warning("WARN! Overwriting lesson")
         processed_lessons[key] = processed_lesson
 
@@ -130,7 +129,7 @@ def process_lessons_for_export(
     return processed_lessons_list
 
 
-def gen_excel_file(schedule_data: List[ProcessedLesson], subgroup_name: str) -> None:
+def gen_excel_file(schedule_data: list[ProcessedLesson], subgroup_name: str) -> None:
     """
     Generate Excel file from ProcessedLesson objects.
 
@@ -145,7 +144,8 @@ def gen_excel_file(schedule_data: List[ProcessedLesson], subgroup_name: str) -> 
     workbook = openpyxl.Workbook()
     worksheet = workbook.active
     if worksheet is None:
-        raise IndexError("Could not create worksheet in Excel.")
+        msg = "Could not create worksheet in Excel."
+        raise IndexError(msg)
     worksheet.title = "Schedule"
 
     # --- Header ---
@@ -295,7 +295,7 @@ def gen_excel_file(schedule_data: List[ProcessedLesson], subgroup_name: str) -> 
     workbook.save(filename)
 
 
-def gen_ical(schedule_data: List[ProcessedLesson], subgroup_name: str) -> None:
+def gen_ical(schedule_data: list[ProcessedLesson], subgroup_name: str) -> None:
     """
     Generate iCal file from ProcessedLesson objects.
 

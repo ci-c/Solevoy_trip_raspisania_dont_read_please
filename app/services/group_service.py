@@ -1,16 +1,13 @@
-"""
-Сервис для работы с группами студентов.
-"""
+"""Сервис для работы с группами студентов."""
 
 # Используем встроенные типы Python 3.9+
-from typing import Union, Optional, List, Dict, Any
 from loguru import logger
-
-from app.database.session import get_session
-from app.database.models import Group
-from app.utils.validators import validate_group_data, ValidationError
-from app.utils.error_monitor import safe_execute_async, async_error_handler
 from sqlalchemy import select
+
+from app.database.models import Group
+from app.database.session import get_session
+from app.utils.error_monitor import async_error_handler
+from app.utils.validators import ValidationError, validate_group_data
 
 
 class GroupService:
@@ -19,40 +16,39 @@ class GroupService:
     def __init__(self) -> None:
         pass
 
-    async def get_all_groups(self) -> List[Dict[str, str]]:
+    async def get_all_groups(self) -> list[Group]:
         """Получить все группы."""
-        logger.info("Getting all groups (stub)")
-        return []
+        try:
+            async for session in get_session():
+                result = await session.execute(select(Group).order_by(Group.name))
+                return list(result.scalars().all())
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
+            logger.error(f"Error getting all groups: {e}")
+            return []
 
-    async def get_group_by_id(self, group_id: int) -> Optional[Dict[str, str]]:
-        """Получить группу по ID."""
-        logger.info(f"Getting group {group_id} (stub)")
-        return None
+    async def get_group(self, group_id: int) -> Group | None:
+        """Получить группу по ID (для тестов)."""
+        try:
+            async for session in get_session():
+                result = await session.execute(
+                    select(Group).where(Group.id == group_id),
+                )
+                return result.scalar_one_or_none()
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
+            logger.error(f"Error getting group {group_id}: {e}")
+            return None
 
-    async def create_group(self, group_data: dict[str, str]) -> dict[str, str]:
-        """Создать новую группу."""
-        logger.info("Creating group (stub)")
-        return group_data
-
-    async def update_group(self, group_id: int, group_data: dict[str, str]) -> bool:
-        """Обновить группу."""
-        logger.info(f"Updating group {group_id} (stub)")
-        return True
-
-    async def delete_group(self, group_id: int) -> bool:
-        """Удалить группу."""
-        logger.info(f"Deleting group {group_id} (stub)")
-        return True
-
-    async def find_groups_by_number(self, group_number: str) -> list[dict[str, str]]:
-        """Найти группы по номеру."""
-        logger.info(f"Finding groups by number {group_number} (stub)")
-        return []
-
-    async def get_groups_by_faculty(self, faculty: str) -> list[dict[str, str]]:
-        """Получить группы по факультету."""
-        logger.info(f"Getting groups by faculty {faculty} (stub)")
-        return []
+    async def search_groups(self, query: str) -> list[Group]:
+        """Найти группы по номеру/названию."""
+        try:
+            async for session in get_session():
+                result = await session.execute(
+                    select(Group).where(Group.name.like(f"%{query}%")).order_by(Group.name),
+                )
+                return list(result.scalars().all())
+        except Exception as e:
+            logger.error(f"Error searching groups with query '{query}': {e}")
+            return []
 
     async def get_available_faculties(self) -> list[str]:
         """Получить список доступных факультетов из базы данных."""
@@ -69,10 +65,10 @@ class GroupService:
 
             # Если нет, получаем из групп
             async for session in get_session():
-                from sqlalchemy import select, distinct
+                from sqlalchemy import distinct, select
 
                 result = await session.execute(
-                    select(distinct(Group.faculty)).filter(Group.faculty.isnot(None))
+                    select(distinct(Group.faculty)).filter(Group.faculty.isnot(None)),
                 )
                 faculties = [row[0] for row in result.fetchall()]
 
@@ -82,13 +78,13 @@ class GroupService:
 
                 logger.info(f"Found {len(faculties)} faculties from groups")
                 return sorted(faculties)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error getting faculties from database: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
             return None
 
     @async_error_handler(
-        default_return=None, error_message="Failed to find or create group"
+        default_return=None, error_message="Failed to find or create group",
     )
     async def find_or_create_group(self, group_number: str) -> dict[str, str] | None:
         """Найти или создать группу по номеру."""
@@ -106,7 +102,7 @@ class GroupService:
             async for session in get_session():
                 # Ищем существующую группу
                 result = await session.execute(
-                    select(Group).filter(Group.name == group_number)
+                    select(Group).filter(Group.name == group_number),
                 )
 
                 group = result.scalar_one_or_none()
@@ -125,7 +121,7 @@ class GroupService:
                     validation_result = validate_group_data(group_data)
                     if not validation_result.is_valid:
                         logger.error(
-                            f"Group data validation failed: {validation_result.errors}"
+                            f"Group data validation failed: {validation_result.errors}",
                         )
                         return None
 
@@ -145,18 +141,18 @@ class GroupService:
                 session.add(new_group)
                 try:
                     await session.commit()
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001  - catch all for database errors
                     logger.error(f"Failed to commit new group: {e}")
                     return None
 
                 try:
                     await session.refresh(new_group)
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001  - catch all for database errors
                     logger.error(f"Failed to refresh new group after creation: {e}")
                     return None
 
                 logger.info(
-                    f"Created new group {new_group.name} with ID {new_group.id}"
+                    f"Created new group {new_group.name} with ID {new_group.id}",
                 )
 
                 group_data = {
@@ -171,7 +167,7 @@ class GroupService:
                 validation_result = validate_group_data(group_data)
                 if not validation_result.is_valid:
                     logger.error(
-                        f"New group data validation failed: {validation_result.errors}"
+                        f"New group data validation failed: {validation_result.errors}",
                     )
                     return None
 
@@ -186,14 +182,14 @@ class GroupService:
         return None
 
     async def find_or_create_group_with_faculty(
-        self, group_name: str, course: int, faculty_id: int, speciality_id: int
+        self, group_name: str, course: int, faculty_id: int, speciality_id: int,
     ) -> dict[str, object] | None:
         """Найти или создать группу с правильной привязкой к факультету и специальности."""
         try:
             async for session in get_session():
                 # Ищем существующую группу
                 result = await session.execute(
-                    select(Group).where(Group.name == group_name)
+                    select(Group).where(Group.name == group_name),
                 )
                 existing_group = result.scalar_one_or_none()
 
@@ -208,7 +204,7 @@ class GroupService:
                         existing_group.course = course
                         await session.commit()
                         logger.info(
-                            f"Updated group {group_name} with faculty {faculty_id}, speciality {speciality_id}"
+                            f"Updated group {group_name} with faculty {faculty_id}, speciality {speciality_id}",
                         )
 
                     return {
@@ -234,7 +230,7 @@ class GroupService:
                 await session.refresh(new_group)
 
                 logger.info(
-                    f"Created new group {group_name} with faculty {faculty_id}, speciality {speciality_id}"
+                    f"Created new group {group_name} with faculty {faculty_id}, speciality {speciality_id}",
                 )
 
                 return {
@@ -254,12 +250,12 @@ class GroupService:
         """Получить количество групп в базе данных."""
         try:
             async for session in get_session():
-                from sqlalchemy import select, func
+                from sqlalchemy import func, select
 
                 result = await session.execute(select(func.count(Group.id)))
                 count = result.scalar()
                 return count or 0
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error getting groups count: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
         return 0
@@ -269,7 +265,7 @@ class GroupService:
         try:
             async for session in get_session():
                 result = await session.execute(
-                    select(Group).where(Group.faculty_id == faculty_id)
+                    select(Group).where(Group.faculty_id == faculty_id),
                 )
                 groups = result.scalars().all()
 
@@ -284,7 +280,7 @@ class GroupService:
                     for group in groups
                 ]
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error getting groups by faculty {faculty_id}: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
         return []
@@ -294,7 +290,7 @@ class GroupService:
         try:
             async for session in get_session():
                 result = await session.execute(
-                    select(Group).where(Group.id == group_id)
+                    select(Group).where(Group.id == group_id),
                 )
                 group = result.scalar_one_or_none()
 
@@ -308,7 +304,7 @@ class GroupService:
                     }
                 return None
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error getting group by id {group_id}: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
         return None

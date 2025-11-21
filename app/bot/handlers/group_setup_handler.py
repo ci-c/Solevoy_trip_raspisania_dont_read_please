@@ -1,17 +1,12 @@
-"""
-Простой и понятный обработчик настройки группы.
-"""
-
-from typing import Dict, Any
-from loguru import logger
+"""Простой и понятный обработчик настройки группы."""
 
 from aiogram import types
 from aiogram.fsm.context import FSMContext
+from loguru import logger
 
+from app.bot.callbacks import GroupSearchCallback
 from app.bot.states import GroupSetupStates
-from app.bot.keyboards import get_simple_group_keyboard, get_confirm_keyboard
 from app.services.group_service import GroupService
-from app.utils.validation import validate_user_input, ValidationError
 
 
 async def handle_group_command(message: types.Message, state: FSMContext) -> None:
@@ -39,7 +34,7 @@ async def handle_help_command(message: types.Message, state: FSMContext) -> None
 
         await message.answer(text)
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - Error handler catches all exceptions
         logger.error(f"Error in help handler: {e}")
         await message.answer("❌ Ошибка при показе справки")
 
@@ -49,14 +44,14 @@ async def start_group_setup(message: types.Message, state: FSMContext) -> None:
     try:
         await show_faculty_list(message, state)
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - Error handler catches all exceptions
         logger.error(f"Error starting group setup: {e}")
         logger.error(f"Traceback: {e.__traceback__}")
         await message.answer("❌ Ошибка при настройке группы. Попробуйте позже.")
 
 
 async def handle_group_setup_callback(
-    callback: types.CallbackQuery, state: FSMContext
+    callback: types.CallbackQuery, state: FSMContext,
 ) -> None:
     """Обработка callback'ов настройки группы."""
     try:
@@ -98,14 +93,14 @@ async def handle_group_setup_callback(
                                 types.InlineKeyboardButton(
                                     text="📚 Выбрать из списка",
                                     callback_data=GroupSearchCallback(
-                                        action="select_from_list"
+                                        action="select_from_list",
                                     ).pack(),
-                                )
-                            ]
-                        ]
+                                ),
+                            ],
+                        ],
                     ),
                 )
-            except Exception as edit_error:
+            except Exception as edit_error:  # noqa: BLE001 - Fallback for any edit failure
                 logger.warning(f"Failed to edit message, sending new one: {edit_error}")
                 await callback.message.answer(
                     "🏛️ **Настройка группы**\n\n"
@@ -116,18 +111,18 @@ async def handle_group_setup_callback(
                                 types.InlineKeyboardButton(
                                     text="📚 Выбрать из списка",
                                     callback_data=GroupSearchCallback(
-                                        action="select_from_list"
+                                        action="select_from_list",
                                     ).pack(),
-                                )
-                            ]
-                        ]
+                                ),
+                            ],
+                        ],
                     ),
                 )
             await state.clear()
         else:
             await callback.answer("Неизвестное действие", show_alert=True)
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - Error handler catches all exceptions
         logger.error(f"Error handling group setup callback: {e}")
         logger.error(f"Traceback: {e.__traceback__}")
         await callback.answer("❌ Ошибка при обработке запроса", show_alert=True)
@@ -135,7 +130,7 @@ async def handle_group_setup_callback(
 
 
 async def select_group(
-    callback: types.CallbackQuery, state: FSMContext, group_id: str
+    callback: types.CallbackQuery, state: FSMContext, group_id: str,
 ) -> None:
     """Выбрать группу и завершить настройку."""
     try:
@@ -168,36 +163,36 @@ async def select_group(
             inline_keyboard=[
                 [
                     types.InlineKeyboardButton(
-                        text="📅 Расписание на сегодня", callback_data="schedule:today"
-                    )
+                        text="📅 Расписание на сегодня", callback_data="schedule:today",
+                    ),
                 ],
                 [
                     types.InlineKeyboardButton(
-                        text="📅 Расписание на неделю", callback_data="schedule:week"
-                    )
+                        text="📅 Расписание на неделю", callback_data="schedule:week",
+                    ),
                 ],
                 [
                     types.InlineKeyboardButton(
-                        text="📊 Мои оценки", callback_data="grades:view"
-                    )
+                        text="📊 Мои оценки", callback_data="grades:view",
+                    ),
                 ],
                 [
                     types.InlineKeyboardButton(
-                        text="⚙️ Настройки", callback_data="settings:main"
-                    )
+                        text="⚙️ Настройки", callback_data="settings:main",
+                    ),
                 ],
-            ]
+            ],
         )
 
         try:
             await callback.message.edit_text(text, reply_markup=keyboard)
-        except Exception as edit_error:
+        except Exception as edit_error:  # noqa: BLE001 - Fallback for any edit failure
             logger.warning(f"Failed to edit message, sending new one: {edit_error}")
             await callback.message.answer(text, reply_markup=keyboard)
         await state.clear()
         await callback.answer("✅ Группа настроена!")
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - Error handler catches all exceptions
         logger.error(f"Error selecting group: {e}")
         logger.error(f"Traceback: {e.__traceback__}")
         await callback.answer("❌ Ошибка при выборе группы", show_alert=True)
@@ -223,16 +218,16 @@ async def show_faculty_list(message: types.Message, state: FSMContext) -> None:
 
         # Создаем простой список факультетов (ограничиваем до 6)
         faculty_buttons = []
-        for i, faculty in enumerate(faculties[:6]):  # Показываем первые 6
+        for _i, faculty in enumerate(faculties[:6]):  # Показываем первые 6
             faculty_buttons.append(
                 [
                     types.InlineKeyboardButton(
                         text=faculty["name"],
                         callback_data=GroupSearchCallback(
-                            action="select_faculty", value=str(faculty["id"])
+                            action="select_faculty", value=str(faculty["id"]),
                         ).pack(),
-                    )
-                ]
+                    ),
+                ],
             )
 
         # Добавляем кнопку "Назад"
@@ -241,20 +236,20 @@ async def show_faculty_list(message: types.Message, state: FSMContext) -> None:
                 types.InlineKeyboardButton(
                     text="⬅️ Назад",
                     callback_data=GroupSearchCallback(action="back_to_start").pack(),
-                )
-            ]
+                ),
+            ],
         )
 
         keyboard = types.InlineKeyboardMarkup(inline_keyboard=faculty_buttons)
 
         try:
             await message.edit_text(text, reply_markup=keyboard)
-        except Exception:
+        except Exception:  # noqa: BLE001 - Fallback for any edit failure
             await message.answer(text, reply_markup=keyboard)
 
         await state.set_state(GroupSetupStates.selecting_faculty)
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - Error handler catches all exceptions
         logger.error(f"Error showing faculty list: {e}")
         await message.answer("❌ Ошибка при загрузке факультетов. Попробуйте позже.")
 
@@ -271,12 +266,12 @@ async def handle_schedule_callback(callback: types.CallbackQuery, action: str) -
 
         try:
             await callback.message.edit_text(text)
-        except Exception as edit_error:
+        except Exception as edit_error:  # noqa: BLE001 - Fallback for any edit failure
             logger.warning(f"Failed to edit message, sending new one: {edit_error}")
             await callback.message.answer(text)
         await callback.answer()
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - Error handler catches all exceptions
         logger.error(f"Error handling schedule callback: {e}")
         await callback.answer("❌ Ошибка при получении расписания", show_alert=True)
 
@@ -291,12 +286,12 @@ async def handle_grades_callback(callback: types.CallbackQuery, action: str) -> 
 
         try:
             await callback.message.edit_text(text)
-        except Exception as edit_error:
+        except Exception as edit_error:  # noqa: BLE001 - Fallback for any edit failure
             logger.warning(f"Failed to edit message, sending new one: {edit_error}")
             await callback.message.answer(text)
         await callback.answer()
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - Error handler catches all exceptions
         logger.error(f"Error handling grades callback: {e}")
         await callback.answer("❌ Ошибка при получении оценок", show_alert=True)
 
@@ -311,29 +306,28 @@ async def handle_settings_callback(callback: types.CallbackQuery, action: str) -
 
         try:
             await callback.message.edit_text(text)
-        except Exception as edit_error:
+        except Exception as edit_error:  # noqa: BLE001 - Fallback for any edit failure
             logger.warning(f"Failed to edit message, sending new one: {edit_error}")
             await callback.message.answer(text)
         await callback.answer()
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - Error handler catches all exceptions
         logger.error(f"Error handling settings callback: {e}")
         await callback.answer("❌ Ошибка при открытии настроек", show_alert=True)
 
 
-async def register_group_setup_handlers(dp):
+async def register_group_setup_handlers(dp) -> None:
     """Регистрация обработчиков настройки группы."""
     # Callback обработчики
     dp.callback_query.register(handle_group_setup_callback)
 
 
 async def show_faculty_groups(
-    callback: types.CallbackQuery, state: FSMContext, faculty_id: str
+    callback: types.CallbackQuery, state: FSMContext, faculty_id: str,
 ) -> None:
     """Показать группы выбранного факультета."""
     try:
         logger.info(f"Showing groups for faculty {faculty_id}")
-        from app.services.group_search_service import GroupSearchService
         from app.services.schedule_service import ScheduleService
 
         # Получаем информацию о факультете
@@ -353,7 +347,7 @@ async def show_faculty_groups(
         groups = await group_service.get_groups_by_faculty(int(faculty_id))
 
         logger.info(
-            f"Found {len(groups) if groups else 0} groups for faculty {faculty_id}"
+            f"Found {len(groups) if groups else 0} groups for faculty {faculty_id}",
         )
 
         text = f"🏛️ **{faculty_name}**\n\n"
@@ -362,18 +356,17 @@ async def show_faculty_groups(
             text += f"📚 **Доступные группы ({len(groups)}):**\n\n"
 
             # Создаем кнопки для групп
-            group_buttons = []
-            for group in groups:
-                group_buttons.append(
-                    [
-                        types.InlineKeyboardButton(
-                            text=f"{group['name']} (курс {group['course']})",
-                            callback_data=GroupSearchCallback(
-                                action="select_group", group_id=int(group["id"])
-                            ).pack(),
-                        )
-                    ]
-                )
+            group_buttons = [
+                [
+                    types.InlineKeyboardButton(
+                        text=f"{group['name']} (курс {group['course']})",
+                        callback_data=GroupSearchCallback(
+                            action="select_group", group_id=int(group["id"]),
+                        ).pack(),
+                    ),
+                ]
+                for group in groups
+            ]
 
             # Добавляем кнопку "Назад"
             group_buttons.append(
@@ -381,10 +374,10 @@ async def show_faculty_groups(
                     types.InlineKeyboardButton(
                         text="⬅️ Назад к факультетам",
                         callback_data=GroupSearchCallback(
-                            action="select_from_list"
+                            action="select_from_list",
                         ).pack(),
-                    )
-                ]
+                    ),
+                ],
             )
 
             keyboard = types.InlineKeyboardMarkup(inline_keyboard=group_buttons)
@@ -399,28 +392,28 @@ async def show_faculty_groups(
                         types.InlineKeyboardButton(
                             text="🔄 Обновить",
                             callback_data=GroupSearchCallback(
-                                action="select_faculty", value=faculty_id
+                                action="select_faculty", value=faculty_id,
                             ).pack(),
-                        )
+                        ),
                     ],
                     [
                         types.InlineKeyboardButton(
                             text="⬅️ Назад к факультетам",
                             callback_data=GroupSearchCallback(
-                                action="select_from_list"
+                                action="select_from_list",
                             ).pack(),
-                        )
+                        ),
                     ],
-                ]
+                ],
             )
 
         try:
             await callback.message.edit_text(text, reply_markup=keyboard)
-        except Exception as edit_error:
+        except Exception as edit_error:  # noqa: BLE001 - Fallback for any edit failure
             logger.warning(f"Failed to edit message, sending new one: {edit_error}")
             await callback.message.answer(text, reply_markup=keyboard)
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - Error handler catches all exceptions
         logger.error(f"Error showing faculty groups: {e}")
         logger.error(f"Traceback: {e.__traceback__}")
         await callback.message.answer("❌ Ошибка при загрузке групп. Попробуйте позже.")

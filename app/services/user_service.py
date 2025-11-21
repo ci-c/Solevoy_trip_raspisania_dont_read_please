@@ -1,19 +1,18 @@
-"""
-Сервис для работы с пользователями и профилями через SQLAlchemy.
-"""
+"""Сервис для работы с пользователями и профилями через SQLAlchemy."""
 
-from datetime import datetime, timezone
-from typing import List, Optional
+from datetime import UTC, datetime
 
 from loguru import logger
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 
-from app.database.session import get_session
 from app.database.models import (
     User as UserModel,
+)
+from app.database.models import (
     UserProfile as UserProfileModel,
 )
-from app.models.user import User, StudentProfile, Subscription, AccessLevel
+from app.database.session import get_session
+from app.models.user import AccessLevel, StudentProfile, Subscription, User
 
 
 class UserService:
@@ -22,17 +21,28 @@ class UserService:
     async def create_user(
         self,
         telegram_id: int,
-        telegram_username: Optional[str] = None,
-        full_name: Optional[str] = None,
+        telegram_username: str | None = None,
+        full_name: str | None = None,
     ) -> User:
         """Создать нового пользователя."""
-        now = datetime.now(tz=timezone.utc)
+        # Validate input
+        if telegram_id is None:
+            msg = "telegram_id cannot be None"
+            raise ValueError(msg)
+        if not isinstance(telegram_id, int):
+            msg = "telegram_id must be an integer"
+            raise TypeError(msg)
+        if telegram_id < 0:
+            msg = "telegram_id cannot be negative"
+            raise ValueError(msg)
+
+        now = datetime.now(tz=UTC)
 
         stored_now = now.replace(tzinfo=None)
 
         async for session in get_session():
             existing_result = await session.execute(
-                select(UserModel).where(UserModel.telegram_id == telegram_id)
+                select(UserModel).where(UserModel.telegram_id == telegram_id),
             )
             existing_user = existing_result.scalar_one_or_none()
 
@@ -48,7 +58,7 @@ class UserService:
                 username=telegram_username,
                 first_name=full_name or "",
                 last_name=None,
-                access_level=AccessLevel.GUEST.value,
+                access_level=AccessLevel.BASIC.value,  # New users get BASIC access
                 is_active=True,
                 last_seen=stored_now,
             )
@@ -60,12 +70,13 @@ class UserService:
             user = self._to_user_model(db_user)
             logger.info("Created new user %s (telegram_id: %s)", user.id, telegram_id)
             return user
+        return None
 
-    async def get_user_by_telegram_id(self, telegram_id: int) -> Optional[User]:
+    async def get_user_by_telegram_id(self, telegram_id: int) -> User | None:
         """Получить пользователя по Telegram ID."""
         async for session in get_session():
             result = await session.execute(
-                select(UserModel).where(UserModel.telegram_id == telegram_id)
+                select(UserModel).where(UserModel.telegram_id == telegram_id),
             )
             db_user = result.scalar_one_or_none()
 
@@ -73,30 +84,31 @@ class UserService:
                 return None
 
             return self._to_user_model(db_user)
+        return None
 
-    async def update_user_activity(self, user_id: int) -> None:
-        """Обновить время последней активности пользователя."""
-        now = datetime.now(tz=timezone.utc)
+    async def update_user_activity(self, telegram_id: int) -> None:
+        """Обновить время последней активности пользователя по telegram_id."""
+        now = datetime.now(tz=UTC)
         async for session in get_session():
             result = await session.execute(
-                select(UserModel).where(UserModel.id == user_id)
+                select(UserModel).where(UserModel.telegram_id == telegram_id),
             )
             db_user = result.scalar_one_or_none()
             if not db_user:
-                logger.warning("User %s not found for activity update", user_id)
+                logger.warning("User with telegram_id %s not found for activity update", telegram_id)
                 return
 
-            db_user.last_seen = now.astimezone(timezone.utc).replace(tzinfo=None)
+            db_user.last_seen = now.astimezone(UTC).replace(tzinfo=None)
             await session.commit()
-            logger.debug("Updated last_seen for user %s", user_id)
+            logger.debug("Updated last_seen for user telegram_id %s", telegram_id)
 
     async def update_user_access_level(
-        self, user_id: int, access_level: AccessLevel
+        self, user_id: int, access_level: AccessLevel,
     ) -> bool:
         """Обновить уровень доступа пользователя."""
         async for session in get_session():
             result = await session.execute(
-                select(UserModel).where(UserModel.id == user_id)
+                select(UserModel).where(UserModel.id == user_id),
             )
             db_user = result.scalar_one_or_none()
             if not db_user:
@@ -111,12 +123,13 @@ class UserService:
                 access_level.value,
             )
             return True
+        return None
 
-    async def get_user_profile(self, user_id: int) -> Optional[StudentProfile]:
+    async def get_user_profile(self, user_id: int) -> StudentProfile | None:
         """Получить профиль студента."""
         async for session in get_session():
             result = await session.execute(
-                select(UserProfileModel).where(UserProfileModel.user_id == user_id)
+                select(UserProfileModel).where(UserProfileModel.user_id == user_id),
             )
             profile = result.scalar_one_or_none()
             if not profile:
@@ -131,14 +144,15 @@ class UserService:
                 created_at=profile.created_at,
                 updated_at=profile.updated_at,
             )
+        return None
 
     async def create_or_update_profile(self, profile: StudentProfile) -> StudentProfile:
         """Создать или обновить профиль студента."""
         async for session in get_session():
             result = await session.execute(
                 select(UserProfileModel).where(
-                    UserProfileModel.user_id == profile.user_id
-                )
+                    UserProfileModel.user_id == profile.user_id,
+                ),
             )
             db_profile = result.scalar_one_or_none()
 
@@ -168,8 +182,9 @@ class UserService:
                 created_at=db_profile.created_at,
                 updated_at=db_profile.updated_at,
             )
+        return None
 
-    async def get_user_subscription(self, user_id: int) -> Optional[Subscription]:
+    async def get_user_subscription(self, user_id: int) -> Subscription | None:
         """Получить активную подписку пользователя."""
         # TODO: реализовать через SQLAlchemy
         return None
@@ -183,8 +198,20 @@ class UserService:
         """Обновить группу пользователя."""
         try:
             async for session in get_session():
+                # First, check if group exists
+                from app.database.models import Group
+
+                group_result = await session.execute(
+                    select(Group).where(Group.id == group_id),
+                )
+                group = group_result.scalar_one_or_none()
+                if not group:
+                    msg = f"Group with ID {group_id} does not exist"
+                    raise ValueError(msg)
+
+                # Then update user
                 result = await session.execute(
-                    select(UserModel).where(UserModel.telegram_id == telegram_id)
+                    select(UserModel).where(UserModel.telegram_id == telegram_id),
                 )
                 user = result.scalar_one_or_none()
 
@@ -193,31 +220,32 @@ class UserService:
                     await session.commit()
                     logger.info(f"Updated user {telegram_id} group to {group_id}")
                     return True
-                else:
-                    logger.warning(f"User {telegram_id} not found for group update")
-                    return False
+                logger.warning(f"User {telegram_id} not found for group update")
+                return False
 
         except Exception as e:
             logger.error(f"Error updating user group: {e}")
             logger.error(f"Traceback: {e.__traceback__}")
-        return False
+            raise  # Re-raise to let test catch it
 
     async def get_all_users(
-        self, limit: int = 100, offset: int = 0
-    ) -> List[User] | None:
+        self, limit: int = 100, offset: int = 0,
+    ) -> list[User] | None:
         """Получить список всех пользователей."""
         async for session in get_session():
             result = await session.execute(
-                select(UserModel).offset(offset).limit(limit)
+                select(UserModel).offset(offset).limit(limit),
             )
             db_users = result.scalars().all()
             return [self._to_user_model(user) for user in db_users]
+        return None
 
     async def get_users_count(self) -> int:
         """Получить общее количество пользователей."""
         async for session in get_session():
             result = await session.execute(select(func.count(UserModel.id)))
             return result.scalar_one()
+        return None
 
     def _to_user_model(self, db_user: UserModel) -> User:
         """Преобразовать SQLAlchemy-модель пользователя в Pydantic-модель."""
@@ -231,7 +259,7 @@ class UserService:
             level = AccessLevel.GUEST
 
         last_seen = (
-            db_user.last_seen.replace(tzinfo=timezone.utc)
+            db_user.last_seen.replace(tzinfo=UTC)
             if db_user.last_seen
             else None
         )
@@ -243,7 +271,31 @@ class UserService:
             full_name=full_name,
             access_level=level,
             is_active=db_user.is_active,
+            selected_group_id=db_user.group_id,
             last_seen=last_seen,
             created_at=db_user.created_at,
             updated_at=db_user.updated_at,
         )
+
+    async def get_or_create_user(
+        self,
+        telegram_id: int,
+        telegram_username: str | None = None,
+        full_name: str | None = None,
+    ) -> User:
+        """Получить существующего пользователя или создать нового."""
+        # Сначала пытаемся получить
+        existing_user = await self.get_user_by_telegram_id(telegram_id)
+        if existing_user:
+            return existing_user
+
+        # Если не найден, создаем нового
+        return await self.create_user(telegram_id, telegram_username, full_name)
+
+    async def get_user(self, telegram_id: int) -> User | None:
+        """Получить пользователя по telegram_id (alias для get_user_by_telegram_id)."""
+        return await self.get_user_by_telegram_id(telegram_id)
+
+    async def set_user_group(self, telegram_id: int, group_id: int) -> bool:
+        """Установить группу пользователя (alias для update_user_group)."""
+        return await self.update_user_group(telegram_id, group_id)

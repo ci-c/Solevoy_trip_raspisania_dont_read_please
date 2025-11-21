@@ -1,11 +1,9 @@
-"""
-Сервис для работы с системой инвайтов.
-"""
+"""Сервис для работы с системой инвайтов."""
 
 import secrets
 import string
-from datetime import datetime, timedelta
-from typing import List, Optional, Union
+from datetime import UTC, datetime, timedelta
+
 from loguru import logger
 
 from app.models.invitation import Invitation
@@ -15,7 +13,7 @@ from app.models.user import AccessLevel
 class InvitationService:
     """Сервис для управления инвайтами."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         # self.db removed - using get_session()
         pass
 
@@ -28,9 +26,9 @@ class InvitationService:
         self,
         created_by: int,
         access_level: AccessLevel = AccessLevel.BASIC,
-        max_uses: Optional[int] = None,
-        expires_in_days: Optional[int] = None,
-        metadata: Optional[str] = None,
+        max_uses: int | None = None,
+        expires_in_days: int | None = None,
+        metadata: str | None = None,
     ) -> Invitation:
         """Создать новый инвайт."""
         logger.info(f"Creating invitation for user {created_by}")
@@ -45,14 +43,14 @@ class InvitationService:
             access_level=access_level,
             max_uses=max_uses,
             current_uses=0,
-            expires_at=datetime.now() + timedelta(days=expires_in_days or 30),
+            expires_at=datetime.now(tz=UTC) + timedelta(days=expires_in_days or 30),
             is_active=True,
             metadata=metadata,
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            created_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )
 
-    async def validate_invitation(self, code: str) -> Optional[Invitation]:
+    async def validate_invitation(self, code: str) -> Invitation | None:
         """Проверить валидность инвайта."""
         logger.info(f"Validating invitation code: {code}")
 
@@ -66,7 +64,7 @@ class InvitationService:
         # TODO: Реализовать через SQLAlchemy ORM
         return True
 
-    async def get_user_invitations(self, user_id: int) -> Union[List[Invitation], None]:
+    async def get_user_invitations(self, user_id: int) -> list[Invitation] | None:
         """Получить инвайты пользователя."""
         logger.info(f"Getting invitations for user {user_id}")
 

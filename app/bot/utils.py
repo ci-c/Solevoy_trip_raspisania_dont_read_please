@@ -1,15 +1,14 @@
-"""
-Утилиты для бота.
-"""
+"""Утилиты для бота."""
 
 import asyncio
-from loguru import logger
+
 from aiogram.types import Message
+from loguru import logger
 
 
 async def show_loading_spinner(
-    message: Message, text_prefix: str = "⏳ Загрузка", duration: int = 10
-):
+    message: Message, text_prefix: str = "⏳ Загрузка", duration: int = 10,
+) -> None:
     """Показать спиннер во время загрузки."""
     spinner_frames = [
         "🕐",
@@ -42,7 +41,7 @@ async def show_loading_spinner(
             try:
                 progress = f"{step_idx + 1}/{len(steps)}"
                 await message.edit_text(
-                    f"{frame} {text_prefix}\n📊 {progress} | {step_text}"
+                    f"{frame} {text_prefix}\n📊 {progress} | {step_text}",
                 )
                 await asyncio.sleep(0.5)
             except Exception as e:
@@ -65,7 +64,7 @@ def validate_group_number(group_number: str) -> tuple[bool, str]:
 
 
 def truncate_text(
-    text: str, max_length: int = 4000, suffix: str = "... (сокращено)"
+    text: str, max_length: int = 4000, suffix: str = "... (сокращено)",
 ) -> str:
     """Обрезать текст до максимальной длины."""
     if len(text) <= max_length:

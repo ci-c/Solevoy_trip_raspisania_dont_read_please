@@ -1,14 +1,14 @@
 import datetime
 from pathlib import Path
-from typing import List
 from zoneinfo import ZoneInfo
+
 import ics
 import rich
 from config import RINGS
 from post_lesson import PostLesson
 
 
-def gen_ical(schedule_data: List[PostLesson], subgroup_name: str) -> None:
+def gen_ical(schedule_data: list[PostLesson], subgroup_name: str) -> None:
     """
     Генерирует файл iCal из списка объектов PostLesson.
 

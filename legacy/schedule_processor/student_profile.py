@@ -1,9 +1,8 @@
 """Модуль для работы с профилями студентов."""
 
-from dataclasses import dataclass, asdict
-from typing import Optional
-from pathlib import Path
 import json
+from dataclasses import asdict, dataclass
+from pathlib import Path
 
 
 @dataclass
@@ -30,14 +29,14 @@ class StudentProfile:
 
     # Дополнительные данные
     preferred_format: str = "xlsx"  # Предпочитаемый формат файлов
-    created_at: Optional[str] = None
-    updated_at: Optional[str] = None
+    created_at: str | None = None
+    updated_at: str | None = None
 
 
 class StudentProfileManager:
     """Менеджер для работы с профилями студентов."""
 
-    def __init__(self, storage_path: Path):
+    def __init__(self, storage_path: Path) -> None:
         self.storage_path = Path(storage_path)
         self.storage_path.mkdir(parents=True, exist_ok=True)
 
@@ -45,7 +44,7 @@ class StudentProfileManager:
         """Получить путь к файлу профиля."""
         return self.storage_path / f"profile_{user_id}.json"
 
-    def load_profile(self, user_id: int) -> Optional[StudentProfile]:
+    def load_profile(self, user_id: int) -> StudentProfile | None:
         """Загрузить профиль студента."""
         profile_file = self.get_profile_file(user_id)
 
@@ -53,7 +52,7 @@ class StudentProfileManager:
             return None
 
         try:
-            with open(profile_file, "r", encoding="utf-8") as f:
+            with open(profile_file, encoding="utf-8") as f:
                 data = json.load(f)
             return StudentProfile(**data)
         except Exception:

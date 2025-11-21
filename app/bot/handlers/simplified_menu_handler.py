@@ -1,20 +1,18 @@
-"""
-Упрощенный обработчик главного меню без поиска расписаний.
-"""
+"""Упрощенный обработчик главного меню без поиска расписаний."""
 
-from typing import List, Optional
+
 from aiogram import Dispatcher, types
 from aiogram.fsm.context import FSMContext
 from loguru import logger
 
 from app.bot.callbacks import MenuCallback
-from app.bot.keyboards import get_main_menu_keyboard, get_group_selection_keyboard
-from app.services.user_service import UserService
+from app.bot.keyboards import get_group_selection_keyboard, get_main_menu_keyboard
 from app.services.schedule_service import ScheduleService
+from app.services.user_service import UserService
 
 
 async def handle_menu_action(
-    callback: types.CallbackQuery, callback_data: MenuCallback, state: FSMContext
+    callback: types.CallbackQuery, callback_data: MenuCallback, state: FSMContext,
 ) -> None:
     """Обработчик действий главного меню."""
     await callback.answer()
@@ -63,8 +61,9 @@ async def handle_menu_action(
                 reply_markup=get_main_menu_keyboard(user_profile),
             )
 
-    except Exception as e:
-        logger.error(f"Error handling menu action {action}: {e}")
+    except Exception:  # noqa: BLE001  - catch all for user-facing error handling
+        logger.error("Error in handler")
+
         await callback.message.edit_text(
             "❌ Ошибка при обработке запроса. Попробуйте позже.",
             reply_markup=get_main_menu_keyboard(),
@@ -72,7 +71,7 @@ async def handle_menu_action(
 
 
 async def show_main_menu(
-    message: types.Message, user_profile: Optional[dict] = None
+    message: types.Message, user_profile: dict | None = None,
 ) -> None:
     """Показать главное меню."""
     if user_profile:
@@ -126,8 +125,8 @@ async def show_group_selection(message: types.Message, state: FSMContext) -> Non
 
         await message.edit_text(text, reply_markup=keyboard)
 
-    except Exception as e:
-        logger.error(f"Error showing group selection: {e}")
+    except Exception:  # noqa: BLE001  - catch all for user-facing error handling
+        logger.error("Error in handler")
         await message.edit_text(
             "❌ Ошибка при загрузке списка групп.\n\n✍️ Введите номер группы вручную:",
             reply_markup=get_group_selection_keyboard(),
@@ -135,7 +134,7 @@ async def show_group_selection(message: types.Message, state: FSMContext) -> Non
 
 
 async def show_user_schedule(
-    message: types.Message, user_profile: dict, state: FSMContext
+    message: types.Message, user_profile: dict, state: FSMContext,
 ) -> None:
     """Показать расписание пользователя из БД."""
     try:
@@ -143,14 +142,14 @@ async def show_user_schedule(
         user_id = user_profile["user_id"]
 
         # Получаем расписание на текущую неделю
-        from datetime import date, timedelta
+        from datetime import UTC, datetime, timedelta
 
-        today = date.today()
+        today = datetime.now(UTC).date()
         week_start = today - timedelta(days=today.weekday())
         week_end = week_start + timedelta(days=6)
 
         schedule = await schedule_service.get_user_schedule(
-            user_id, week_start, week_end
+            user_id, week_start, week_end,
         )
 
         if schedule:
@@ -165,15 +164,18 @@ async def show_user_schedule(
             )
 
         # Добавляем дисклеймер
-        disclaimer = "⚠️ Информация может быть неактуальной. Уточняйте расписание в официальных источниках."
+        disclaimer = (
+            "⚠️ Информация может быть неактуальной. "
+            "Уточняйте расписание в официальных источниках."
+        )
         full_text = f"{schedule_text}\n\n{disclaimer}"
 
         await message.edit_text(
-            full_text, reply_markup=get_main_menu_keyboard(user_profile)
+            full_text, reply_markup=get_main_menu_keyboard(user_profile),
         )
 
-    except Exception as e:
-        logger.error(f"Error showing user schedule: {e}")
+    except Exception:  # noqa: BLE001  - catch all for user-facing error handling
+        logger.error("Error in handler")
         await message.edit_text(
             "❌ Ошибка при получении расписания.\n\n"
             "Попробуйте позже или обновите профиль.",
@@ -182,7 +184,7 @@ async def show_user_schedule(
 
 
 async def handle_export_schedule(
-    message: types.Message, user_profile: dict, state: FSMContext
+    message: types.Message, user_profile: dict, state: FSMContext,
 ) -> None:
     """Обработка экспорта расписания."""
     await message.edit_text(
@@ -198,7 +200,7 @@ async def handle_export_schedule(
 
 
 async def show_settings_menu(
-    message: types.Message, user_profile: Optional[dict]
+    message: types.Message, user_profile: dict | None,
 ) -> None:
     """Показать меню настроек."""
     if user_profile:
@@ -215,7 +217,7 @@ async def show_settings_menu(
     await message.edit_text(text, reply_markup=get_main_menu_keyboard(user_profile))
 
 
-def format_user_schedule(schedule: List[dict], group_name: str) -> str:
+def format_user_schedule(schedule: list[dict], group_name: str) -> str:
     """Форматировать расписание пользователя."""
     if not schedule:
         return f"📅 **Расписание группы {group_name}**\n\nНет занятий на эту неделю."
@@ -256,9 +258,14 @@ def format_user_schedule(schedule: List[dict], group_name: str) -> str:
                 if lesson.get("building"):
                     room_info += f" ({lesson['building']})"
 
+            teacher_name = lesson.get(
+                "teacher_name", "Преподаватель не указан"
+            )
             text += (
-                f"{lesson['lesson_number']}.{time_info} **{lesson['subject_name']}**\n"
-                f"   {lesson.get('lesson_type', 'Занятие')} • {lesson.get('teacher_name', 'Преподаватель не указан')}{room_info}\n"
+                f"{lesson['lesson_number']}.{time_info} "
+                f"**{lesson['subject_name']}**\n"
+                f"   {lesson.get('lesson_type', 'Занятие')} • "
+                f"{teacher_name}{room_info}\n"
             )
 
         text += "\n"
@@ -266,6 +273,6 @@ def format_user_schedule(schedule: List[dict], group_name: str) -> str:
     return text.strip()
 
 
-async def register_simplified_menu_handlers(dp: Dispatcher):
+async def register_simplified_menu_handlers(dp: Dispatcher) -> None:
     """Регистрация обработчиков упрощенного меню."""
     dp.callback_query.register(handle_menu_action, MenuCallback.filter())

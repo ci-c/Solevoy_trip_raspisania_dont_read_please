@@ -1,9 +1,8 @@
-"""
-Обработчик поиска групп с улучшенной безопасностью.
-"""
+"""Обработчик поиска групп с улучшенной безопасностью."""
 
 import asyncio
 from typing import Any
+
 from aiogram import Dispatcher, types
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
@@ -11,31 +10,33 @@ from loguru import logger
 
 from app.bot.callbacks import GroupSearchCallback
 from app.bot.keyboards import (
-    get_group_search_keyboard,
-    get_group_result_keyboard,
     get_error_keyboard,
+    get_group_result_keyboard,
+    get_group_search_keyboard,
 )
 from app.bot.states import GroupSearchStates
 from app.bot.utils import (
+    format_error_message,
     show_loading_spinner,
     validate_group_number,
-    format_error_message,
 )
-from app.utils.validation import validate_user_input, ValidationError
-from app.utils.error_handling import ErrorHandler, APIError, DatabaseError
 from app.schedule.group_search import GroupSearchService
 from app.schedule.semester_detector import SemesterDetector
+from app.utils.error_handling import APIError, DatabaseError, ErrorHandler
+from app.utils.validation import ValidationError, validate_user_input
 
 
 async def handle_group_search(
-    callback: types.CallbackQuery, callback_data: GroupSearchCallback, state: FSMContext
+    callback: types.CallbackQuery,
+    callback_data: GroupSearchCallback,
+    state: FSMContext,
 ) -> None:
     """Обработчик поиска групп."""
     # Rate limiting
     from app.utils.rate_limiter import check_rate_limit_manual
 
     is_allowed, error_message = check_rate_limit_manual(
-        callback.from_user.id, "callback"
+        callback.from_user.id, "callback",
     )
     if not is_allowed:
         await callback.answer(f"⏱️ {error_message}", show_alert=True)
@@ -130,10 +131,10 @@ async def process_group_number(message: types.Message, state: FSMContext) -> Non
 
         # Запускаем поиск и спиннер параллельно
         search_task = asyncio.create_task(
-            group_search_service.search_group_by_number(group_number)
+            group_search_service.search_group_by_number(group_number),
         )
         spinner_task = asyncio.create_task(
-            show_loading_spinner(loading_msg, f"Поиск группы {group_number}", 15)
+            show_loading_spinner(loading_msg, f"Поиск группы {group_number}", 15),
         )
 
         # Ждем завершения поиска с тайм-аутом
@@ -141,7 +142,7 @@ async def process_group_number(message: types.Message, state: FSMContext) -> Non
             groups = await asyncio.wait_for(search_task, timeout=35.0)
             spinner_task.cancel()
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             spinner_task.cancel()
             await loading_msg.edit_text(
                 f"⏱️ Поиск группы `{group_number}` занял слишком много времени.\n\n"
@@ -157,7 +158,7 @@ async def process_group_number(message: types.Message, state: FSMContext) -> Non
         except Exception as search_error:
             spinner_task.cancel()
             logger.error(f"Search task failed: {search_error}")
-            raise search_error
+            raise
 
         if not groups:
             await loading_msg.edit_text(
@@ -178,7 +179,7 @@ async def process_group_number(message: types.Message, state: FSMContext) -> Non
         # Берем первую найденную группу
         group_info = groups[0]
         logger.info(
-            f"Found group: {group_info.number}, speciality: {group_info.speciality}"
+            f"Found group: {group_info.number}, speciality: {group_info.speciality}",
         )
 
         # Сохраняем в состояние
@@ -206,19 +207,19 @@ async def process_group_number(message: types.Message, state: FSMContext) -> Non
 
         try:
             await loading_msg.edit_text(
-                error_message, reply_markup=get_group_search_keyboard()
+                error_message, reply_markup=get_group_search_keyboard(),
             )
         except Exception as edit_error:
             logger.error(f"Could not edit error message: {edit_error}")
             await message.answer(
-                "❌ Критическая ошибка. Перезапустите бота командой /start"
+                "❌ Критическая ошибка. Перезапустите бота командой /start",
             )
 
         await state.set_state(GroupSearchStates.choosing_search_type)
 
 
 async def show_group_schedule_safe(
-    message: Any, group_info: Any, week: str, state: FSMContext
+    message: Any, group_info: Any, week: str, state: FSMContext,
 ) -> None:
     """Безопасное отображение расписания группы."""
     try:
@@ -247,13 +248,13 @@ async def show_group_schedule_safe(
             week_number = current_week
 
         logger.info(
-            f"Showing schedule for group {group_info.number}, week {week_number}"
+            f"Showing schedule for group {group_info.number}, week {week_number}",
         )
 
         # Форматируем расписание с защитой от ошибок
         try:
             schedule_text = group_search_service.format_group_schedule(
-                group_info, week_number
+                group_info, week_number,
             )
 
             if not schedule_text or schedule_text.strip() == "":
@@ -263,8 +264,8 @@ async def show_group_schedule_safe(
                     f"🔄 Попробуйте другую неделю или повторите поиск."
                 )
 
-        except Exception as e:
-            logger.error(f"Error formatting schedule: {e}")
+        except Exception as e:  # noqa: BLE001  - catch all for bot command error handling
+            logger.error(f" formatting schedule: {e}")
             schedule_text = (
                 f"📅 **Расписание группы {group_info.number}**\n\n"
                 f"❌ Ошибка при обработке данных расписания.\n\n"
@@ -272,7 +273,10 @@ async def show_group_schedule_safe(
             )
 
         # Добавляем дисклеймер
-        disclaimer = "⚠️ Информация может быть неактуальной. Уточняйте расписание в официальных источниках."
+        disclaimer = (
+            "⚠️ Информация может быть неактуальной. "
+            "Уточняйте расписание в официальных источниках."
+        )
         full_text = f"{schedule_text}\n\n{disclaimer}"
 
         # Обрезаем если слишком длинное
@@ -290,9 +294,9 @@ async def show_group_schedule_safe(
         try:
             await message.edit_text(full_text, reply_markup=keyboard)
             logger.info(
-                f"Successfully displayed schedule for group {group_info.number}"
+                f"Successfully displayed schedule for group {group_info.number}",
             )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for database errors
             logger.error(f"Failed to edit message: {e}")
             await message.answer(full_text, reply_markup=keyboard)
 
@@ -311,18 +315,18 @@ async def show_group_schedule_safe(
 
         try:
             await message.edit_text(
-                error_text, reply_markup=get_group_search_keyboard()
+                error_text, reply_markup=get_group_search_keyboard(),
             )
         except Exception:
             await message.answer(
-                "❌ Критическая ошибка. Перезапустите бота командой /start"
+                "❌ Критическая ошибка. Перезапустите бота командой /start",
             )
 
 
-async def register_group_search_handlers(dp: Dispatcher):
+async def register_group_search_handlers(dp: Dispatcher) -> None:
     """Регистрация обработчиков поиска групп."""
     dp.callback_query.register(handle_group_search, GroupSearchCallback.filter())
 
     dp.message.register(
-        process_group_number, StateFilter(GroupSearchStates.entering_group_number)
+        process_group_number, StateFilter(GroupSearchStates.entering_group_number),
     )

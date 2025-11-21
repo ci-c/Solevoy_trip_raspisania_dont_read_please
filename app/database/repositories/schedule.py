@@ -3,11 +3,12 @@
 
 """Schedule repository implementation."""
 
-from typing import Sequence
+from collections.abc import Sequence
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database.models import Schedule, Group
+from app.database.models import Group, Schedule
 from app.database.repositories.base import BaseRepository
 
 

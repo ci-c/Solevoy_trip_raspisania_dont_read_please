@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import httpx
 from loguru import logger
@@ -21,33 +21,33 @@ class APIClient:
         self._timeout = httpx.Timeout(timeout)
 
     async def _post_json(
-        self, client: httpx.AsyncClient, endpoint: str, payload: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, client: httpx.AsyncClient, endpoint: str, payload: dict[str, Any],
+    ) -> dict[str, Any]:
         response = await client.post(
-            f"{self.base_url}{endpoint}", json=payload, headers=self._headers
+            f"{self.base_url}{endpoint}", json=payload, headers=self._headers,
         )
         response.raise_for_status()
         return response.json()
 
     async def _get_json(
-        self, client: httpx.AsyncClient, endpoint: str
-    ) -> Dict[str, Any]:
+        self, client: httpx.AsyncClient, endpoint: str,
+    ) -> dict[str, Any]:
         response = await client.get(
-            f"{self.base_url}{endpoint}", headers=self._headers
+            f"{self.base_url}{endpoint}", headers=self._headers,
         )
         response.raise_for_status()
         return response.json()
 
     async def find_schedule_ids(
         self,
-        group_stream: Optional[List[str]] = None,
-        speciality: Optional[List[str]] = None,
-        course_number: Optional[List[str]] = None,
-        academic_year: Optional[List[str]] = None,
-        lesson_type: Optional[List[str]] = None,
-        semester: Optional[List[str]] = None,
-    ) -> List[int]:
-        payload: Dict[str, Any] = {
+        group_stream: list[str] | None = None,
+        speciality: list[str] | None = None,
+        course_number: list[str] | None = None,
+        academic_year: list[str] | None = None,
+        lesson_type: list[str] | None = None,
+        semester: list[str] | None = None,
+    ) -> list[int]:
+        payload: dict[str, Any] = {
             "groupStream": group_stream or [],
             "speciality": speciality or [],
             "courseNumber": course_number or [],
@@ -56,15 +56,15 @@ class APIClient:
             "semester": semester or [],
         }
 
-        schedule_ids: List[int] = []
+        schedule_ids: list[int] = []
         page = 0
-        total_elements: Optional[int] = None
+        total_elements: int | None = None
 
         async with httpx.AsyncClient(timeout=self._timeout) as client:
             while True:
                 try:
                     data = await self._post_json(
-                        client, f"/findAll/{page}", payload
+                        client, f"/findAll/{page}", payload,
                     )
                 except httpx.HTTPStatusError as exc:
                     logger.warning(
@@ -97,11 +97,11 @@ class APIClient:
         logger.info(f"Collected {len(schedule_ids)} schedule IDs")
         return schedule_ids
 
-    async def get_schedule_data(self, schedule_id: int) -> Optional[Dict[str, Any]]:
+    async def get_schedule_data(self, schedule_id: int) -> dict[str, Any] | None:
         async with httpx.AsyncClient(timeout=self._timeout) as client:
             try:
                 data = await self._get_json(
-                    client, f"/findById?xlsxScheduleId={schedule_id}"
+                    client, f"/findById?xlsxScheduleId={schedule_id}",
                 )
             except httpx.HTTPStatusError as exc:
                 logger.warning(
@@ -112,7 +112,7 @@ class APIClient:
                 return None
             except httpx.RequestError as exc:
                 logger.error(
-                    f"Schedule data request error for id {schedule_id}: {exc}"
+                    f"Schedule data request error for id {schedule_id}: {exc}",
                 )
                 return None
 
@@ -122,11 +122,11 @@ class APIClient:
             return None
 
         logger.debug(
-            "Loaded schedule %s with %s lessons", schedule_id, len(lessons)
+            "Loaded schedule %s with %s lessons", schedule_id, len(lessons),
         )
         return data
 
-    async def search_schedules(self, filters: Dict[str, List[str]]) -> List[Dict[str, Any]]:
+    async def search_schedules(self, filters: dict[str, list[str]]) -> list[dict[str, Any]]:
         logger.info(f"Starting schedule search with filters: {filters}")
 
         course_number = filters.get("Курс", [])
@@ -163,8 +163,8 @@ class APIClient:
         tasks = [self.get_schedule_data(schedule_id) for schedule_id in schedule_ids[:max_schedules]]
         schedule_data_list = await asyncio.gather(*tasks, return_exceptions=True)
 
-        results: List[Dict[str, Any]] = []
-        for schedule_id, data in zip(schedule_ids, schedule_data_list):
+        results: list[dict[str, Any]] = []
+        for schedule_id, data in zip(schedule_ids, schedule_data_list, strict=False):
             if isinstance(data, Exception):
                 logger.error(f"Error in schedule task for ID {schedule_id}: {data}")
                 continue

@@ -8,14 +8,15 @@
 - Кэширование результатов
 """
 
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 
 from app.schedule.api import (
-    search_schedules,
-    get_available_filters,
     find_schedule_ids,
+    get_available_filters,
     get_schedule_data,
+    search_schedules,
 )
 
 
@@ -168,7 +169,7 @@ class TestScheduleAPI:
             assert call_args["course_number"] == ["1"]  # Из "101а" извлечен курс "1"
 
     @pytest.mark.parametrize(
-        "filters,expected_course",
+        ("filters", "expected_course"),
         [
             ({"Группа": ["101а"]}, ["1"]),
             ({"Группа": ["205б"]}, ["2"]),

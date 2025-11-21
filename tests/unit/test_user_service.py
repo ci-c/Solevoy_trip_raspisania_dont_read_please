@@ -4,8 +4,8 @@
 
 import pytest
 
+from app.models.user import AccessLevel, User
 from app.services.user_service import UserService
-from app.models.user import User, AccessLevel
 
 
 @pytest.mark.asyncio
@@ -27,7 +27,7 @@ class TestUserService:
         assert user.telegram_id == sample_user_data["telegram_id"]
         assert user.telegram_username == sample_user_data["telegram_username"]
         assert user.full_name == sample_user_data["full_name"]
-        assert user.access_level == AccessLevel.GUEST  # default level
+        assert user.access_level == AccessLevel.BASIC  # default level for new users
         assert user.is_active is True
         assert user.id is not None
 

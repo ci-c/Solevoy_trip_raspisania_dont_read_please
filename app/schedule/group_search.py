@@ -1,5 +1,4 @@
-"""
-Сервис поиска групп и объединения расписаний.
+"""Сервис поиска групп и объединения расписаний.
 
 Зона ответственности:
 - Поиск групп по номеру с нормализацией (103а, 204б и т.д.)
@@ -11,10 +10,9 @@
 - Кэширование результатов поиска для повышения производительности
 """
 
-from typing import Dict, List, Optional
-from dataclasses import dataclass, field
 import re
 from collections import defaultdict
+from dataclasses import dataclass, field
 
 from app.schedule.api import search_schedules
 from app.schedule.semester_detector import SemesterDetector
@@ -30,9 +28,9 @@ class GroupInfo:
     stream: str
     semester: str
     year: str
-    lecture_schedule: Optional[Dict] = None
-    seminar_schedule: Optional[Dict] = None
-    unified_lessons: List["UnifiedLesson"] = field(default_factory=list)
+    lecture_schedule: dict | None = None
+    seminar_schedule: dict | None = None
+    unified_lessons: list["UnifiedLesson"] = field(default_factory=list)
 
 
 @dataclass
@@ -49,7 +47,7 @@ class UnifiedLesson:
     day_of_week: int
     week_number: int
     group: str
-    subgroup: Optional[str] = None
+    subgroup: str | None = None
 
     @property
     def time_range(self) -> str:
@@ -59,17 +57,20 @@ class UnifiedLesson:
     def full_info(self) -> str:
         type_emoji = "📚" if self.type == "lecture" else "📝"
         subgroup_info = f" | Подгр. {self.subgroup}" if self.subgroup else ""
-        return f"{type_emoji} {self.subject} ({self.type})\n     👨‍🏫 {self.teacher} | 🏢 {self.room}{subgroup_info}"
+        return (
+            f"{type_emoji} {self.subject} ({self.type})\n"
+            f"     👨‍🏫 {self.teacher} | 🏢 {self.room}{subgroup_info}"
+        )
 
 
 class GroupSearchService:
     """Сервис поиска групп и объединения расписаний."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.semester_detector = SemesterDetector()
-        self.groups_cache: Dict[str, List[GroupInfo]] = {}
+        self.groups_cache: dict[str, list[GroupInfo]] = {}
 
-    async def search_group_by_number(self, group_number: str) -> List[GroupInfo]:
+    async def search_group_by_number(self, group_number: str) -> list[GroupInfo]:
         """Поиск группы по номеру (103а, 204б, etc)."""
         from loguru import logger
 
@@ -77,7 +78,7 @@ class GroupSearchService:
             # Нормализуем номер группы
             normalized_number = self._normalize_group_number(group_number)
             logger.info(
-                f"Searching for group: {group_number} (normalized: {normalized_number})"
+                f"Searching for group: {group_number} (normalized: {normalized_number})",
             )
 
             # Проверяем кэш
@@ -133,7 +134,7 @@ class GroupSearchService:
             logger.error(f"Traceback: {e.__traceback__}")
         return []
 
-    async def search_groups_by_filters(self, filters: Dict) -> List[GroupInfo]:
+    async def search_groups_by_filters(self, filters: dict) -> list[GroupInfo]:
         """Поиск групп по фильтрам."""
         # Добавляем текущий семестр к фильтрам
         priority_filters = self.semester_detector.get_priority_filters()
@@ -161,12 +162,11 @@ class GroupSearchService:
     def _normalize_group_number(self, group_number: str) -> str:
         """Нормализация номера группы."""
         # Убираем лишние символы, приводим к единому формату
-        cleaned = re.sub(r"[^\w\d]", "", group_number.lower())
-        return cleaned
+        return re.sub(r"[^\w\d]", "", group_number.lower())
 
     def _process_schedules_to_groups(
-        self, schedules: List[Dict], group_number: str
-    ) -> List[GroupInfo]:
+        self, schedules: list[dict], group_number: str,
+    ) -> list[GroupInfo]:
         """Обработать расписания и создать информацию о группах."""
         if not schedules:
             return []
@@ -185,7 +185,7 @@ class GroupSearchService:
         # Создаем группу
         first_schedule = schedules[0]
         group_info = self._extract_group_info_from_schedule(
-            first_schedule, group_number
+            first_schedule, group_number,
         )
 
         # Добавляем расписания
@@ -199,7 +199,7 @@ class GroupSearchService:
 
         return [group_info]
 
-    def _detect_schedule_type(self, schedule: Dict) -> str:
+    def _detect_schedule_type(self, schedule: dict) -> str:
         """Определить тип расписания (лекции или семинары)."""
         data = schedule.get("data", {})
         lessons = data.get("scheduleLessonDtoList", [])
@@ -216,13 +216,13 @@ class GroupSearchService:
         # Определяем преобладающий тип
         if any("лекц" in lt for lt in lesson_types):
             return "lecture"
-        elif any("семинар" in lt or "практ" in lt for lt in lesson_types):
+        if any("семинар" in lt or "практ" in lt for lt in lesson_types):
             return "seminar"
 
         return "unknown"
 
     def _extract_group_info_from_schedule(
-        self, schedule: Dict, group_number: str
+        self, schedule: dict, group_number: str,
     ) -> GroupInfo:
         """Извлечь информацию о группе из расписания."""
         data = schedule.get("data", {})
@@ -260,7 +260,7 @@ class GroupSearchService:
             year=year,
         )
 
-    def _extract_group_numbers_from_schedule(self, schedule: Dict) -> List[str]:
+    def _extract_group_numbers_from_schedule(self, schedule: dict) -> list[str]:
         """Извлечь номера групп из расписания."""
         data = schedule.get("data", {})
         lessons = data.get("scheduleLessonDtoList", [])
@@ -273,21 +273,21 @@ class GroupSearchService:
 
         return list(groups)
 
-    def _merge_schedules_to_lessons(self, group_info: GroupInfo) -> List[UnifiedLesson]:
+    def _merge_schedules_to_lessons(self, group_info: GroupInfo) -> list[UnifiedLesson]:
         """Объединить расписания лекций и семинаров в единый список."""
         unified_lessons = []
 
         # Обрабатываем лекции
         if group_info.lecture_schedule:
             lectures = self._parse_lessons_from_schedule(
-                group_info.lecture_schedule, "lecture", group_info.number
+                group_info.lecture_schedule, "lecture", group_info.number,
             )
             unified_lessons.extend(lectures)
 
         # Обрабатываем семинары
         if group_info.seminar_schedule:
             seminars = self._parse_lessons_from_schedule(
-                group_info.seminar_schedule, "seminar", group_info.number
+                group_info.seminar_schedule, "seminar", group_info.number,
             )
             unified_lessons.extend(seminars)
 
@@ -297,8 +297,8 @@ class GroupSearchService:
         return unified_lessons
 
     def _parse_lessons_from_schedule(
-        self, schedule: Dict, lesson_type: str, group_number: str
-    ) -> List[UnifiedLesson]:
+        self, schedule: dict, lesson_type: str, group_number: str,
+    ) -> list[UnifiedLesson]:
         """Парсить занятия из расписания."""
         data = schedule.get("data", {})
         lessons_data = data.get("scheduleLessonDtoList", [])
@@ -339,8 +339,8 @@ class GroupSearchService:
         return lessons
 
     def get_week_schedule(
-        self, group_info: GroupInfo, week_number: Optional[int] = None
-    ) -> Dict[str, List[UnifiedLesson]]:
+        self, group_info: GroupInfo, week_number: int | None = None,
+    ) -> dict[str, list[UnifiedLesson]]:
         """Получить расписание на неделю."""
         if week_number is None:
             week_number = (
@@ -366,12 +366,12 @@ class GroupSearchService:
         return dict(week_schedule)
 
     def format_group_schedule(
-        self, group_info: GroupInfo, week_number: Optional[int] = None
+        self, group_info: GroupInfo, week_number: int | None = None,
     ) -> str:
         """Отформатировать расписание группы для отображения."""
         semester_info = self.semester_detector.get_current_semester_info()
         week_schedule = self.get_week_schedule(
-            group_info, week_number or semester_info.current_week
+            group_info, week_number or semester_info.current_week,
         )
 
         if not week_schedule:

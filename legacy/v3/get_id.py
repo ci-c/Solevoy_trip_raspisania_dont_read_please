@@ -1,7 +1,7 @@
-import requests
 import json
 import logging
-from typing import List, Optional
+
+import requests
 
 # Set up logging for the module
 logger = logging.getLogger(__name__)
@@ -9,13 +9,13 @@ logger.setLevel(logging.INFO)
 
 
 def find_schedule_ids(
-    group_stream: List[str] | None = None,
-    speciality: List[str] | None = None,
-    course_number: List[str] | None = None,
-    academic_year: List[str] | None = None,
-    lesson_type: Optional[List[str]] = None,
-    semester: Optional[List[str]] = None,
-) -> List[int]:
+    group_stream: list[str] | None = None,
+    speciality: list[str] | None = None,
+    course_number: list[str] | None = None,
+    academic_year: list[str] | None = None,
+    lesson_type: list[str] | None = None,
+    semester: list[str] | None = None,
+) -> list[int]:
     """
     Searches for schedule IDs by sending a POST request to the API with specified parameters.
 
@@ -54,20 +54,17 @@ def find_schedule_ids(
         data = response.json()
 
         if "content" in data:
-            found_ids = [item["id"] for item in data["content"]]
-            return found_ids
-        else:
-            logger.error("API response is missing the 'content' key.")
-            return []
+            return [item["id"] for item in data["content"]]
+        logger.error("API response is missing the 'content' key.")
+        return []
 
     except requests.exceptions.RequestException as e:
-        logger.error(f"HTTP request error occurred: {e}")
+        logger.exception(f"HTTP request error occurred: {e}")
         return []
     except json.JSONDecodeError:
-        logger.error("JSON decoding error: The response is not valid JSON.")
+        logger.exception("JSON decoding error: The response is not valid JSON.")
         return []
 
 
 if __name__ == "__main__":
     ids = find_schedule_ids()
-    print(ids)

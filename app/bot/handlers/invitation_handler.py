@@ -3,28 +3,26 @@
 
 """Обработчики для системы инвайтов и контроля доступа."""
 
-from datetime import datetime
-from typing import List
 
 from aiogram import Dispatcher, types
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from loguru import logger
 
-from app.bot.callbacks import MenuCallback, InvitationCallback
+from app.bot.callbacks import InvitationCallback, MenuCallback
 from app.bot.keyboards import (
-    get_main_menu_keyboard,
-    get_invitation_keyboard,
     get_admin_invitation_keyboard,
+    get_invitation_keyboard,
+    get_main_menu_keyboard,
 )
 from app.bot.states import InvitationStates
+from app.models.user import AccessLevel
 from app.services.invitation_service import InvitationService
 from app.services.user_service import UserService
-from app.models.user import AccessLevel
 
 
 async def handle_invitation_main(
-    callback: types.CallbackQuery, callback_data: InvitationCallback, state: FSMContext
+    callback: types.CallbackQuery, callback_data: InvitationCallback, state: FSMContext,
 ) -> None:
     """Главное меню системы инвайтов."""
     await callback.answer()
@@ -41,7 +39,7 @@ async def handle_invitation_main(
             )
             return
 
-        invitation_service = InvitationService()
+        InvitationService()
 
         # Проверяем права пользователя
         if user.access_level in [AccessLevel.ADMIN, AccessLevel.TESTER]:
@@ -68,8 +66,9 @@ async def handle_invitation_main(
                 reply_markup=get_invitation_keyboard(),
             )
 
-    except Exception as e:
-        logger.error(f"Error in invitation main handler: {e}")
+    except Exception:  # noqa: BLE001  - catch all for user-facing error handling
+        logger.error("Error in handler")
+
         await callback.message.edit_text(
             "❌ Ошибка при загрузке системы инвайтов. Попробуйте позже.",
             reply_markup=get_main_menu_keyboard(),
@@ -77,7 +76,7 @@ async def handle_invitation_main(
 
 
 async def handle_create_invitation(
-    callback: types.CallbackQuery, callback_data: InvitationCallback, state: FSMContext
+    callback: types.CallbackQuery, callback_data: InvitationCallback, state: FSMContext,
 ) -> None:
     """Создание нового инвайта."""
     await callback.answer()
@@ -111,7 +110,12 @@ async def handle_create_invitation(
         text += (
             f"🔢 **Максимум использований:** {invitation.max_uses or 'Неограниченно'}\n"
         )
-        text += f"⏰ **Действует до:** {invitation.expires_at.strftime('%d.%m.%Y %H:%M') if invitation.expires_at else 'Бессрочно'}\n\n"
+        expires_text = (
+            invitation.expires_at.strftime("%d.%m.%Y %H:%M")
+            if invitation.expires_at
+            else "Бессрочно"
+        )
+        text += f"⏰ **Действует до:** {expires_text}\n\n"
         text += "Поделитесь этим кодом с пользователями для предоставления доступа."
 
         await callback.message.edit_text(
@@ -134,12 +138,13 @@ async def handle_create_invitation(
                             callback_data=MenuCallback(action="home").pack(),
                         ),
                     ],
-                ]
+                ],
             ),
         )
 
-    except Exception as e:
-        logger.error(f"Error in create invitation handler: {e}")
+    except Exception:  # noqa: BLE001  - catch all for user-facing error handling
+        logger.error("Error in handler")
+
         await callback.message.edit_text(
             "❌ Ошибка при создании инвайта. Попробуйте позже.",
             reply_markup=get_main_menu_keyboard(),
@@ -147,7 +152,7 @@ async def handle_create_invitation(
 
 
 async def handle_list_invitations(
-    callback: types.CallbackQuery, callback_data: InvitationCallback, state: FSMContext
+    callback: types.CallbackQuery, callback_data: InvitationCallback, state: FSMContext,
 ) -> None:
     """Список инвайтов пользователя."""
     await callback.answer()
@@ -203,12 +208,13 @@ async def handle_list_invitations(
                             callback_data=InvitationCallback(action="main").pack(),
                         ),
                     ],
-                ]
+                ],
             ),
         )
 
-    except Exception as e:
-        logger.error(f"Error in list invitations handler: {e}")
+    except Exception:  # noqa: BLE001  - catch all for user-facing error handling
+        logger.error("Error in handler")
+
         await callback.message.edit_text(
             "❌ Ошибка при загрузке инвайтов. Попробуйте позже.",
             reply_markup=get_main_menu_keyboard(),
@@ -216,11 +222,10 @@ async def handle_list_invitations(
 
 
 async def handle_use_invitation(
-    callback: types.CallbackQuery, callback_data: InvitationCallback, state: FSMContext
+    callback: types.CallbackQuery, callback_data: InvitationCallback, state: FSMContext,
 ) -> None:
     """Использование инвайта."""
     await callback.answer()
-    user_id = callback.from_user.id
 
     try:
         await state.set_state(InvitationStates.entering_code)
@@ -238,13 +243,14 @@ async def handle_use_invitation(
                             text="❌ Отмена",
                             callback_data=InvitationCallback(action="main").pack(),
                         ),
-                    ]
-                ]
+                    ],
+                ],
             ),
         )
 
-    except Exception as e:
-        logger.error(f"Error in use invitation handler: {e}")
+    except Exception:  # noqa: BLE001  - catch all for user-facing error handling
+        logger.error("Error in handler")
+
         await callback.message.edit_text(
             "❌ Ошибка при использовании инвайта. Попробуйте позже.",
             reply_markup=get_main_menu_keyboard(),
@@ -301,8 +307,9 @@ async def process_invitation_code(message: types.Message, state: FSMContext) -> 
 
         await state.clear()
 
-    except Exception as e:
-        logger.error(f"Error processing invitation code: {e}")
+    except Exception:  # noqa: BLE001  - catch all for user-facing error handling
+        logger.error("Error in handler")
+
         await message.answer(
             "❌ Ошибка при обработке кода инвайта. Попробуйте позже.",
             reply_markup=get_main_menu_keyboard(),
@@ -319,5 +326,5 @@ async def register_invitation_handlers(dp: Dispatcher) -> None:
 
     # Обработка ввода кода инвайта
     dp.message.register(
-        process_invitation_code, StateFilter(InvitationStates.entering_code)
+        process_invitation_code, StateFilter(InvitationStates.entering_code),
     )

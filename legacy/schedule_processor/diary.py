@@ -1,11 +1,10 @@
 """Модуль для ведения студенческого дневника (оценки, ДЗ, пропуски)."""
 
-from dataclasses import dataclass
-from typing import Optional, List
-from datetime import date, datetime
-from pathlib import Path
 import json
+from dataclasses import dataclass
+from datetime import date, datetime
 from enum import Enum
+from pathlib import Path
 
 
 class GradeType(Enum):
@@ -28,8 +27,8 @@ class Grade:
     grade: int  # Оценка (2-5)
     grade_type: GradeType  # Тип работы
     date: date  # Дата получения оценки
-    teacher: Optional[str] = None  # Преподаватель
-    notes: Optional[str] = None  # Заметки
+    teacher: str | None = None  # Преподаватель
+    notes: str | None = None  # Заметки
 
 
 @dataclass
@@ -41,8 +40,8 @@ class Homework:
     due_date: date  # Дата сдачи
     created_date: date  # Дата создания записи
     completed: bool = False  # Выполнено ли
-    completed_date: Optional[date] = None  # Дата выполнения
-    notes: Optional[str] = None  # Заметки
+    completed_date: date | None = None  # Дата выполнения
+    notes: str | None = None  # Заметки
 
 
 @dataclass
@@ -52,10 +51,10 @@ class Absence:
     subject: str  # Предмет
     lesson_type: str  # Тип занятия (лекция/семинар)
     absence_date: date  # Дата пропуска
-    reason: Optional[str] = None  # Причина пропуска
+    reason: str | None = None  # Причина пропуска
     excused: bool = False  # Уважительная причина
     made_up: bool = False  # Отработано ли
-    makeup_date: Optional[date] = None  # Дата отработки
+    makeup_date: date | None = None  # Дата отработки
     affects_knl: bool = False  # Влияет ли на КНЛ
     affects_kns: bool = False  # Влияет ли на КНС
 
@@ -65,9 +64,9 @@ class SubjectStats:
     """Статистика по предмету."""
 
     subject: str
-    grades: List[Grade]
-    homeworks: List[Homework]
-    absences: List[Absence]
+    grades: list[Grade]
+    homeworks: list[Homework]
+    absences: list[Absence]
 
     @property
     def average_grade(self) -> float:
@@ -95,13 +94,13 @@ class SubjectStats:
 class StudentDiary:
     """Студенческий дневник."""
 
-    def __init__(self, user_id: int, storage_path: Path):
+    def __init__(self, user_id: int, storage_path: Path) -> None:
         self.user_id = user_id
         self.storage_path = Path(storage_path)
         self.storage_path.mkdir(parents=True, exist_ok=True)
-        self.grades: List[Grade] = []
-        self.homeworks: List[Homework] = []
-        self.absences: List[Absence] = []
+        self.grades: list[Grade] = []
+        self.homeworks: list[Homework] = []
+        self.absences: list[Absence] = []
         self.load_data()
 
     def get_diary_file(self) -> Path:
@@ -116,7 +115,7 @@ class StudentDiary:
             return
 
         try:
-            with open(diary_file, "r", encoding="utf-8") as f:
+            with open(diary_file, encoding="utf-8") as f:
                 data = json.load(f)
 
             # Загрузка оценок
@@ -256,7 +255,7 @@ class StudentDiary:
             absences=subject_absences,
         )
 
-    def get_all_subjects(self) -> List[str]:
+    def get_all_subjects(self) -> list[str]:
         """Получить список всех предметов."""
         subjects = set()
         subjects.update(g.subject for g in self.grades)
@@ -264,16 +263,16 @@ class StudentDiary:
         subjects.update(a.subject for a in self.absences)
         return sorted(subjects)
 
-    def get_pending_homeworks(self) -> List[Homework]:
+    def get_pending_homeworks(self) -> list[Homework]:
         """Получить невыполненные ДЗ."""
         return [hw for hw in self.homeworks if not hw.completed]
 
-    def get_overdue_homeworks(self) -> List[Homework]:
+    def get_overdue_homeworks(self) -> list[Homework]:
         """Получить просроченные ДЗ."""
         today = date.today()
         return [hw for hw in self.homeworks if not hw.completed and hw.due_date < today]
 
-    def get_upcoming_homeworks(self, days: int = 7) -> List[Homework]:
+    def get_upcoming_homeworks(self, days: int = 7) -> list[Homework]:
         """Получить ДЗ на ближайшие дни."""
         from datetime import timedelta
 

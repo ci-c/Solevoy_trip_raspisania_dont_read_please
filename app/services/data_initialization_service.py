@@ -1,8 +1,7 @@
-"""
-Сервис для инициализации базовых данных в системе.
-"""
+"""Сервис для инициализации базовых данных в системе."""
 
-from typing import List, Dict, Any
+from typing import Any
+
 from loguru import logger
 
 from app.services.faculty_service import FacultyService
@@ -12,7 +11,7 @@ from app.services.group_service import GroupService
 class DataInitializationService:
     """Сервис для инициализации данных."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.faculty_service = FacultyService()
         self.group_service = GroupService()
 
@@ -41,7 +40,7 @@ class DataInitializationService:
             logger.warning("Please check API connection or configure fallback data")
             return False
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error creating default faculties: {e}")
             return False
 
@@ -67,7 +66,7 @@ class DataInitializationService:
                                 "faculty": faculty,
                                 "speciality": f"Специальность {faculty}",
                                 "course": course,
-                            }
+                            },
                         )
 
             # Сохраняем группы
@@ -81,11 +80,11 @@ class DataInitializationService:
             logger.error(f"Error initializing sample groups: {e}")
             return False
 
-    async def _save_groups(self, groups_data: List[Dict[str, Any]]) -> bool:
+    async def _save_groups(self, groups_data: list[dict[str, Any]]) -> bool:
         """Сохранить группы в базу данных."""
         try:
-            from app.database.session import get_session
             from app.database.models import Group
+            from app.database.session import get_session
 
             async for session in get_session():
                 for group_data in groups_data:
@@ -99,7 +98,7 @@ class DataInitializationService:
 
                 await session.commit()
                 return True
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  - catch all for external service errors
             logger.error(f"Error saving groups: {e}")
             return False
 
@@ -126,7 +125,7 @@ class DataInitializationService:
             logger.error(f"Error during data initialization: {e}")
             return False
 
-    async def check_data_availability(self) -> Dict[str, bool] | None:
+    async def check_data_availability(self) -> dict[str, bool] | None:
         """Проверить доступность данных в системе."""
         try:
             faculties = await self.faculty_service.get_faculty_names()

@@ -13,7 +13,7 @@ from loguru import logger
 
 from app.bot.main import main as bot_main
 from app.utils.logger import LoggingConfig, log_bot_shutdown
-from app.utils.secrets import validate_environment, secrets_manager
+from app.utils.secrets import secrets_manager, validate_environment
 
 
 async def setup_app() -> None:
@@ -48,7 +48,7 @@ async def start_app() -> None:
     await bot_main()
 
 
-def main():
+def main() -> None:
     """Main entry point for the application."""
     try:
         asyncio.run(start_app())

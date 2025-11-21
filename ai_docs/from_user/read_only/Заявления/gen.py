@@ -1,9 +1,11 @@
+import contextlib
 import json
+from datetime import datetime
+
 import yaml
 from docx import Document
-from docx.shared import Pt, Inches
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
-from datetime import datetime
+from docx.shared import Inches, Pt
 
 # --- Constants for better readability and maintainability ---
 # Document margins
@@ -38,33 +40,22 @@ def load_data_file(filename_base: str, default_data: dict) -> dict:
 
     for filename in possible_filenames:
         try:
-            with open(filename, "r", encoding="utf-8") as file:
+            with open(filename, encoding="utf-8") as file:
                 if filename.endswith((".yaml", ".yml")):
-                    print(f"Загрузка данных из YAML файла: '{filename}'")
                     return yaml.safe_load(file)
-                elif filename.endswith(".json"):
-                    print(f"Загрузка данных из JSON файла: '{filename}'")
+                if filename.endswith(".json"):
                     return json.load(file)
         except FileNotFoundError:
             # If file not found, continue to the next possible filename
             continue
-        except (yaml.YAMLError, json.JSONDecodeError) as e:
+        except (yaml.YAMLError, json.JSONDecodeError):
             # If there's a parsing error, print a warning and try the next format/file
-            print(
-                f"Ошибка при чтении файла '{filename}': {e}. Попытка следующего формата/файла."
-            )
             continue
-        except Exception as e:
+        except Exception:
             # Catch any other unexpected errors during file loading
-            print(
-                f"Неизвестная ошибка при загрузке '{filename}': {e}. Попытка следующего формата/файла."
-            )
             continue
 
     # If no file was found or successfully loaded after trying all options
-    print(
-        f"Предупреждение: Ни один из файлов ({', '.join(possible_filenames)}) не найден или не может быть прочитан. Используются данные по умолчанию."
-    )
     return default_data
 
 
@@ -100,7 +91,7 @@ def load_missed_classes() -> dict:
 
 def add_styled_paragraph(
     doc: Document, text: str, bold: bool = False, align=ALIGN_LEFT
-):
+) -> None:
     """
     Adds a paragraph to the document with standard styling (Times New Roman, 12pt).
     """
@@ -114,13 +105,13 @@ def add_styled_paragraph(
     p.alignment = align
 
 
-def add_blank_paragraphs(doc: Document, count: int = 1):
+def add_blank_paragraphs(doc: Document, count: int = 1) -> None:
     """Adds multiple blank paragraphs for spacing."""
     for _ in range(count):
         doc.add_paragraph().paragraph_format.line_spacing = 1.0
 
 
-def setup_document_sections(doc: Document):
+def setup_document_sections(doc: Document) -> None:
     """Sets up standard page size and margins for the document."""
     section = doc.sections[0]
     section.page_height = Inches(11.69)  # A4 height
@@ -136,7 +127,7 @@ def setup_document_sections(doc: Document):
 
 def add_explanatory_note_page(
     doc: Document, config: dict, missed_data: dict, lesson: dict
-):
+) -> None:
     """Generates a full 'Приложение № 2 (Объяснительная записка)' page."""
     add_styled_paragraph(doc, "Приложение № 2 к Положению", align=ALIGN_RIGHT)
     add_blank_paragraphs(doc, 2)
@@ -182,7 +173,7 @@ def add_explanatory_note_page(
     doc.add_page_break()
 
 
-def add_application_page(doc: Document, config: dict, missed_data: dict, lesson: dict):
+def add_application_page(doc: Document, config: dict, missed_data: dict, lesson: dict) -> None:
     """Generates a full 'Приложение № 3 (Заявление)' page."""
     add_styled_paragraph(doc, "Приложение № 3 к Положению", align=ALIGN_RIGHT)
     add_blank_paragraphs(doc, 2)
@@ -226,7 +217,7 @@ def add_application_page(doc: Document, config: dict, missed_data: dict, lesson:
 # --- Main Document Creation Function ---
 
 
-def create_docx_documents():
+def create_docx_documents() -> None:
     """
     Main function to load data and generate DOCX documents for each missed lesson.
     """
@@ -236,13 +227,12 @@ def create_docx_documents():
     lessons = missed_data.get("lessons", [])
 
     if not lessons:
-        print("Нет данных о пропущенных занятиях для генерации документов.")
         return
 
     doc = Document()
     setup_document_sections(doc)
 
-    for i, lesson in enumerate(lessons):
+    for _i, lesson in enumerate(lessons):
         add_explanatory_note_page(doc, config, missed_data, lesson)
         add_application_page(doc, config, missed_data, lesson)
 
@@ -254,11 +244,8 @@ def create_docx_documents():
         f"Заявление_Объяснительная_{student_name_sanitized}_{current_timestamp}.docx"
     )
 
-    try:
+    with contextlib.suppress(Exception):
         doc.save(output_filename)
-        print(f"Документ '{output_filename}' успешно создан!")
-    except Exception as e:
-        print(f"Ошибка при сохранении документа: {e}")
 
 
 if __name__ == "__main__":
